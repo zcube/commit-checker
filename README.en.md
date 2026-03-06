@@ -145,8 +145,11 @@ encoding:
 
 editorconfig:
   enabled: true
+  # ignore_files:
+  #   - "vendor/**"
 
 commit_message:
+  # enabled: true  # false to disable all commit message checks
   no_coauthor: true
   no_unicode_spaces: true
   no_ambiguous_chars: true

@@ -77,7 +77,8 @@ comment_language:
   # false로 설정하면 모든 문자열을 검사함.
   # skip_technical_strings: true
 
-  # ignore_files: glob patterns for files to skip in comment language checks.
+  # ignore_files: 주석 언어 검사에서 제외할 glob 패턴 목록.
+  # exceptions.comment_language_ignore 와 동일한 역할이며 병합되어 적용됨.
   ignore_files:
     - "**/*_test.go"      # 테스트 파일은 영어 주석 허용
     - "internal/charset/ambiguous_gen.go"  # 자동 생성 파일
@@ -162,8 +163,16 @@ editorconfig:
   # enabled: .editorconfig 규칙 검사 활성화 여부 (기본값: true).
   # .editorconfig 파일이 없으면 자동으로 건너뜀.
   enabled: true
+  # ignore_files: editorconfig 검사에서 제외할 glob 패턴 목록.
+  # ignore_files:
+  #   - "vendor/**"
+  #   - "**/*.generated.go"
 
 commit_message:
+  # enabled: 커밋 메시지 검사 전체 활성화 여부 (기본값: true).
+  # false이면 no_coauthor, no_unicode_spaces 등 모든 하위 검사를 건너뜀.
+  # enabled: true
+
   # no_coauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
   # true이면 내장 AI 이메일 패턴(Copilot, Claude, Cursor, Codeium 등)과 일치하는
   # Co-authored-by 줄을 거부하고 fix 명령으로 자동 제거함.

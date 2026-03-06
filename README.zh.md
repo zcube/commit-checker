@@ -99,6 +99,7 @@ comment_language:
   no_emoji: false              # true 禁止注释中的表情符号
 
 commit_message:
+  # enabled: true  # false 禁用所有提交消息检查
   no_coauthor: true
   no_unicode_spaces: true
   no_ambiguous_chars: true

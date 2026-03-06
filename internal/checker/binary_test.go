@@ -273,10 +273,10 @@ func TestCheckBinaryFiles_DeletedBinaryIgnored(t *testing.T) {
 	gitMust(t, dir, "git", "commit", "-m", "add binary")
 
 	// Delete the binary file and stage the deletion
-	os.Remove(filepath.Join(dir, "old.bin"))
+	_ = os.Remove(filepath.Join(dir, "old.bin"))
 	cmd := exec.Command("git", "add", "old.bin")
 	cmd.Dir = dir
-	cmd.Run()
+	_ = cmd.Run()
 
 	errs, err := checker.CheckBinaryFiles(binaryCheckConfig())
 	if err != nil {

@@ -2,6 +2,10 @@ pre-commit:
   commands:
     comment-language:
       run: commit-checker diff
+    golangci-lint:
+      glob: "*.go"
+      run: golangci-lint run --fix
+      stage_fixed: true
 
 commit-msg:
   commands:

@@ -32,6 +32,9 @@ func CheckEditorConfig(cfg *config.Config) ([]string, error) {
 		if pathutil.MatchesAny(path, cfg.Exceptions.GlobalIgnore) {
 			continue
 		}
+		if pathutil.MatchesAny(path, cfg.EditorConfig.IgnoreFiles) {
+			continue
+		}
 
 		def, err := ecmod.GetDefinition(path)
 		if err != nil || def == nil {

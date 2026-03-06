@@ -139,7 +139,7 @@ func applyFixes(revRange string, fixes []commitFix) error {
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck
 
 	// Write each fixed message as a file named by SHA.
 	for _, f := range fixes {

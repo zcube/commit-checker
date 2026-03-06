@@ -99,6 +99,7 @@ comment_language:
   no_emoji: false              # true でコメントの絵文字を禁止
 
 commit_message:
+  # enabled: true  # false ですべてのコミットメッセージ検査を無効化
   no_coauthor: true
   no_unicode_spaces: true
   no_ambiguous_chars: true

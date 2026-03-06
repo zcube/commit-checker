@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config is the top-level configuration structure loaded from .commit-checker.yml
+// Config: .commit-checker.yml에서 로드하는 최상위 설정 구조체.
 type Config struct {
 	CommentLanguage CommentLanguageConfig `yaml:"comment_language"`
 	CommitMessage   CommitMessageConfig   `yaml:"commit_message"`
@@ -20,191 +20,50 @@ type Config struct {
 	Exceptions      ExceptionsConfig      `yaml:"exceptions"`
 }
 
-// LintConfig: 데이터 파일(YAML, JSON, XML) 구문 lint 검사 설정.
-type LintConfig struct {
-	// Enabled: lint 검사 활성화 여부 (기본값: true).
-	Enabled *bool `yaml:"enabled"`
-
-	// YAML lint 설정
-	YAML LintRuleConfig `yaml:"yaml"`
-
-	// JSON lint 설정
-	JSON JSONLintConfig `yaml:"json"`
-
-	// XML lint 설정
-	XML LintRuleConfig `yaml:"xml"`
-}
-
-// IsEnabled: lint 검사 활성화 여부 반환 (기본값: true).
-func (c *LintConfig) IsEnabled() bool {
-	if c.Enabled == nil {
-		return true
-	}
-	return *c.Enabled
-}
-
-// LintRuleConfig: 단일 lint 규칙 타입 설정.
-type LintRuleConfig struct {
-	// Enabled: 이 lint 규칙 활성화 여부 (기본값: true).
-	Enabled *bool `yaml:"enabled"`
-
-	// IgnoreFiles: 건너뛸 파일의 glob 패턴 목록.
-	IgnoreFiles []string `yaml:"ignore_files"`
-}
-
-// IsEnabled: 이 lint 규칙 활성화 여부 반환 (기본값: true).
-func (c *LintRuleConfig) IsEnabled() bool {
-	if c.Enabled == nil {
-		return true
-	}
-	return *c.Enabled
-}
-
-// JSONLintConfig: JSON lint 검사 설정.
-type JSONLintConfig struct {
-	// Enabled: JSON lint 활성화 여부 (기본값: true).
-	Enabled *bool `yaml:"enabled"`
-
-	// AllowJSON5: JSON5 형식 허용 여부 (기본값: false).
-	// true이면 // 및 /* */ 주석, trailing comma 허용.
-	AllowJSON5 *bool `yaml:"allow_json5"`
-
-	// IgnoreFiles: 건너뛸 파일의 glob 패턴 목록.
-	// 기본 제외: package-lock.json, yarn.lock 등 auto-generated 파일.
-	IgnoreFiles []string `yaml:"ignore_files"`
-}
-
-// IsEnabled: JSON lint 활성화 여부 반환 (기본값: true).
-func (c *JSONLintConfig) IsEnabled() bool {
-	if c.Enabled == nil {
-		return true
-	}
-	return *c.Enabled
-}
-
-// IsAllowJSON5: JSON5 형식 허용 여부 반환 (기본값: false).
-func (c *JSONLintConfig) IsAllowJSON5() bool {
-	if c.AllowJSON5 == nil {
-		return false
-	}
-	return *c.AllowJSON5
-}
-
-// EncodingConfig: 파일 인코딩 검사 설정.
-type EncodingConfig struct {
-	// Enabled: 인코딩 검사 활성화 여부 (기본값: true).
-	Enabled *bool `yaml:"enabled"`
-
-	// RequireUTF8: UTF-8 인코딩 필수 여부 (기본값: true).
-	// true이면 UTF-8이 아닌 파일을 커밋할 수 없음.
-	RequireUTF8 *bool `yaml:"require_utf8"`
-
-	// IgnoreFiles: 인코딩 검사에서 제외할 파일의 glob 패턴 목록.
-	IgnoreFiles []string `yaml:"ignore_files"`
-}
-
-// IsEnabled: 인코딩 검사 활성화 여부 반환 (기본값: true).
-func (c *EncodingConfig) IsEnabled() bool {
-	if c.Enabled == nil {
-		return true
-	}
-	return *c.Enabled
-}
-
-// IsRequireUTF8: UTF-8 인코딩 필수 여부 반환 (기본값: true).
-func (c *EncodingConfig) IsRequireUTF8() bool {
-	if c.RequireUTF8 == nil {
-		return true
-	}
-	return *c.RequireUTF8
-}
-
-// EditorConfigConfig: .editorconfig 규칙 검증 설정.
-type EditorConfigConfig struct {
-	// Enabled: editorconfig 검사 활성화 여부 (기본값: true).
-	Enabled *bool `yaml:"enabled"`
-}
-
-// IsEnabled: editorconfig 검사 활성화 여부 반환 (기본값: true).
-func (c *EditorConfigConfig) IsEnabled() bool {
-	if c.Enabled == nil {
-		return true
-	}
-	return *c.Enabled
-}
-
-// BinaryFileConfig: 스테이지된 diff에서 바이너리 파일 감지 설정.
-// 컴파일된 실행파일 등 바이너리 파일이 커밋되는 것을 방지.
-type BinaryFileConfig struct {
-	// Enabled: 바이너리 파일 감지 활성화 여부 (기본값: true).
-	Enabled *bool `yaml:"enabled"`
-
-	// IgnoreFiles: 허용할 바이너리 파일의 glob 패턴 목록.
-	// 예: 이미지, 폰트 등 의도적으로 포함하는 바이너리 파일.
-	IgnoreFiles []string `yaml:"ignore_files"`
-}
-
-// IsEnabled: 바이너리 파일 감지 활성화 여부 반환 (기본값: true).
-func (c *BinaryFileConfig) IsEnabled() bool {
-	if c.Enabled == nil {
-		return true
-	}
-	return *c.Enabled
-}
-
-// ExceptionsConfig: 전역 및 기능별 파일 제외 패턴 설정.
-type ExceptionsConfig struct {
-	// GlobalIgnore: 모든 검사에서 건너뛸 파일의 glob 패턴 목록.
-	GlobalIgnore []string `yaml:"global_ignore"`
-
-	// CommentLanguageIgnore: 주석 언어 검사에서만 건너뛸 파일의 glob 패턴 목록.
-	CommentLanguageIgnore []string `yaml:"comment_language_ignore"`
-}
-
-// CommentLanguageConfig configures comment language checking in staged diffs
+// CommentLanguageConfig: 스테이지된 diff의 주석 언어 검사 설정.
 type CommentLanguageConfig struct {
-	// Enabled controls whether comment language checking is active (default: true)
+	// Enabled: 주석 언어 검사 활성화 여부 (기본값: true).
 	Enabled *bool `yaml:"enabled"`
 
-	// RequiredLanguage is the natural language comments must be written in.
-	// Supported values: korean, english, japanese, chinese, any
-	// Default: korean
+	// RequiredLanguage: 주석을 작성해야 하는 자연어.
+	// 지원값: korean, english, japanese, chinese, any
+	// 기본값: korean
 	RequiredLanguage string `yaml:"required_language"`
 
-	// Languages lists friendly language names to parse (e.g. go, typescript, python).
-	// When set, only these parsers run; takes precedence over Extensions.
-	// Supported: go, typescript, javascript, java, kotlin, python, c, cpp, csharp, swift, rust
+	// Languages: 파싱할 언어 이름 목록 (예: go, typescript, python).
+	// 설정 시 해당 파서만 실행되며 Extensions보다 우선함.
+	// 지원: go, typescript, javascript, java, kotlin, python, c, cpp, csharp, swift, rust
 	Languages []string `yaml:"languages"`
 
-	// Extensions lists the file extensions to check.
-	// Used when Languages is not set.
+	// Extensions: 검사할 파일 확장자 목록.
+	// Languages가 설정되지 않은 경우 사용.
 	Extensions []string `yaml:"extensions"`
 
-	// MinLength is the minimum number of letter characters a comment must have
-	// before its language is checked. Short/technical comments are skipped.
-	// Default: 5
+	// MinLength: 언어 검사 전 주석이 가져야 할 최소 글자 수.
+	// 짧거나 기술적인 주석은 건너뜀.
+	// 기본값: 5
 	MinLength int `yaml:"min_length"`
 
-	// SkipDirectives lists additional comment prefixes to always skip.
-	// Built-in skips include: todo, fixme, nolint, noqa, go:generate, etc.
+	// SkipDirectives: 항상 건너뛸 추가 주석 접두사 목록.
+	// 내장 건너뜀: todo, fixme, nolint, noqa, go:generate 등.
 	SkipDirectives []string `yaml:"skip_directives"`
 
-	// CheckMode controls whether to check only added lines ("diff") or the full staged file ("full").
-	// Default: diff
+	// CheckMode: 추가된 줄만("diff") 또는 전체 스테이지 파일("full")을 검사할지 제어.
+	// 기본값: diff
 	CheckMode string `yaml:"check_mode"`
 
-	// IgnoreFiles lists glob patterns for files to skip in comment language checks.
-	// Equivalent to adding patterns to exceptions.comment_language_ignore.
+	// IgnoreFiles: 주석 언어 검사에서 건너뛸 파일의 glob 패턴 목록.
+	// exceptions.comment_language_ignore에 패턴을 추가하는 것과 동일.
 	IgnoreFiles []string `yaml:"ignore_files"`
 
-	// Locale is a BCP-47 locale code that sets the required language automatically.
-	// Supported: ko (korean), en (english), ja (japanese), zh / zh-hans / zh-hant (chinese).
-	// When set, overrides RequiredLanguage.
+	// Locale: 필수 언어를 자동으로 설정하는 BCP-47 로케일 코드.
+	// 지원: ko (korean), en (english), ja (japanese), zh / zh-hans / zh-hant (chinese).
+	// 설정 시 RequiredLanguage를 재정의함.
 	Locale string `yaml:"locale"`
 
-	// FileLanguages defines per-file language rules applied in order.
-	// The first matching pattern wins; overrides the global RequiredLanguage.
-	// Use language "any" to allow any language (e.g. for i18n/locale files).
+	// FileLanguages: 순서대로 적용되는 파일별 언어 규칙.
+	// 첫 번째 일치 패턴이 적용되며 전역 RequiredLanguage를 재정의함.
+	// 모든 언어를 허용하려면 language를 "any"로 설정 (예: i18n/locale 파일).
 	FileLanguages []FileLanguageRule `yaml:"file_languages"`
 
 	// NoEmoji: 주석에서 이모지 사용 금지 여부 (기본값: false).
@@ -221,19 +80,18 @@ type CommentLanguageConfig struct {
 	//   - 소문자 없는 순수 ASCII → 대문자 상수 (예: ERR_TOKEN, MAX_SIZE)
 	// false 로 설정하면 모든 문자열을 언어 검사함.
 	SkipTechnicalStrings *bool `yaml:"skip_technical_strings"`
-
 }
 
-// FileLanguageRule maps a glob pattern to a required language.
+// FileLanguageRule: glob 패턴을 필수 언어에 매핑하는 규칙.
 type FileLanguageRule struct {
-	// Pattern is a glob pattern matched against the file path (supports **).
+	// Pattern: 파일 경로에 대해 매칭되는 glob 패턴 (** 와일드카드 지원).
 	Pattern string `yaml:"pattern"`
-	// Language is the required language for files matching Pattern.
-	// Accepts the same values as required_language, plus locale codes.
+	// Language: Pattern에 일치하는 파일에 필요한 언어.
+	// required_language와 동일한 값 및 로케일 코드 허용.
 	Language string `yaml:"language"`
 }
 
-// IsEnabled returns true if comment language checking is enabled (default: true)
+// IsEnabled: 주석 언어 검사 활성화 여부 반환 (기본값: true).
 func (c *CommentLanguageConfig) IsEnabled() bool {
 	if c.Enabled == nil {
 		return true
@@ -249,7 +107,7 @@ func (c *CommentLanguageConfig) IsNoEmoji() bool {
 	return *c.NoEmoji
 }
 
-// IsFullMode returns true when check_mode is "full" (check all staged file comments).
+// IsFullMode: check_mode가 "full"일 때 true 반환 (전체 스테이지 파일 주석 검사).
 func (c *CommentLanguageConfig) IsFullMode() bool {
 	return c.CheckMode == "full"
 }
@@ -270,26 +128,70 @@ func (c *CommentLanguageConfig) IsSkipTechnicalStrings() bool {
 	return *c.SkipTechnicalStrings
 }
 
-// CommitMessageLanguageConfig configures natural-language checking of the commit message body.
-type CommitMessageLanguageConfig struct {
-	// Enabled controls whether commit message language checking is active (default: false)
+// CommitMessageConfig: 커밋 메시지 검사 설정.
+type CommitMessageConfig struct {
+	// Enabled: 커밋 메시지 검사 전체 활성화 여부 (기본값: true).
+	// false이면 no_coauthor, no_unicode_spaces 등 모든 하위 검사를 건너뜀.
 	Enabled *bool `yaml:"enabled"`
 
-	// RequiredLanguage is the natural language the commit message body must be written in.
-	// Supported values: korean, english, japanese, chinese, any
-	// Default: korean
+	// NoCoauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
+	// true이면 내장 AI 이메일 패턴 목록과 일치하는 Co-authored-by 줄을 거부/제거.
+	// 일반 사람 공동 작업자는 영향을 받지 않음.
+	NoCoauthor *bool `yaml:"no_coauthor"`
+
+	// CoauthorRemoveEmails: 내장 AI 패턴에 추가로 제거할 이메일 주소 또는 glob 패턴 목록.
+	// '*' 와일드카드 지원 (예: "*@myai.com"), 대소문자 무시.
+	// 내장 패턴: *copilot*, noreply@anthropic.com, *@cursor.sh, *@codeium.com 등.
+	CoauthorRemoveEmails []string `yaml:"coauthor_remove_emails"`
+
+	// NoUnicodeSpaces: 보이지 않는/비표준 유니코드 공백 문자 금지 여부 (기본값: true).
+	// Gitea와 동일한 InvisibleRanges 테이블 사용. BOM (U+FEFF)은 제외.
+	NoUnicodeSpaces *bool `yaml:"no_unicode_spaces"`
+
+	// NoAmbiguousChars: ASCII처럼 보이지만 아닌 유니코드 문자 금지 여부 (기본값: true).
+	// Gitea와 동일한 AmbiguousCharacters 테이블 사용 (VSCode 유니코드 데이터 소스).
+	// 예: 키릴 А (U+0410)는 라틴 A처럼; 그리스 ο는 라틴 o처럼 보임.
+	NoAmbiguousChars *bool `yaml:"no_ambiguous_chars"`
+
+	// NoBadRunes: 잘못된 UTF-8 바이트 시퀀스 금지 여부 (기본값: true).
+	NoBadRunes *bool `yaml:"no_bad_runes"`
+
+	// NoEmoji: 커밋 메시지에서 이모지 사용 금지 여부 (기본값: false).
+	// true이면 커밋 메시지에 이모지 사용을 금지.
+	NoEmoji *bool `yaml:"no_emoji"`
+
+	// Locale: 로케일별 모호 문자 감지에 사용되는 BCP-47 로케일 코드.
+	// 지원: ko, ja, zh-hans, zh-hant, ru, _default
+	// 기본값: ko
+	Locale string `yaml:"locale"`
+
+	// LanguageCheck: 커밋 메시지 본문의 자연어 감지 설정.
+	LanguageCheck CommitMessageLanguageConfig `yaml:"language_check"`
+
+	// ConventionalCommit: Conventional Commits 형식 강제 설정.
+	ConventionalCommit ConventionalCommitConfig `yaml:"conventional_commit"`
+}
+
+// CommitMessageLanguageConfig: 커밋 메시지 본문의 자연어 검사 설정.
+type CommitMessageLanguageConfig struct {
+	// Enabled: 커밋 메시지 언어 검사 활성화 여부 (기본값: false).
+	Enabled *bool `yaml:"enabled"`
+
+	// RequiredLanguage: 커밋 메시지 본문을 작성해야 하는 자연어.
+	// 지원값: korean, english, japanese, chinese, any
+	// 기본값: korean
 	RequiredLanguage string `yaml:"required_language"`
 
-	// MinLength is the minimum number of letter characters before language is checked.
-	// Default: 5
+	// MinLength: 언어 검사 전 최소 글자 수.
+	// 기본값: 5
 	MinLength int `yaml:"min_length"`
 
-	// SkipPrefixes lists commit message subject prefixes that bypass language checking.
-	// Default: Merge, Revert, fixup!, squash!
+	// SkipPrefixes: 언어 검사를 건너뛸 커밋 메시지 제목 접두사 목록.
+	// 기본값: Merge, Revert, fixup!, squash!
 	SkipPrefixes []string `yaml:"skip_prefixes"`
 }
 
-// IsEnabled returns true if commit message language checking is enabled (default: false)
+// IsEnabled: 커밋 메시지 언어 검사 활성화 여부 반환 (기본값: false).
 func (c *CommitMessageLanguageConfig) IsEnabled() bool {
 	if c.Enabled == nil {
 		return false
@@ -459,48 +361,6 @@ func (c *ConventionalCommitConfig) ResolveType(commitType string) string {
 	return commitType
 }
 
-// CommitMessageConfig configures commit message checking
-type CommitMessageConfig struct {
-	// NoCoauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
-	// true이면 내장 AI 이메일 패턴 목록과 일치하는 Co-authored-by 줄을 거부/제거.
-	// 일반 사람 공동 작업자는 영향을 받지 않음.
-	NoCoauthor *bool `yaml:"no_coauthor"`
-
-	// CoauthorRemoveEmails: 내장 AI 패턴에 추가로 제거할 이메일 주소 또는 glob 패턴 목록.
-	// '*' 와일드카드 지원 (예: "*@myai.com"), 대소문자 무시.
-	// 내장 패턴: *copilot*, noreply@anthropic.com, *@cursor.sh, *@codeium.com 등.
-	CoauthorRemoveEmails []string `yaml:"coauthor_remove_emails"`
-
-	// NoUnicodeSpaces disallows invisible/non-standard Unicode space characters (default: true)
-	// Uses the same InvisibleRanges table as Gitea. BOM (U+FEFF) is excluded.
-	NoUnicodeSpaces *bool `yaml:"no_unicode_spaces"`
-
-	// NoAmbiguousChars disallows Unicode characters that look like ASCII but are not (default: true)
-	// Uses the same AmbiguousCharacters tables as Gitea (VSCode unicode data source).
-	// Examples: Cyrillic А (U+0410) looks like Latin A; Greek ο looks like Latin o.
-	NoAmbiguousChars *bool `yaml:"no_ambiguous_chars"`
-
-	// NoBadRunes disallows invalid UTF-8 byte sequences (default: true)
-	NoBadRunes *bool `yaml:"no_bad_runes"`
-
-	// NoEmoji: 커밋 메시지에서 이모지 사용 금지 여부 (기본값: false).
-	// true이면 커밋 메시지에 이모지 사용을 금지.
-	NoEmoji *bool `yaml:"no_emoji"`
-
-	// Locale is the BCP 47 locale used for locale-specific ambiguous character detection.
-	// Supported: ko, ja, zh-hans, zh-hant, ru, _default
-	// Default: ko
-	Locale string `yaml:"locale"`
-
-	// LanguageCheck configures natural-language detection of the commit message body.
-	LanguageCheck CommitMessageLanguageConfig `yaml:"language_check"`
-
-	// ConventionalCommit: Conventional Commits 형식 강제 설정.
-	ConventionalCommit ConventionalCommitConfig `yaml:"conventional_commit"`
-}
-
-func boolPtr(b bool) *bool { return &b }
-
 // BuiltinAICoauthorPatterns: 내장 AI 도구 이메일 glob 패턴 목록.
 // GitHub Copilot, Claude, Cursor, Codeium, Tabnine, Amazon Q 등 주요 AI 도구를 대상으로 함.
 var BuiltinAICoauthorPatterns = []string{
@@ -512,6 +372,54 @@ var BuiltinAICoauthorPatterns = []string{
 	"*amazon-q*@*",
 	"*@sourcegraph.com",
 	"*gemini*@*",
+}
+
+// IsEnabled: 커밋 메시지 검사 전체 활성화 여부 반환 (기본값: true).
+func (c *CommitMessageConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// IsNoCoauthor: 공동 작성자 검사 활성화 여부 반환 (기본값: true).
+func (c *CommitMessageConfig) IsNoCoauthor() bool {
+	if c.NoCoauthor == nil {
+		return true
+	}
+	return *c.NoCoauthor
+}
+
+// IsNoUnicodeSpaces: 유니코드 공백 검사 활성화 여부 반환 (기본값: true).
+func (c *CommitMessageConfig) IsNoUnicodeSpaces() bool {
+	if c.NoUnicodeSpaces == nil {
+		return true
+	}
+	return *c.NoUnicodeSpaces
+}
+
+// IsNoAmbiguousChars: 모호한 문자 검사 활성화 여부 반환 (기본값: true).
+func (c *CommitMessageConfig) IsNoAmbiguousChars() bool {
+	if c.NoAmbiguousChars == nil {
+		return true
+	}
+	return *c.NoAmbiguousChars
+}
+
+// IsNoBadRunes: 잘못된 UTF-8 룬 검사 활성화 여부 반환 (기본값: true).
+func (c *CommitMessageConfig) IsNoBadRunes() bool {
+	if c.NoBadRunes == nil {
+		return true
+	}
+	return *c.NoBadRunes
+}
+
+// IsNoEmoji: 커밋 메시지 이모지 검사 활성화 여부 반환 (기본값: false).
+func (c *CommitMessageConfig) IsNoEmoji() bool {
+	if c.NoEmoji == nil {
+		return false
+	}
+	return *c.NoEmoji
 }
 
 // CoauthorShouldRemove: 주어진 이메일이 내장 AI 패턴 또는 사용자 정의 패턴과 일치하는지 확인.
@@ -546,48 +454,152 @@ func ExtractCoauthorEmail(line string) string {
 	return ""
 }
 
-// IsNoCoauthor returns true if co-author checking is enabled (default: true)
-func (c *CommitMessageConfig) IsNoCoauthor() bool {
-	if c.NoCoauthor == nil {
-		return true
-	}
-	return *c.NoCoauthor
+// BinaryFileConfig: 스테이지된 diff에서 바이너리 파일 감지 설정.
+// 컴파일된 실행파일 등 바이너리 파일이 커밋되는 것을 방지.
+type BinaryFileConfig struct {
+	// Enabled: 바이너리 파일 감지 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// IgnoreFiles: 허용할 바이너리 파일의 glob 패턴 목록.
+	// 예: 이미지, 폰트 등 의도적으로 포함하는 바이너리 파일.
+	IgnoreFiles []string `yaml:"ignore_files"`
 }
 
-// IsNoUnicodeSpaces returns true if unicode space checking is enabled (default: true)
-func (c *CommitMessageConfig) IsNoUnicodeSpaces() bool {
-	if c.NoUnicodeSpaces == nil {
+// IsEnabled: 바이너리 파일 감지 활성화 여부 반환 (기본값: true).
+func (c *BinaryFileConfig) IsEnabled() bool {
+	if c.Enabled == nil {
 		return true
 	}
-	return *c.NoUnicodeSpaces
+	return *c.Enabled
 }
 
-// IsNoAmbiguousChars returns true if ambiguous character checking is enabled (default: true)
-func (c *CommitMessageConfig) IsNoAmbiguousChars() bool {
-	if c.NoAmbiguousChars == nil {
+// LintConfig: 데이터 파일(YAML, JSON, XML) 구문 lint 검사 설정.
+type LintConfig struct {
+	// Enabled: lint 검사 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// YAML lint 설정
+	YAML LintRuleConfig `yaml:"yaml"`
+
+	// JSON lint 설정
+	JSON JSONLintConfig `yaml:"json"`
+
+	// XML lint 설정
+	XML LintRuleConfig `yaml:"xml"`
+}
+
+// IsEnabled: lint 검사 활성화 여부 반환 (기본값: true).
+func (c *LintConfig) IsEnabled() bool {
+	if c.Enabled == nil {
 		return true
 	}
-	return *c.NoAmbiguousChars
+	return *c.Enabled
 }
 
-// IsNoBadRunes returns true if bad UTF-8 rune checking is enabled (default: true)
-func (c *CommitMessageConfig) IsNoBadRunes() bool {
-	if c.NoBadRunes == nil {
+// LintRuleConfig: 단일 lint 규칙 타입 설정.
+type LintRuleConfig struct {
+	// Enabled: 이 lint 규칙 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// IgnoreFiles: 건너뛸 파일의 glob 패턴 목록.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: 이 lint 규칙 활성화 여부 반환 (기본값: true).
+func (c *LintRuleConfig) IsEnabled() bool {
+	if c.Enabled == nil {
 		return true
 	}
-	return *c.NoBadRunes
+	return *c.Enabled
 }
 
-// IsNoEmoji: 커밋 메시지 이모지 검사 활성화 여부 반환 (기본값: false).
-func (c *CommitMessageConfig) IsNoEmoji() bool {
-	if c.NoEmoji == nil {
+// JSONLintConfig: JSON lint 검사 설정.
+type JSONLintConfig struct {
+	// Enabled: JSON lint 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// AllowJSON5: JSON5 형식 허용 여부 (기본값: false).
+	// true이면 // 및 /* */ 주석, trailing comma 허용.
+	AllowJSON5 *bool `yaml:"allow_json5"`
+
+	// IgnoreFiles: 건너뛸 파일의 glob 패턴 목록.
+	// 기본 제외: package-lock.json, yarn.lock 등 auto-generated 파일.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: JSON lint 활성화 여부 반환 (기본값: true).
+func (c *JSONLintConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// IsAllowJSON5: JSON5 형식 허용 여부 반환 (기본값: false).
+func (c *JSONLintConfig) IsAllowJSON5() bool {
+	if c.AllowJSON5 == nil {
 		return false
 	}
-	return *c.NoEmoji
+	return *c.AllowJSON5
 }
 
-// Load reads configuration from the given YAML file.
-// If the file does not exist, default configuration is returned.
+// EncodingConfig: 파일 인코딩 검사 설정.
+type EncodingConfig struct {
+	// Enabled: 인코딩 검사 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// RequireUTF8: UTF-8 인코딩 필수 여부 (기본값: true).
+	// true이면 UTF-8이 아닌 파일을 커밋할 수 없음.
+	RequireUTF8 *bool `yaml:"require_utf8"`
+
+	// IgnoreFiles: 인코딩 검사에서 제외할 파일의 glob 패턴 목록.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: 인코딩 검사 활성화 여부 반환 (기본값: true).
+func (c *EncodingConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// IsRequireUTF8: UTF-8 인코딩 필수 여부 반환 (기본값: true).
+func (c *EncodingConfig) IsRequireUTF8() bool {
+	if c.RequireUTF8 == nil {
+		return true
+	}
+	return *c.RequireUTF8
+}
+
+// EditorConfigConfig: .editorconfig 규칙 검증 설정.
+type EditorConfigConfig struct {
+	// Enabled: editorconfig 검사 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// IgnoreFiles: editorconfig 검사에서 제외할 파일의 glob 패턴 목록.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: editorconfig 검사 활성화 여부 반환 (기본값: true).
+func (c *EditorConfigConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// ExceptionsConfig: 전역 및 기능별 파일 제외 패턴 설정.
+type ExceptionsConfig struct {
+	// GlobalIgnore: 모든 검사에서 건너뛸 파일의 glob 패턴 목록.
+	GlobalIgnore []string `yaml:"global_ignore"`
+
+	// CommentLanguageIgnore: 주석 언어 검사에서만 건너뛸 파일의 glob 패턴 목록.
+	CommentLanguageIgnore []string `yaml:"comment_language_ignore"`
+}
+
+// Load: 주어진 YAML 파일에서 설정을 읽음.
+// 파일이 없으면 기본 설정을 반환.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -609,7 +621,7 @@ func Load(path string) (*Config, error) {
 }
 
 func applyDefaults(cfg *Config) {
-	// locale takes priority over required_language for comment_language
+	// locale이 comment_language의 required_language보다 우선함
 	if cfg.CommentLanguage.Locale != "" {
 		if lang := langdetect.LocaleToLanguage(cfg.CommentLanguage.Locale); lang != "" {
 			cfg.CommentLanguage.RequiredLanguage = lang
@@ -644,5 +656,4 @@ func applyDefaults(cfg *Config) {
 			"Merge", "Revert", "fixup!", "squash!",
 		}
 	}
-	_ = boolPtr // boolPtr 미사용 경고 억제
 }

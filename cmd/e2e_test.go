@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "failed to create temp dir: %v\n", err)
 		os.Exit(1)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck
 
 	bin := filepath.Join(tmpDir, "commit-checker")
 	if runtime.GOOS == "windows" {
@@ -790,7 +790,7 @@ func writeMsgFile(t *testing.T, content string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 	if _, err := f.WriteString(content); err != nil {
 		t.Fatal(err)
 	}

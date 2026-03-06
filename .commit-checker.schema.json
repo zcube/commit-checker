@@ -239,6 +239,12 @@
           "description": ".editorconfig 검사 활성화 여부 (기본값: true).\n.editorconfig 파일이 없으면 자동으로 건너뜀.",
           "type": "boolean",
           "default": true
+        },
+        "ignore_files": {
+          "description": "editorconfig 검사에서 제외할 파일 glob 패턴 목록. '**' 지원.",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["vendor/**", "**/*.generated.go"]]
         }
       }
     },
@@ -248,6 +254,11 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "enabled": {
+          "description": "커밋 메시지 검사 전체 활성화 여부 (기본값: true).\nfalse이면 no_coauthor, no_unicode_spaces 등 모든 하위 검사를 건너뜀.",
+          "type": "boolean",
+          "default": true
+        },
         "no_coauthor": {
           "description": "AI 도구의 Co-authored-by: 트레일러 차단 여부 (기본값: true).\n내장 AI 이메일 패턴(Copilot, Claude, Cursor, Codeium 등)과 일치하는 줄을 거부.\n일반 사람 공동 작업자는 영향을 받지 않음.",
           "type": "boolean",
