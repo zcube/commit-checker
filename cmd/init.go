@@ -78,8 +78,11 @@ encoding:
 
 editorconfig:
   enabled: true
+  # ignore_files:
+  #   - "vendor/**"
 
 commit_message:
+  # enabled: true              # false이면 모든 커밋 메시지 검사 비활성화
   no_ai_coauthor: true
   no_unicode_spaces: true
   no_ambiguous_chars: true
