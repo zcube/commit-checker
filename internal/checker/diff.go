@@ -8,6 +8,7 @@ import (
 	"github.com/zcube/commit-checker/internal/config"
 	"github.com/zcube/commit-checker/internal/directive"
 	"github.com/zcube/commit-checker/internal/gitdiff"
+	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/langdetect"
 	"github.com/zcube/commit-checker/internal/pathutil"
 )
@@ -70,7 +71,10 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 
 		comments, err := parser.ParseFile(stagedContent)
 		if err != nil {
-			fmt.Printf("warning: could not fully parse %s: %v\n", diff.Path, err)
+			fmt.Println(i18n.T("diff.parse_warning", map[string]interface{}{
+				"Path":  diff.Path,
+				"Error": err,
+			}))
 		}
 
 		// Resolve the base language for this file:
@@ -105,15 +109,18 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 			}
 			if !ok {
 				detected := langdetect.Dominant(text)
-				kind := "comment"
+				kindID := "diff.kind_comment"
 				if c.Kind == comment.KindString {
-					kind = "string literal"
+					kindID = "diff.kind_string_literal"
 				}
-				errs = append(errs, fmt.Sprintf(
-					"%s:%d: %s must be written in %s (detected: %s): %s",
-					diff.Path, c.Line, kind, state.Language, detected,
-					truncate(text, 80),
-				))
+				errs = append(errs, i18n.T("diff.comment_language_error", map[string]interface{}{
+					"Path":     diff.Path,
+					"Line":     c.Line,
+					"Kind":     i18n.T(kindID, nil),
+					"Language": state.Language,
+					"Detected": detected,
+					"Text":     truncate(text, 80),
+				}))
 			}
 		}
 	}

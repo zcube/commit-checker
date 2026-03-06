@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zcube/commit-checker/internal/checker"
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/i18n"
 )
 
 var (
@@ -64,7 +65,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if len(commits) == 0 {
-		fmt.Println("No commits found in range.")
+		fmt.Println(i18n.T("cmd.no_commits_found", nil))
 		return nil
 	}
 
@@ -86,9 +87,9 @@ func runFix(cmd *cobra.Command, args []string) error {
 
 	// Report.
 	if len(fixes) == 0 {
-		fmt.Printf("Checked %d commits — no auto-fixable violations found.\n", len(commits))
+		fmt.Println(i18n.T("cmd.checked_no_fixes", map[string]interface{}{"Count": len(commits)}))
 	} else {
-		fmt.Printf("Found %d commit(s) with auto-fixable violations:\n\n", len(fixes))
+		fmt.Println(i18n.T("cmd.found_fixable", map[string]interface{}{"Count": len(fixes)}))
 		for _, f := range fixes {
 			sha := f.sha
 		if len(sha) > 12 {
@@ -107,7 +108,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(langIssues) > 0 {
-		fmt.Printf("Language violations (manual fix required):\n")
+		fmt.Println(i18n.T("cmd.language_violations_header", nil))
 		for _, e := range langIssues {
 			fmt.Println(e)
 		}
@@ -116,7 +117,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 
 	if fixDryRun || len(fixes) == 0 {
 		if fixDryRun && len(fixes) > 0 {
-			fmt.Println("(dry-run: no changes written)")
+			fmt.Println(i18n.T("cmd.dry_run_no_changes", nil))
 		}
 		return nil
 	}
@@ -163,7 +164,7 @@ fi
 		return fmt.Errorf("writing filter script: %w", err)
 	}
 
-	fmt.Printf("Rewriting %d commit(s) with git filter-branch...\n", len(fixes))
+	fmt.Println(i18n.T("cmd.rewriting_commits", map[string]interface{}{"Count": len(fixes)}))
 
 	gitArgs := []string{"filter-branch", "-f", "--msg-filter", scriptPath, revRange}
 	gitCmd := exec.Command("git", gitArgs...)
@@ -173,8 +174,8 @@ fi
 		return fmt.Errorf("git filter-branch failed: %w", err)
 	}
 
-	fmt.Println("Done. History rewritten successfully.")
-	fmt.Println("Note: if you have already pushed these commits, you will need to force-push.")
+	fmt.Println(i18n.T("cmd.rewrite_done", nil))
+	fmt.Println(i18n.T("cmd.force_push_note", nil))
 	return nil
 }
 

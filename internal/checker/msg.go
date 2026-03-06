@@ -7,6 +7,7 @@ import (
 
 	"github.com/zcube/commit-checker/internal/charset"
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/langdetect"
 )
 
@@ -48,10 +49,10 @@ func checkCoauthor(content string, cfg *config.CommitMessageConfig) []string {
 		}
 		email := config.ExtractCoauthorEmail(trimmed)
 		if cfg.CoauthorShouldRemove(email) {
-			errs = append(errs, fmt.Sprintf(
-				"commit message line %d: AI co-author trailer must be removed: %q",
-				i+1, trimmed,
-			))
+			errs = append(errs, i18n.T("msg.ai_coauthor_error", map[string]interface{}{
+				"Line":    i + 1,
+				"Trailer": trimmed,
+			}))
 		}
 	}
 	return errs
@@ -71,10 +72,11 @@ func checkInvisibleChars(content string) []string {
 				if name != "" {
 					desc += " " + name
 				}
-				errs = append(errs, fmt.Sprintf(
-					"commit message line %d, col %d: invisible/non-standard space character %s is not allowed",
-					lineIdx+1, col, desc,
-				))
+				errs = append(errs, i18n.T("msg.invisible_char_error", map[string]interface{}{
+					"Line": lineIdx + 1,
+					"Col":  col,
+					"Desc": desc,
+				}))
 			}
 		}
 	}
@@ -92,10 +94,14 @@ func checkAmbiguousChars(content string, tables []*charset.AmbiguousTable) []str
 			col++
 			var confusableTo rune
 			if charset.IsAmbiguous(r, &confusableTo, tables...) {
-				errs = append(errs, fmt.Sprintf(
-					"commit message line %d, col %d: ambiguous character U+%04X %q looks like %q (U+%04X) — replace with the ASCII character",
-					lineIdx+1, col, r, string(r), string(confusableTo), confusableTo,
-				))
+				errs = append(errs, i18n.T("msg.ambiguous_char_error", map[string]interface{}{
+					"Line":      lineIdx + 1,
+					"Col":       col,
+					"CharCode":  fmt.Sprintf("%04X", r),
+					"Char":      string(r),
+					"ASCII":     string(confusableTo),
+					"ASCIICode": fmt.Sprintf("%04X", confusableTo),
+				}))
 			}
 		}
 	}
@@ -111,10 +117,11 @@ func checkBadRunes(content string) []string {
 	for len(bytes) > 0 {
 		r, size := utf8.DecodeRune(bytes)
 		if r == utf8.RuneError && size == 1 {
-			errs = append(errs, fmt.Sprintf(
-				"commit message line %d, col %d: invalid UTF-8 byte sequence 0x%02X",
-				lineIdx, col, bytes[0],
-			))
+			errs = append(errs, i18n.T("msg.bad_rune_error", map[string]interface{}{
+				"Line": lineIdx,
+				"Col":  col,
+				"Byte": fmt.Sprintf("%02X", bytes[0]),
+			}))
 		}
 		if r == '\n' {
 			lineIdx++
@@ -157,11 +164,12 @@ func checkMsgLanguage(content string, cfg *config.CommitMessageLanguageConfig) [
 		}
 		if !ok {
 			detected := langdetect.Dominant(text)
-			errs = append(errs, fmt.Sprintf(
-				"commit message line %d: must be written in %s (detected: %s): %s",
-				lineNum, required, detected,
-				truncate(text, 80),
-			))
+			errs = append(errs, i18n.T("msg.language_error", map[string]interface{}{
+				"Line":     lineNum,
+				"Language": required,
+				"Detected": detected,
+				"Text":     truncate(text, 80),
+			}))
 		}
 	}
 

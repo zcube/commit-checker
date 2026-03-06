@@ -1,0 +1,53 @@
+# diff checker messages
+diff.parse_warning:
+  other: "warning: could not fully parse {{.Path}}: {{.Error}}"
+diff.comment_language_error:
+  other: "{{.Path}}:{{.Line}}: {{.Kind}} must be written in {{.Language}} (detected: {{.Detected}}): {{.Text}}"
+diff.kind_comment:
+  other: "comment"
+diff.kind_string_literal:
+  other: "string literal"
+
+# commit message checker messages
+msg.ai_coauthor_error:
+  other: "commit message line {{.Line}}: AI co-author trailer must be removed: {{.Trailer}}"
+msg.invisible_char_error:
+  other: "commit message line {{.Line}}, col {{.Col}}: invisible/non-standard space character {{.Desc}} is not allowed"
+msg.ambiguous_char_error:
+  other: "commit message line {{.Line}}, col {{.Col}}: ambiguous character U+{{.CharCode}} {{.Char}} looks like {{.ASCII}} (U+{{.ASCIICode}}) — replace with the ASCII character"
+msg.bad_rune_error:
+  other: "commit message line {{.Line}}, col {{.Col}}: invalid UTF-8 byte sequence 0x{{.Byte}}"
+msg.language_error:
+  other: "commit message line {{.Line}}: must be written in {{.Language}} (detected: {{.Detected}}): {{.Text}}"
+
+# fix change descriptions
+fix.removed_ai_coauthor:
+  other: "line {{.Line}}: removed AI co-author trailer: {{.Trailer}}"
+fix.replaced_invisible_space:
+  other: "line {{.Line}}, col {{.Col}}: replaced invisible space {{.Desc}} with regular space"
+fix.removed_invisible_char:
+  other: "line {{.Line}}, col {{.Col}}: removed invisible character {{.Desc}}"
+fix.replaced_ambiguous_char:
+  other: "line {{.Line}}, col {{.Col}}: replaced ambiguous U+{{.CharCode}} {{.Char}} with ASCII {{.ASCII}} (U+{{.ASCIICode}})"
+fix.removed_bad_rune:
+  other: "line {{.Line}}, col {{.Col}}: removed invalid UTF-8 byte 0x{{.Byte}}"
+
+# cmd output messages
+cmd.no_commits_found:
+  other: "No commits found in range."
+cmd.checked_no_fixes:
+  other: "Checked {{.Count}} commits — no auto-fixable violations found."
+cmd.found_fixable:
+  other: "Found {{.Count}} commit(s) with auto-fixable violations:"
+cmd.language_violations_header:
+  other: "Language violations (manual fix required):"
+cmd.dry_run_no_changes:
+  other: "(dry-run: no changes written)"
+cmd.rewriting_commits:
+  other: "Rewriting {{.Count}} commit(s) with git filter-branch..."
+cmd.rewrite_done:
+  other: "Done. History rewritten successfully."
+cmd.force_push_note:
+  other: "Note: if you have already pushed these commits, you will need to force-push."
+cmd.no_staged_changes:
+  other: "no staged changes found — skipping."

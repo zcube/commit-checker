@@ -7,6 +7,7 @@ import (
 
 	"github.com/zcube/commit-checker/internal/charset"
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/i18n"
 )
 
 
@@ -55,7 +56,10 @@ func fixCoauthor(content string, changes []string, cfg *config.CommitMessageConf
 		if strings.HasPrefix(strings.ToLower(trimmed), "co-authored-by:") {
 			email := config.ExtractCoauthorEmail(trimmed)
 			if cfg.CoauthorShouldRemove(email) {
-				changes = append(changes, fmt.Sprintf("line %d: removed AI co-author trailer: %q", i+1, trimmed))
+				changes = append(changes, i18n.T("fix.removed_ai_coauthor", map[string]interface{}{
+					"Line":    i + 1,
+					"Trailer": trimmed,
+				}))
 				continue
 			}
 		}
@@ -90,16 +94,18 @@ func fixInvisibleChars(content string, changes []string) (string, []string) {
 				}
 				// Space variants → regular space; control/zero-width chars → removed
 				if isSpaceVariant(r) {
-					changes = append(changes, fmt.Sprintf(
-						"line %d, col %d: replaced invisible space %s with regular space",
-						lineIdx+1, col, desc,
-					))
+					changes = append(changes, i18n.T("fix.replaced_invisible_space", map[string]interface{}{
+						"Line": lineIdx + 1,
+						"Col":  col,
+						"Desc": desc,
+					}))
 					sb.WriteRune(' ')
 				} else {
-					changes = append(changes, fmt.Sprintf(
-						"line %d, col %d: removed invisible character %s",
-						lineIdx+1, col, desc,
-					))
+					changes = append(changes, i18n.T("fix.removed_invisible_char", map[string]interface{}{
+						"Line": lineIdx + 1,
+						"Col":  col,
+						"Desc": desc,
+					}))
 				}
 				continue
 			}
@@ -137,10 +143,14 @@ func fixAmbiguousChars(content string, changes []string, tables []*charset.Ambig
 			col++
 			var confusableTo rune
 			if charset.IsAmbiguous(r, &confusableTo, tables...) {
-				changes = append(changes, fmt.Sprintf(
-					"line %d, col %d: replaced ambiguous U+%04X %q with ASCII %q (U+%04X)",
-					lineIdx+1, col, r, string(r), string(confusableTo), confusableTo,
-				))
+				changes = append(changes, i18n.T("fix.replaced_ambiguous_char", map[string]interface{}{
+					"Line":      lineIdx + 1,
+					"Col":       col,
+					"CharCode":  fmt.Sprintf("%04X", r),
+					"Char":      string(r),
+					"ASCII":     string(confusableTo),
+					"ASCIICode": fmt.Sprintf("%04X", confusableTo),
+				}))
 				sb.WriteRune(confusableTo)
 				continue
 			}
@@ -159,10 +169,11 @@ func fixBadRunes(content string, changes []string) (string, []string) {
 	for len(b) > 0 {
 		r, size := utf8.DecodeRune(b)
 		if r == utf8.RuneError && size == 1 {
-			changes = append(changes, fmt.Sprintf(
-				"line %d, col %d: removed invalid UTF-8 byte 0x%02X",
-				lineIdx, col, b[0],
-			))
+			changes = append(changes, i18n.T("fix.removed_bad_rune", map[string]interface{}{
+				"Line": lineIdx,
+				"Col":  col,
+				"Byte": fmt.Sprintf("%02X", b[0]),
+			}))
 			b = b[size:]
 			continue
 		}

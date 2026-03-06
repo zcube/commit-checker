@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/zcube/commit-checker/internal/i18n"
 )
 
 var configFile string
@@ -24,4 +25,6 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", ".commit-checker.yml", "config file path")
+	// 환경 변수에서 로케일을 감지하여 i18n 초기화
+	i18n.Init("")
 }

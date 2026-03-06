@@ -1,0 +1,53 @@
+# diff 검사 메시지
+diff.parse_warning:
+  other: "경고: {{.Path}} 파싱 중 일부 오류 발생: {{.Error}}"
+diff.comment_language_error:
+  other: "{{.Path}}:{{.Line}}: {{.Kind}}은(는) {{.Language}}(으)로 작성되어야 합니다 (감지됨: {{.Detected}}): {{.Text}}"
+diff.kind_comment:
+  other: "주석"
+diff.kind_string_literal:
+  other: "문자열 리터럴"
+
+# 커밋 메시지 검사 메시지
+msg.ai_coauthor_error:
+  other: "커밋 메시지 {{.Line}}번 줄: AI co-author 트레일러를 제거해야 합니다: {{.Trailer}}"
+msg.invisible_char_error:
+  other: "커밋 메시지 {{.Line}}번 줄, {{.Col}}열: 비표준 공백 문자 {{.Desc}}는 허용되지 않습니다"
+msg.ambiguous_char_error:
+  other: "커밋 메시지 {{.Line}}번 줄, {{.Col}}열: 혼동 문자 U+{{.CharCode}} {{.Char}}은(는) {{.ASCII}} (U+{{.ASCIICode}})와 유사합니다 — ASCII 문자로 교체하세요"
+msg.bad_rune_error:
+  other: "커밋 메시지 {{.Line}}번 줄, {{.Col}}열: 잘못된 UTF-8 바이트 시퀀스 0x{{.Byte}}"
+msg.language_error:
+  other: "커밋 메시지 {{.Line}}번 줄: {{.Language}}(으)로 작성되어야 합니다 (감지됨: {{.Detected}}): {{.Text}}"
+
+# fix 변경 사항 설명
+fix.removed_ai_coauthor:
+  other: "{{.Line}}번 줄: AI co-author 트레일러 제거: {{.Trailer}}"
+fix.replaced_invisible_space:
+  other: "{{.Line}}번 줄, {{.Col}}열: 비표준 공백 {{.Desc}}를 일반 공백으로 교체"
+fix.removed_invisible_char:
+  other: "{{.Line}}번 줄, {{.Col}}열: 비표준 공백 문자 {{.Desc}} 제거"
+fix.replaced_ambiguous_char:
+  other: "{{.Line}}번 줄, {{.Col}}열: 혼동 문자 U+{{.CharCode}} {{.Char}}을(를) ASCII {{.ASCII}} (U+{{.ASCIICode}})로 교체"
+fix.removed_bad_rune:
+  other: "{{.Line}}번 줄, {{.Col}}열: 잘못된 UTF-8 바이트 0x{{.Byte}} 제거"
+
+# cmd 출력 메시지
+cmd.no_commits_found:
+  other: "범위 내 커밋이 없습니다."
+cmd.checked_no_fixes:
+  other: "{{.Count}}개 커밋 검사 완료 — 자동 수정 가능한 위반 사항 없음."
+cmd.found_fixable:
+  other: "자동 수정 가능한 위반이 있는 커밋 {{.Count}}개 발견:"
+cmd.language_violations_header:
+  other: "언어 위반 (수동 수정 필요):"
+cmd.dry_run_no_changes:
+  other: "(dry-run: 변경 사항이 저장되지 않음)"
+cmd.rewriting_commits:
+  other: "git filter-branch로 {{.Count}}개 커밋 재작성 중..."
+cmd.rewrite_done:
+  other: "완료. 히스토리가 성공적으로 재작성되었습니다."
+cmd.force_push_note:
+  other: "주의: 이미 푸시된 커밋이 있다면 강제 푸시(force-push)가 필요합니다."
+cmd.no_staged_changes:
+  other: "스테이지된 변경 사항이 없습니다 — 건너뜁니다."
