@@ -100,7 +100,7 @@ comment_language:
 
 commit_message:
   # enabled: true  # false ですべてのコミットメッセージ検査を無効化
-  no_coauthor: true
+  no_ai_coauthor: true
   no_unicode_spaces: true
   no_ambiguous_chars: true
   no_bad_runes: true

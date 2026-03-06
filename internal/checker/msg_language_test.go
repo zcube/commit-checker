@@ -11,7 +11,7 @@ func msgLangConfig(lang string) *config.Config {
 	t := true
 	f := false
 	cfg := &config.Config{}
-	cfg.CommitMessage.NoCoauthor = &f
+	cfg.CommitMessage.NoAICoauthor = &f
 	cfg.CommitMessage.NoUnicodeSpaces = &f
 	cfg.CommitMessage.NoAmbiguousChars = &f
 	cfg.CommitMessage.NoBadRunes = &f

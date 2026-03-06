@@ -32,7 +32,7 @@ func FixMsg(cfg *config.Config, content string) FixResult {
 	if cfg.CommitMessage.IsNoBadRunes() {
 		result.Fixed, result.Changes = fixBadRunes(result.Fixed, result.Changes)
 	}
-	if cfg.CommitMessage.IsNoCoauthor() {
+	if cfg.CommitMessage.IsNoAICoauthor() {
 		result.Fixed, result.Changes = fixCoauthor(result.Fixed, result.Changes, &cfg.CommitMessage)
 	}
 	if cfg.CommitMessage.IsNoUnicodeSpaces() {

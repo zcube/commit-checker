@@ -22,7 +22,7 @@ func CheckMsg(cfg *config.Config, content string) []string {
 
 	var errs []string
 
-	if cfg.CommitMessage.IsNoCoauthor() {
+	if cfg.CommitMessage.IsNoAICoauthor() {
 		errs = append(errs, checkCoauthor(content, &cfg.CommitMessage)...)
 	}
 	if cfg.CommitMessage.IsNoUnicodeSpaces() {

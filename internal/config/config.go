@@ -131,13 +131,13 @@ func (c *CommentLanguageConfig) IsSkipTechnicalStrings() bool {
 // CommitMessageConfig: 커밋 메시지 검사 설정.
 type CommitMessageConfig struct {
 	// Enabled: 커밋 메시지 검사 전체 활성화 여부 (기본값: true).
-	// false이면 no_coauthor, no_unicode_spaces 등 모든 하위 검사를 건너뜀.
+	// false이면 no_ai_coauthor, no_unicode_spaces 등 모든 하위 검사를 건너뜀.
 	Enabled *bool `yaml:"enabled"`
 
-	// NoCoauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
+	// NoAICoauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
 	// true이면 내장 AI 이메일 패턴 목록과 일치하는 Co-authored-by 줄을 거부/제거.
 	// 일반 사람 공동 작업자는 영향을 받지 않음.
-	NoCoauthor *bool `yaml:"no_coauthor"`
+	NoAICoauthor *bool `yaml:"no_ai_coauthor"`
 
 	// CoauthorRemoveEmails: 내장 AI 패턴에 추가로 제거할 이메일 주소 또는 glob 패턴 목록.
 	// '*' 와일드카드 지원 (예: "*@myai.com"), 대소문자 무시.
@@ -382,12 +382,12 @@ func (c *CommitMessageConfig) IsEnabled() bool {
 	return *c.Enabled
 }
 
-// IsNoCoauthor: 공동 작성자 검사 활성화 여부 반환 (기본값: true).
-func (c *CommitMessageConfig) IsNoCoauthor() bool {
-	if c.NoCoauthor == nil {
+// IsNoAICoauthor: 공동 작성자 검사 활성화 여부 반환 (기본값: true).
+func (c *CommitMessageConfig) IsNoAICoauthor() bool {
+	if c.NoAICoauthor == nil {
 		return true
 	}
-	return *c.NoCoauthor
+	return *c.NoAICoauthor
 }
 
 // IsNoUnicodeSpaces: 유니코드 공백 검사 활성화 여부 반환 (기본값: true).

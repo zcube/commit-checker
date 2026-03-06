@@ -672,7 +672,7 @@ func TestE2E_Msg_BadRune_Exit1(t *testing.T) {
 func TestE2E_Msg_LanguageCheck_Enabled_KoreanFails(t *testing.T) {
 	r := newTestRepo(t)
 	r.writeConfig(`commit_message:
-  no_coauthor: false
+  no_ai_coauthor: false
   no_unicode_spaces: false
   no_ambiguous_chars: false
   no_bad_runes: false
@@ -690,7 +690,7 @@ func TestE2E_Msg_LanguageCheck_Enabled_KoreanFails(t *testing.T) {
 func TestE2E_Msg_LanguageCheck_MergeSkipped(t *testing.T) {
 	r := newTestRepo(t)
 	r.writeConfig(`commit_message:
-  no_coauthor: false
+  no_ai_coauthor: false
   no_unicode_spaces: false
   no_ambiguous_chars: false
   no_bad_runes: false

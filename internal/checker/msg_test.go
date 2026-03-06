@@ -11,7 +11,7 @@ import (
 func allChecksConfig() *config.Config {
 	t := true
 	cfg := &config.Config{}
-	cfg.CommitMessage.NoCoauthor = &t
+	cfg.CommitMessage.NoAICoauthor = &t
 	cfg.CommitMessage.NoUnicodeSpaces = &t
 	cfg.CommitMessage.NoAmbiguousChars = &t
 	cfg.CommitMessage.NoBadRunes = &t
@@ -161,7 +161,7 @@ func TestCheckMsg_BadRune(t *testing.T) {
 func TestCheckMsg_DisabledCoAuthor(t *testing.T) {
 	f := false
 	cfg := allChecksConfig()
-	cfg.CommitMessage.NoCoauthor = &f
+	cfg.CommitMessage.NoAICoauthor = &f
 	msg := "feat: ok\n\nCo-authored-by: Bot <bot@example.com>\n"
 	errs := checker.CheckMsg(cfg, msg)
 	for _, e := range errs {

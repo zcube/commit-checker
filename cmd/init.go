@@ -80,7 +80,7 @@ editorconfig:
   enabled: true
 
 commit_message:
-  no_coauthor: true
+  no_ai_coauthor: true
   no_unicode_spaces: true
   no_ambiguous_chars: true
   no_bad_runes: true

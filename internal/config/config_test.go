@@ -38,8 +38,8 @@ func TestLoad_Defaults_WhenFileAbsent(t *testing.T) {
 	if cfg.CommitMessage.Locale != "ko" {
 		t.Errorf("default commit_message.locale = %q, want ko", cfg.CommitMessage.Locale)
 	}
-	if !cfg.CommitMessage.IsNoCoauthor() {
-		t.Error("default no_coauthor should be true")
+	if !cfg.CommitMessage.IsNoAICoauthor() {
+		t.Error("default no_ai_coauthor should be true")
 	}
 	if !cfg.CommitMessage.IsNoUnicodeSpaces() {
 		t.Error("default no_unicode_spaces should be true")
@@ -172,17 +172,17 @@ comment_language:
 	}
 }
 
-func TestLoad_NoCoauthorDisabled(t *testing.T) {
+func TestLoad_NoAICoauthorDisabled(t *testing.T) {
 	path := writeConfig(t, `
 commit_message:
-  no_coauthor: false
+  no_ai_coauthor: false
 `)
 	cfg, err := config.Load(path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if cfg.CommitMessage.IsNoCoauthor() {
-		t.Error("expected no_coauthor=false")
+	if cfg.CommitMessage.IsNoAICoauthor() {
+		t.Error("expected no_ai_coauthor=false")
 	}
 }
 
