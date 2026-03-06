@@ -19,6 +19,12 @@ msg.bad_rune_error:
   other: "commit message line {{.Line}}, col {{.Col}}: invalid UTF-8 byte sequence 0x{{.Byte}}"
 msg.language_error:
   other: "commit message line {{.Line}}: must be written in {{.Language}} (detected: {{.Detected}}): {{.Text}}"
+msg.conventional_format_error:
+  other: "commit message subject does not follow conventional commit format (<type>[(<scope>)][!]: <description>): {{.Subject}}"
+msg.conventional_type_error:
+  other: "commit message type '{{.Type}}' is not allowed; allowed types: {{.Types}}"
+msg.conventional_scope_required:
+  other: "commit message scope is required: {{.Subject}}"
 
 # fix change descriptions
 fix.removed_ai_coauthor:

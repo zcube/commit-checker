@@ -149,6 +149,72 @@ func (c *CommitMessageLanguageConfig) IsEnabled() bool {
 	return *c.Enabled
 }
 
+// ConventionalCommitConfig: Conventional Commits 형식 강제 설정.
+// 명세: https://www.conventionalcommits.org/
+type ConventionalCommitConfig struct {
+	// Enabled: 컨벤셔널 커밋 형식 검사 활성화 여부 (기본값: false).
+	Enabled *bool `yaml:"enabled"`
+
+	// Types: 허용된 커밋 타입 목록.
+	// 기본값: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+	Types []string `yaml:"types"`
+
+	// RequireScope: 스코프 필수 여부 (기본값: false).
+	RequireScope *bool `yaml:"require_scope"`
+
+	// AllowMergeCommits: "Merge "로 시작하는 커밋의 형식 검사 건너뜀 (기본값: true).
+	AllowMergeCommits *bool `yaml:"allow_merge_commits"`
+
+	// AllowRevertCommits: "Revert "로 시작하는 커밋의 형식 검사 건너뜀 (기본값: true).
+	AllowRevertCommits *bool `yaml:"allow_revert_commits"`
+}
+
+// IsEnabled: 컨벤셔널 커밋 검사 활성화 여부 반환 (기본값: false).
+func (c *ConventionalCommitConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return false
+	}
+	return *c.Enabled
+}
+
+// IsRequireScope: 스코프 필수 여부 반환 (기본값: false).
+func (c *ConventionalCommitConfig) IsRequireScope() bool {
+	if c.RequireScope == nil {
+		return false
+	}
+	return *c.RequireScope
+}
+
+// IsAllowMergeCommits: Merge 커밋 형식 검사 건너뜀 여부 반환 (기본값: true).
+func (c *ConventionalCommitConfig) IsAllowMergeCommits() bool {
+	if c.AllowMergeCommits == nil {
+		return true
+	}
+	return *c.AllowMergeCommits
+}
+
+// IsAllowRevertCommits: Revert 커밋 형식 검사 건너뜀 여부 반환 (기본값: true).
+func (c *ConventionalCommitConfig) IsAllowRevertCommits() bool {
+	if c.AllowRevertCommits == nil {
+		return true
+	}
+	return *c.AllowRevertCommits
+}
+
+// DefaultConventionalTypes: 기본 허용 커밋 타입 목록.
+var DefaultConventionalTypes = []string{
+	"feat", "fix", "docs", "style", "refactor",
+	"perf", "test", "build", "ci", "chore", "revert",
+}
+
+// GetTypes: 설정된 타입 목록을 반환하며, 미설정 시 DefaultConventionalTypes 반환.
+func (c *ConventionalCommitConfig) GetTypes() []string {
+	if len(c.Types) > 0 {
+		return c.Types
+	}
+	return DefaultConventionalTypes
+}
+
 // CommitMessageConfig configures commit message checking
 type CommitMessageConfig struct {
 	// NoCoauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
@@ -180,6 +246,9 @@ type CommitMessageConfig struct {
 
 	// LanguageCheck configures natural-language detection of the commit message body.
 	LanguageCheck CommitMessageLanguageConfig `yaml:"language_check"`
+
+	// ConventionalCommit: Conventional Commits 형식 강제 설정.
+	ConventionalCommit ConventionalCommitConfig `yaml:"conventional_commit"`
 }
 
 func boolPtr(b bool) *bool { return &b }
@@ -319,5 +388,5 @@ func applyDefaults(cfg *Config) {
 			"Merge", "Revert", "fixup!", "squash!",
 		}
 	}
-	_ = boolPtr // suppress unused warning
+	_ = boolPtr // boolPtr 미사용 경고 억제
 }

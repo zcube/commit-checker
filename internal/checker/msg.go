@@ -33,6 +33,9 @@ func CheckMsg(cfg *config.Config, content string) []string {
 	if cfg.CommitMessage.LanguageCheck.IsEnabled() {
 		errs = append(errs, checkMsgLanguage(content, &cfg.CommitMessage.LanguageCheck)...)
 	}
+	if cfg.CommitMessage.ConventionalCommit.IsEnabled() {
+		errs = append(errs, checkConventional(content, &cfg.CommitMessage.ConventionalCommit)...)
+	}
 
 	return errs
 }

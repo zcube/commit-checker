@@ -152,6 +152,39 @@
           "enum": ["ko", "ja", "zh-hans", "zh-hant", "ru", "_default"],
           "default": "ko"
         },
+        "conventional_commit": {
+          "description": "Conventional Commits 형식 강제 설정 (https://www.conventionalcommits.org/).\n형식: <type>[(<scope>)][!]: <description>",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "컨벤셔널 커밋 형식 검사 활성화 여부 (기본값: false)",
+              "type": "boolean",
+              "default": false
+            },
+            "types": {
+              "description": "허용된 커밋 타입 목록.\n기본값: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert",
+              "type": "array",
+              "items": { "type": "string" },
+              "default": ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
+            },
+            "require_scope": {
+              "description": "스코프 필수 여부 (기본값: false). true이면 feat(scope): 형식 필수.",
+              "type": "boolean",
+              "default": false
+            },
+            "allow_merge_commits": {
+              "description": "\"Merge ...\" 커밋은 형식 검사 건너뜀 (기본값: true)",
+              "type": "boolean",
+              "default": true
+            },
+            "allow_revert_commits": {
+              "description": "\"Revert ...\" 커밋은 형식 검사 건너뜀 (기본값: true)",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
         "language_check": {
           "description": "커밋 메시지 본문의 자연어 검사 설정",
           "type": "object",

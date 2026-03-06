@@ -19,6 +19,12 @@ msg.bad_rune_error:
   other: "커밋 메시지 {{.Line}}번 줄, {{.Col}}열: 잘못된 UTF-8 바이트 시퀀스 0x{{.Byte}}"
 msg.language_error:
   other: "커밋 메시지 {{.Line}}번 줄: {{.Language}}(으)로 작성되어야 합니다 (감지됨: {{.Detected}}): {{.Text}}"
+msg.conventional_format_error:
+  other: "커밋 메시지 제목이 컨벤셔널 커밋 형식을 따르지 않습니다 (<type>[(<scope>)][!]: <description>): {{.Subject}}"
+msg.conventional_type_error:
+  other: "커밋 메시지 타입 '{{.Type}}'은(는) 허용되지 않습니다; 허용된 타입: {{.Types}}"
+msg.conventional_scope_required:
+  other: "커밋 메시지에 스코프가 필요합니다: {{.Subject}}"
 
 # fix 변경 사항 설명
 fix.removed_ai_coauthor:
