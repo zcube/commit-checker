@@ -80,6 +80,11 @@ type CommentLanguageConfig struct {
 	//   - 소문자 없는 순수 ASCII → 대문자 상수 (예: ERR_TOKEN, MAX_SIZE)
 	// false 로 설정하면 모든 문자열을 언어 검사함.
 	SkipTechnicalStrings *bool `yaml:"skip_technical_strings"`
+
+	// SkipStringPatterns: 정규표현식 패턴 목록. 일치하는 문자열 리터럴은 언어 검사에서 제외.
+	// 주석에는 적용되지 않으며 문자열 리터럴에만 적용됨.
+	// 예: ["^[A-Z][A-Z0-9_]+$", "^\\d+(\\.\\d+)*$"]
+	SkipStringPatterns []string `yaml:"skip_string_patterns"`
 }
 
 // FileLanguageRule: glob 패턴을 필수 언어에 매핑하는 규칙.

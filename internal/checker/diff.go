@@ -2,6 +2,7 @@ package checker
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/zcube/commit-checker/internal/comment"
@@ -38,6 +39,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 	checkStrings := cfg.CommentLanguage.IsCheckStrings()
 	skipTechnical := cfg.CommentLanguage.IsSkipTechnicalStrings()
 	noEmoji := cfg.CommentLanguage.IsNoEmoji()
+	skipPatterns := compileSkipStringPatterns(cfg.CommentLanguage.SkipStringPatterns)
 
 	// Collect all ignore patterns: global + comment_language specific + inline ignore_files.
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore,
@@ -107,6 +109,10 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 			text := strings.TrimSpace(c.Text)
 			// 기술적 식별자 문자열 건너뜀 (skip_technical_strings: true, 기본값)
 			if c.Kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
+				continue
+			}
+			// skip_string_patterns 정규표현식 패턴 매칭으로 문자열 건너뜀
+			if c.Kind == comment.KindString && len(skipPatterns) > 0 && matchesSkipPattern(text, skipPatterns) {
 				continue
 			}
 			ok, hasContent := langdetect.IsRequiredLanguage(text, state.Language, minLength, skipDirectives)
@@ -208,6 +214,34 @@ func IsAllUppercaseASCII(s string) bool {
 		}
 	}
 	return true
+}
+
+// compileSkipStringPatterns: 정규표현식 패턴 문자열을 컴파일하여 반환.
+// 잘못된 패턴은 경고를 출력하고 건너뜀.
+func compileSkipStringPatterns(patterns []string) []*regexp.Regexp {
+	var compiled []*regexp.Regexp
+	for _, p := range patterns {
+		re, err := regexp.Compile(p)
+		if err != nil {
+			fmt.Println(i18n.T("diff.parse_warning", map[string]interface{}{
+				"Path":  "skip_string_patterns",
+				"Error": fmt.Sprintf("invalid regex %q: %v", p, err),
+			}))
+			continue
+		}
+		compiled = append(compiled, re)
+	}
+	return compiled
+}
+
+// matchesSkipPattern: 문자열이 건너뜀 패턴 중 하나와 일치하는지 확인.
+func matchesSkipPattern(s string, patterns []*regexp.Regexp) bool {
+	for _, re := range patterns {
+		if re.MatchString(s) {
+			return true
+		}
+	}
+	return false
 }
 
 // IsTechnicalString: 언어 검사 대상에서 제외할 기술적 문자열인지 판단.

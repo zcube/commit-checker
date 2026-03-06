@@ -264,6 +264,7 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 	checkStrings := cfg.CommentLanguage.IsCheckStrings()
 	skipTechnical := cfg.CommentLanguage.IsSkipTechnicalStrings()
 	noEmoji := cfg.CommentLanguage.IsNoEmoji()
+	skipPatterns := compileSkipStringPatterns(cfg.CommentLanguage.SkipStringPatterns)
 
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore,
 		cfg.Exceptions.CommentLanguageIgnore...)
@@ -315,6 +316,10 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 
 			text := strings.TrimSpace(c.Text)
 			if c.Kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
+				continue
+			}
+			// skip_string_patterns 정규표현식 패턴 매칭으로 문자열 건너뜀
+			if c.Kind == comment.KindString && len(skipPatterns) > 0 && matchesSkipPattern(text, skipPatterns) {
 				continue
 			}
 
