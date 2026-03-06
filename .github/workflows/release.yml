@@ -218,25 +218,26 @@ jobs:
       - name: 버전 태그 manifest 생성
         run: |
           VERSION="${{ github.ref_name }}"
-          # v1.2.3 → 1.2.3
+          # v1.2.3 → 1.2.3 (metadata-action 은 v 접두사 없이 태그 생성)
           SEMVER="${VERSION#v}"
           MAJOR_MINOR="${SEMVER%.*}"
 
           docker buildx imagetools create \
-            -t ${{ env.IMAGE }}:${VERSION} \
-            ${{ env.IMAGE }}:${VERSION}-amd64 \
-            ${{ env.IMAGE }}:${VERSION}-arm64
+            -t ${{ env.IMAGE }}:${SEMVER} \
+            ${{ env.IMAGE }}:${SEMVER}-amd64 \
+            ${{ env.IMAGE }}:${SEMVER}-arm64
 
           docker buildx imagetools create \
             -t ${{ env.IMAGE }}:${MAJOR_MINOR} \
-            ${{ env.IMAGE }}:${VERSION}-amd64 \
-            ${{ env.IMAGE }}:${VERSION}-arm64
+            ${{ env.IMAGE }}:${SEMVER}-amd64 \
+            ${{ env.IMAGE }}:${SEMVER}-arm64
 
       - name: latest manifest 생성 (정식 릴리즈만)
         if: ${{ !contains(github.ref_name, '-') }}
         run: |
-          VERSION="${{ github.ref_name }}"
+          SEMVER="${{ github.ref_name }}"
+          SEMVER="${SEMVER#v}"
           docker buildx imagetools create \
             -t ${{ env.IMAGE }}:latest \
-            ${{ env.IMAGE }}:${VERSION}-amd64 \
-            ${{ env.IMAGE }}:${VERSION}-arm64
+            ${{ env.IMAGE }}:${SEMVER}-amd64 \
+            ${{ env.IMAGE }}:${SEMVER}-arm64
