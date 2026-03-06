@@ -1,0 +1,6 @@
+coverage.out
+coverage.html
+*.coverprofile
+/commit-checker
+/commit-checker-local
+dist/

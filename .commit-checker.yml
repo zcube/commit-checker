@@ -1,0 +1,170 @@
+# yaml-language-server: $schema=./.commit-checker.schema.json
+# commit-checker configuration
+# All fields are optional. The defaults shown below apply when omitted.
+
+comment_language:
+  # enabled: false to skip diff comment checks entirely.
+  # Default: true
+  enabled: true
+
+  # required_language: the natural language comments must be written in.
+  # Values: korean | english | japanese | chinese | any
+  # "any" skips language detection (only parser correctness is checked).
+  # Default: korean
+  required_language: korean
+
+  # min_length: minimum letter count for a comment to be language-checked.
+  # Short/technical comments (e.g. "// TODO", "// nolint") are always skipped.
+  # Default: 5
+  min_length: 5
+
+  # check_mode: controls which comments are inspected.
+  #   diff — only comments that touch added lines (default, fast)
+  #   full — all comments in the staged version of the file
+  # Default: diff
+  check_mode: diff
+
+  # languages: friendly language names to parse. Takes priority over extensions.
+  # Supported: go, typescript, javascript, java, kotlin, python, c, cpp, csharp, swift, rust
+  # When omitted, extensions below are used.
+  # languages:
+  #   - go
+  #   - typescript
+  #   - python
+
+  # locale: BCP-47 locale code that sets required_language automatically.
+  # Supported: ko (korean), en (english), ja (japanese), zh / zh-hans / zh-hant (chinese).
+  # When set, overrides required_language.
+  # locale: ko
+
+  # extensions: file extensions to inspect for comment language.
+  # Used when languages is not set.
+  extensions:
+    - .go
+    - .ts
+    - .tsx
+    - .js
+    - .jsx
+    - .mjs
+    - .java
+    - .kt
+    - .py
+    - .c
+    - .cpp
+    - .cs
+    - .swift
+    - .rs
+
+  # skip_directives: additional comment prefixes to skip (merged with built-ins).
+  # Built-in skips: todo, fixme, nolint, noqa, nosec, go:generate, http://, etc.
+  # skip_directives:
+  #   - "internal:"
+  #   - "ref:"
+
+  # ignore_files: glob patterns for files to skip in comment language checks.
+  ignore_files:
+    - "**/*_test.go"      # 테스트 파일은 영어 주석 허용
+    - "internal/charset/ambiguous_gen.go"  # 자동 생성 파일
+
+  # file_languages: per-file language rules (first matching pattern wins).
+  # Overrides required_language for matching files.
+  # language accepts the same values as required_language, plus locale codes (ko, en, ja, zh).
+  # Use "any" to allow any language (e.g. for i18n / locale files).
+  # file_languages:
+  #   - pattern: "locales/**"
+  #     language: any
+  #   - pattern: "i18n/**"
+  #     language: english
+  #   - pattern: "locale/ja/**"
+  #     language: ja
+  #   - pattern: "locale/zh/**"
+  #     language: zh
+
+commit_message:
+  # no_coauthor: disallow Co-authored-by: trailers.
+  # Prevents AI-generated attribution (GitHub Copilot, Claude, etc.).
+  # Default: true
+  no_coauthor: true
+
+  # coauthor_allow_emails: no_coauthor가 true일 때도 허용할 이메일 목록.
+  # '*' 와일드카드 지원 (예: "*@mycompany.com"), 대소문자 무시.
+  # 미설정 시 모든 Co-authored-by: 트레일러를 거부.
+  # coauthor_allow_emails:
+  #   - "alice@myteam.com"
+  #   - "*@mycompany.com"
+
+  # no_unicode_spaces: disallow invisible / non-standard Unicode characters.
+  # Detected using the same InvisibleRanges table as Gitea.
+  # Covers: NBSP (U+00A0), EM SPACE (U+2003), ZWSP (U+200B), BiDi controls, etc.
+  # BOM (U+FEFF) is explicitly allowed as a valid encoding marker.
+  # Default: true
+  no_unicode_spaces: true
+
+  # no_ambiguous_chars: disallow Unicode characters that visually resemble ASCII
+  # but are different codepoints — e.g. Cyrillic А (U+0410) vs Latin A (U+0041).
+  # Detection uses the same AmbiguousCharacters tables as Gitea (VSCode unicode data).
+  # Default: true
+  no_ambiguous_chars: true
+
+  # no_bad_runes: disallow invalid UTF-8 byte sequences in commit messages.
+  # Default: true
+  no_bad_runes: true
+
+  # locale: BCP 47 locale for locale-specific ambiguous character detection.
+  # Supported: ko, ja, zh-hans, zh-hant, ru, _default
+  # Default: ko
+  locale: ko
+
+  # language_check: check that the commit message is written in the required language.
+  language_check:
+    # enabled: true to enable language checking of commit messages.
+    # Default: false
+    enabled: false
+
+    # required_language: the natural language the commit message must be in.
+    # Values: korean | english | japanese | chinese | any
+    # Default: korean
+    required_language: korean
+
+    # min_length: minimum letter count before a line is language-checked.
+    # Default: 5
+    min_length: 5
+
+    # skip_prefixes: subject line prefixes that bypass language checking.
+    # Default: Merge, Revert, fixup!, squash!
+    skip_prefixes:
+      - "Merge"
+      - "Revert"
+      - "fixup!"
+      - "squash!"
+
+# In-code directives (all languages — Go, TypeScript, Python, Java, etc.)
+# Add these in comments inside source files to control language checking locally:
+#
+#   commit-checker:ignore              skip the immediately following comment
+#   commit-checker:disable             disable language check from this line
+#   commit-checker:disable:lang=<L>    disable default; use language L in this region
+#   commit-checker:enable              re-enable after a disable
+#   commit-checker:lang=<L>            switch required language from this point
+#   commit-checker:file-lang=<L>       set required language for the whole file
+#
+# <L> accepts: korean, english, japanese, chinese, any  (or locale codes ko, en, ja, zh)
+#
+# Examples:
+#   // commit-checker:ignore
+#   // This English comment is intentional
+#
+#   // commit-checker:file-lang=english   ← at top of file for i18n files
+#
+#   // commit-checker:disable:lang=english
+#   // This block uses English on purpose
+#   // commit-checker:enable
+
+# exceptions: global and per-feature file exclusion patterns.
+# exceptions:
+#   global_ignore:
+#     - "vendor/**"
+#     - "third_party/**"
+#   comment_language_ignore:
+#     - "legacy/**"
+#     - "*.generated.go"

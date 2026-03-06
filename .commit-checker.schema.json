@@ -1,0 +1,199 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/zcube/commit-checker/blob/main/.commit-checker.schema.json",
+  "title": "commit-checker configuration",
+  "description": "Configuration schema for commit-checker (.commit-checker.yml)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "comment_language": {
+      "description": "코드 주석의 언어를 검사하는 설정",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "주석 언어 검사 활성화 여부 (기본값: true)",
+          "type": "boolean",
+          "default": true
+        },
+        "required_language": {
+          "description": "주석에 사용해야 하는 자연어 (기본값: korean). locale이 설정된 경우 override됨.",
+          "type": "string",
+          "enum": ["korean", "english", "japanese", "chinese", "any"],
+          "default": "korean"
+        },
+        "locale": {
+          "description": "required_language를 자동으로 설정하는 BCP-47 로케일 코드. 설정 시 required_language를 덮어씀.",
+          "type": "string",
+          "examples": ["ko", "en", "ja", "zh", "zh-hans", "zh-hant"]
+        },
+        "min_length": {
+          "description": "언어 검사를 수행할 최소 글자 수 (기본값: 5). 이보다 짧은 주석은 검사하지 않음.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 5
+        },
+        "check_mode": {
+          "description": "검사 범위 설정 (기본값: diff).\n  diff: staged diff에서 추가된 라인의 주석만 검사 (빠름)\n  full: staged 파일 전체의 주석을 검사",
+          "type": "string",
+          "enum": ["diff", "full"],
+          "default": "diff"
+        },
+        "languages": {
+          "description": "파싱할 프로그래밍 언어 목록. 설정 시 extensions보다 우선 적용됨.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["go", "typescript", "javascript", "java", "kotlin", "python", "c", "cpp", "csharp", "swift", "rust"]
+          },
+          "examples": [["go", "typescript", "python"]],
+          "uniqueItems": true
+        },
+        "extensions": {
+          "description": "검사할 파일 확장자 목록. languages가 설정되지 않은 경우 사용됨.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\.[a-zA-Z0-9]+$"
+          },
+          "default": [".go", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".java", ".kt", ".py", ".c", ".cpp", ".cs", ".swift", ".rs"],
+          "examples": [[".go", ".ts", ".py"]]
+        },
+        "skip_directives": {
+          "description": "검사를 건너뛸 추가 주석 접두사 목록. 내장 skip 목록(todo, fixme, nolint 등)에 병합됨.",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["internal:", "ref:", "see:"]]
+        },
+        "ignore_files": {
+          "description": "주석 언어 검사에서 제외할 파일 glob 패턴 목록. '**' 지원.",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["**/*_test.go", "vendor/**", "*.pb.go", "internal/generated/**"]]
+        },
+        "file_languages": {
+          "description": "파일별 언어 규칙 목록. 첫 번째 일치 패턴이 적용됨 (순서 중요).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["pattern", "language"],
+            "properties": {
+              "pattern": {
+                "description": "파일 경로에 매칭할 glob 패턴. '**' 지원.",
+                "type": "string",
+                "examples": ["locales/**", "i18n/**", "locale/ja/**"]
+              },
+              "language": {
+                "description": "이 패턴에 매칭된 파일에서 요구할 언어. 로케일 코드(ko, en, ja, zh) 및 'any' 사용 가능.",
+                "type": "string",
+                "examples": ["any", "english", "korean", "japanese", "chinese", "ko", "en", "ja", "zh"]
+              }
+            }
+          },
+          "examples": [
+            [
+              { "pattern": "locales/**", "language": "any" },
+              { "pattern": "i18n/**", "language": "english" },
+              { "pattern": "locale/ja/**", "language": "ja" }
+            ]
+          ]
+        }
+      }
+    },
+
+    "commit_message": {
+      "description": "커밋 메시지 정책 검사 설정",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "no_coauthor": {
+          "description": "Co-authored-by: 트레일러 금지 여부 (기본값: true). AI 기여 표시 방지 목적.",
+          "type": "boolean",
+          "default": true
+        },
+        "coauthor_allow_emails": {
+          "description": "no_coauthor가 true일 때도 허용할 이메일 주소 또는 glob 패턴 목록.\n'*' 와일드카드 지원 (예: \"*@mycompany.com\"). 대소문자 무시.\n미설정 시 모든 Co-authored-by: 트레일러를 거부.",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [
+            ["alice@company.com", "bob@company.com"],
+            ["*@mycompany.com"]
+          ]
+        },
+        "no_unicode_spaces": {
+          "description": "비표준 유니코드 공백 문자 금지 여부 (기본값: true).\nNBSP(U+00A0), EM SPACE(U+2003), ZWSP(U+200B), BiDi 제어문자 등 포함.\nBOM(U+FEFF)은 유효한 인코딩 마커로 허용.",
+          "type": "boolean",
+          "default": true
+        },
+        "no_ambiguous_chars": {
+          "description": "ASCII와 시각적으로 유사하지만 다른 코드포인트인 유니코드 문자 금지 여부 (기본값: true).\n예: 키릴 А(U+0410) vs 라틴 A(U+0041). Gitea/VSCode 유니코드 데이터 기반.",
+          "type": "boolean",
+          "default": true
+        },
+        "no_bad_runes": {
+          "description": "잘못된 UTF-8 바이트 시퀀스 금지 여부 (기본값: true).",
+          "type": "boolean",
+          "default": true
+        },
+        "locale": {
+          "description": "모호한 문자 감지에 사용할 BCP 47 로케일 (기본값: ko).\n로케일별 혼동 문자 테이블(Gitea 기반)을 선택함.",
+          "type": "string",
+          "enum": ["ko", "ja", "zh-hans", "zh-hant", "ru", "_default"],
+          "default": "ko"
+        },
+        "language_check": {
+          "description": "커밋 메시지 본문의 자연어 검사 설정",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "커밋 메시지 언어 검사 활성화 여부 (기본값: false)",
+              "type": "boolean",
+              "default": false
+            },
+            "required_language": {
+              "description": "커밋 메시지에 사용해야 하는 자연어 (기본값: korean)",
+              "type": "string",
+              "enum": ["korean", "english", "japanese", "chinese", "any"],
+              "default": "korean"
+            },
+            "min_length": {
+              "description": "언어 검사를 수행할 최소 글자 수 (기본값: 5)",
+              "type": "integer",
+              "minimum": 1,
+              "default": 5
+            },
+            "skip_prefixes": {
+              "description": "언어 검사를 건너뛸 제목 줄 접두사 목록.\n해당 접두사로 시작하는 커밋은 전체 메시지 검사를 건너뜀.\n기본값: [\"Merge\", \"Revert\", \"fixup!\", \"squash!\"]",
+              "type": "array",
+              "items": { "type": "string" },
+              "default": ["Merge", "Revert", "fixup!", "squash!"],
+              "examples": [["Merge", "Revert", "fixup!", "squash!", "WIP:"]]
+            }
+          }
+        }
+      }
+    },
+
+    "exceptions": {
+      "description": "전역 및 기능별 파일 제외 패턴 설정",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "global_ignore": {
+          "description": "모든 검사에서 제외할 파일 glob 패턴 목록. '**' 지원.",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["vendor/**", "third_party/**"]]
+        },
+        "comment_language_ignore": {
+          "description": "주석 언어 검사에서만 제외할 파일 glob 패턴 목록. '**' 지원.",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["legacy/**", "*.generated.go"]]
+        }
+      }
+    }
+  }
+}

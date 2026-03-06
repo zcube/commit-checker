@@ -1,0 +1,8 @@
+{
+  "yaml.schemas": {
+    "./.commit-checker.schema.json": [
+      ".commit-checker.yml",
+      ".commit-checker.yaml"
+    ]
+  }
+}

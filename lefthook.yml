@@ -1,0 +1,12 @@
+pre-commit:
+  commands:
+    comment-language:
+      run: commit-checker diff
+      # To use a custom config location:
+      # run: commit-checker --config path/to/.commit-checker.yml diff
+
+commit-msg:
+  commands:
+    message-policy:
+      run: commit-checker msg {1}
+      # {1} is the path to the commit message file passed by git
