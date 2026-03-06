@@ -217,11 +217,25 @@ func IsAllUppercaseASCII(s string) bool {
 }
 
 // compileSkipStringPatterns: 정규표현식 패턴 문자열을 컴파일하여 반환.
+// 전체 문자열 매칭을 위해 ^...$가 없으면 자동으로 ^(?:...)$로 감쌈.
 // 잘못된 패턴은 경고를 출력하고 건너뜀.
 func compileSkipStringPatterns(patterns []string) []*regexp.Regexp {
 	var compiled []*regexp.Regexp
 	for _, p := range patterns {
-		re, err := regexp.Compile(p)
+		// 전체 문자열 매칭: ^...$가 없으면 자동으로 감쌈
+		anchored := p
+		if len(p) == 0 || p[0] != '^' {
+			anchored = "^(?:" + anchored
+		} else {
+			anchored = "(?:" + anchored[1:]
+			anchored = "^" + anchored
+		}
+		if p[len(p)-1] != '$' {
+			anchored = anchored + ")$"
+		} else {
+			anchored = anchored[:len(anchored)-1] + ")$"
+		}
+		re, err := regexp.Compile(anchored)
 		if err != nil {
 			fmt.Println(i18n.T("diff.parse_warning", map[string]interface{}{
 				"Path":  "skip_string_patterns",

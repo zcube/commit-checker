@@ -82,8 +82,9 @@ type CommentLanguageConfig struct {
 	SkipTechnicalStrings *bool `yaml:"skip_technical_strings"`
 
 	// SkipStringPatterns: 정규표현식 패턴 목록. 일치하는 문자열 리터럴은 언어 검사에서 제외.
+	// 전체 문자열 매칭 (^...$가 없어도 자동으로 전체 매칭 적용).
 	// 주석에는 적용되지 않으며 문자열 리터럴에만 적용됨.
-	// 예: ["^[A-Z][A-Z0-9_]+$", "^\\d+(\\.\\d+)*$"]
+	// 예: ["[A-Z][A-Z0-9_]+", "\\d+(\\.\\d+)*"]
 	SkipStringPatterns []string `yaml:"skip_string_patterns"`
 }
 

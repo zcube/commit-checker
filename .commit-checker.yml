@@ -78,11 +78,12 @@ comment_language:
   # skip_technical_strings: true
 
   # skip_string_patterns: 정규표현식 패턴 목록. 일치하는 문자열 리터럴은 언어 검사에서 제외.
+  # 전체 문자열 매칭 (^...$가 없어도 자동으로 전체 매칭 적용).
   # 주석에는 적용되지 않으며 문자열 리터럴에만 적용됨. Go regexp 구문 사용.
   # skip_string_patterns:
-  #   - "^[A-Z][A-Z0-9_]+$"       # 대문자 상수 (예: MAX_RETRY)
-  #   - "^\\d+(\\.\\d+)*$"        # 버전 문자열 (예: 1.2.3)
-  #   - "^(true|false|null|nil)$"  # 불리언/null 리터럴
+  #   - "[A-Z][A-Z0-9_]+"         # 대문자 상수 (예: MAX_RETRY)
+  #   - "\\d+(\\.\\d+)*"          # 버전 문자열 (예: 1.2.3)
+  #   - "(true|false|null|nil)"   # 불리언/null 리터럴
 
   # ignore_files: 주석 언어 검사에서 제외할 glob 패턴 목록.
   # exceptions.comment_language_ignore 와 동일한 역할이며 병합되어 적용됨.

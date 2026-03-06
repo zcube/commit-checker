@@ -87,10 +87,10 @@
           "default": true
         },
         "skip_string_patterns": {
-          "description": "정규표현식 패턴 목록. 일치하는 문자열 리터럴은 언어 검사에서 제외.\n주석에는 적용되지 않으며 문자열 리터럴에만 적용됨.\nGo regexp 구문 사용 (https://pkg.go.dev/regexp/syntax).",
+          "description": "정규표현식 패턴 목록. 일치하는 문자열 리터럴은 언어 검사에서 제외.\n전체 문자열 매칭 (^...$가 없어도 자동으로 전체 매칭 적용).\n주석에는 적용되지 않으며 문자열 리터럴에만 적용됨.\nGo regexp 구문 사용 (https://pkg.go.dev/regexp/syntax).",
           "type": "array",
           "items": { "type": "string" },
-          "examples": [["^[A-Z][A-Z0-9_]+$", "^\\d+(\\.\\d+)*$", "^(true|false|null|nil)$"]]
+          "examples": [["[A-Z][A-Z0-9_]+", "\\d+(\\.\\d+)*", "(true|false|null|nil)"]]
         },
         "file_languages": {
           "description": "파일별 언어 규칙 목록. 첫 번째 일치 패턴이 적용됨 (순서 중요).",

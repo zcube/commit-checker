@@ -179,32 +179,52 @@ func TestMatchesSkipPattern_EmptyPatterns(t *testing.T) {
 	}
 }
 
-func TestMatchesSkipPattern_PartialMatch(t *testing.T) {
-	// 부분 매칭도 가능 (정규표현식에 ^$ 없으면)
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`(?i)color`),
+// ---- compileSkipStringPatterns 전체 매칭 동작 테스트 -------------------------
+
+func TestCompileSkipStringPatterns_FullMatch(t *testing.T) {
+	// ^$ 없이도 전체 문자열 매칭이 되어야 함
+	patterns := compileSkipStringPatterns([]string{`color`})
+	if matchesSkipPattern("backgroundColor", patterns) {
+		t.Error("expected 'backgroundColor' to NOT match full-match pattern 'color'")
 	}
-	if !matchesSkipPattern("backgroundColor", patterns) {
-		t.Error("expected case-insensitive partial match on 'color' in 'backgroundColor'")
-	}
-	// 대소문자 구분 매칭
-	patterns2 := []*regexp.Regexp{
-		regexp.MustCompile(`color`),
-	}
-	if !matchesSkipPattern("mycolor_value", patterns2) {
-		t.Error("expected partial match on 'color' in 'mycolor_value'")
+	if !matchesSkipPattern("color", patterns) {
+		t.Error("expected 'color' to match full-match pattern 'color'")
 	}
 }
 
-func TestMatchesSkipPattern_KoreanExcluded(t *testing.T) {
-	// 한국어 텍스트 패턴을 명시적으로 제외하지 않는 한 매칭 안됨
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`^(true|false|null|nil)$`),
-	}
+func TestCompileSkipStringPatterns_FullMatchWithAnchors(t *testing.T) {
+	// ^$ 이미 있으면 그대로 전체 매칭
+	patterns := compileSkipStringPatterns([]string{`^(true|false|null|nil)$`})
 	if matchesSkipPattern("참이 아닌 거짓", patterns) {
 		t.Error("expected Korean text to NOT match boolean pattern")
 	}
 	if !matchesSkipPattern("true", patterns) {
 		t.Error("expected 'true' to match boolean pattern")
+	}
+}
+
+func TestCompileSkipStringPatterns_WildcardPattern(t *testing.T) {
+	// .* 사용 시 부분 매칭처럼 동작 가능
+	patterns := compileSkipStringPatterns([]string{`(?i).*color.*`})
+	if !matchesSkipPattern("backgroundColor", patterns) {
+		t.Error("expected 'backgroundColor' to match '(?i).*color.*'")
+	}
+	if !matchesSkipPattern("color", patterns) {
+		t.Error("expected 'color' to match '(?i).*color.*'")
+	}
+	// 전체 매칭이므로 .* 없이는 부분 매칭 안됨
+	patterns2 := compileSkipStringPatterns([]string{`color`})
+	if matchesSkipPattern("mycolor", patterns2) {
+		t.Error("expected 'mycolor' to NOT match full-match 'color'")
+	}
+}
+
+func TestCompileSkipStringPatterns_CaseInsensitive(t *testing.T) {
+	patterns := compileSkipStringPatterns([]string{`(?i)hello`})
+	if !matchesSkipPattern("HELLO", patterns) {
+		t.Error("expected 'HELLO' to match case-insensitive 'hello'")
+	}
+	if matchesSkipPattern("say hello world", patterns) {
+		t.Error("expected 'say hello world' to NOT match full-match '(?i)hello'")
 	}
 }
