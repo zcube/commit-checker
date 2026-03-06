@@ -55,7 +55,11 @@ func main() {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	// 문자열 리터럴은 KindString으로 추출되어야 하며 KindComment로 추출되면 안 됨
 	for _, c := range comments {
+		if c.Kind != comment.KindComment {
+			continue
+		}
 		if containsText(c.Text, "this is not a comment") {
 			t.Error("string literal content was extracted as comment")
 		}
@@ -138,7 +142,7 @@ func Foo() {}
 // ---- TypeScript/C-style edge cases ------------------------------------------
 
 func TestCStyleParser_TemplateLiteral_NotComment(t *testing.T) {
-	// Content inside template literals should NOT be parsed as comments
+	// Content inside template literals should NOT be parsed as KindComment
 	src := "const a = `hello // this is not a comment`;\n"
 	p := comment.NewCStyleParser([]string{".ts"}, true)
 	comments, err := p.ParseFile(src)
@@ -146,6 +150,9 @@ func TestCStyleParser_TemplateLiteral_NotComment(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	for _, c := range comments {
+		if c.Kind != comment.KindComment {
+			continue
+		}
 		if containsText(c.Text, "this is not a comment") {
 			t.Error("content inside template literal should not be a comment")
 		}
@@ -161,8 +168,15 @@ func TestCStyleParser_DoubleQuoteString_NotComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(comments) != 1 {
-		t.Errorf("expected exactly 1 comment (the real one), got %d: %+v", len(comments), comments)
+	// KindComment 는 1개(실제 주석)이어야 함; 문자열은 KindString으로 따로 추출됨
+	var onlyComments []comment.Comment
+	for _, c := range comments {
+		if c.Kind == comment.KindComment {
+			onlyComments = append(onlyComments, c)
+		}
+	}
+	if len(onlyComments) != 1 {
+		t.Errorf("expected exactly 1 comment (the real one), got %d: %+v", len(onlyComments), onlyComments)
 	}
 }
 
@@ -200,8 +214,14 @@ func TestCStyleParser_EscapedQuote_InString(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(comments) != 1 {
-		t.Errorf("expected 1 comment, got %d: %+v", len(comments), comments)
+	var onlyComments []comment.Comment
+	for _, c := range comments {
+		if c.Kind == comment.KindComment {
+			onlyComments = append(onlyComments, c)
+		}
+	}
+	if len(onlyComments) != 1 {
+		t.Errorf("expected 1 comment, got %d: %+v", len(onlyComments), onlyComments)
 	}
 }
 
@@ -254,8 +274,14 @@ fn main() {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(comments) != 2 {
-		t.Errorf("expected 2 comments, got %d", len(comments))
+	var onlyComments []comment.Comment
+	for _, c := range comments {
+		if c.Kind == comment.KindComment {
+			onlyComments = append(onlyComments, c)
+		}
+	}
+	if len(onlyComments) != 2 {
+		t.Errorf("expected 2 comments, got %d", len(onlyComments))
 	}
 }
 
@@ -268,8 +294,11 @@ func TestCStyleParser_SingleQuoteString_NotComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Only the real comment
+	// KindComment 에는 문자열 내용이 없어야 함
 	for _, c := range comments {
+		if c.Kind != comment.KindComment {
+			continue
+		}
 		if containsText(c.Text, "not a comment") {
 			t.Error("single-quoted string content should not be extracted as comment")
 		}
@@ -288,11 +317,17 @@ y = '# also not'
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(comments) != 1 {
-		t.Errorf("expected 1 comment, got %d: %+v", len(comments), comments)
+	var onlyComments []comment.Comment
+	for _, c := range comments {
+		if c.Kind == comment.KindComment {
+			onlyComments = append(onlyComments, c)
+		}
 	}
-	if !containsText(comments[0].Text, "진짜 주석") {
-		t.Errorf("expected Korean comment, got %q", comments[0].Text)
+	if len(onlyComments) != 1 {
+		t.Errorf("expected 1 comment, got %d: %+v", len(onlyComments), onlyComments)
+	}
+	if !containsText(onlyComments[0].Text, "진짜 주석") {
+		t.Errorf("expected Korean comment, got %q", onlyComments[0].Text)
 	}
 }
 
@@ -309,7 +344,11 @@ func TestPythonParser_TripleQuoteString_NotComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	// docstring 내용은 KindComment로 추출되면 안 됨 (KindString으로는 추출 가능)
 	for _, c := range comments {
+		if c.Kind != comment.KindComment {
+			continue
+		}
 		if containsText(c.Text, "not a comment") {
 			t.Error("docstring content should not be extracted as a comment")
 		}

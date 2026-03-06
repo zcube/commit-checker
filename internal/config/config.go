@@ -70,6 +70,18 @@ type CommentLanguageConfig struct {
 	// The first matching pattern wins; overrides the global RequiredLanguage.
 	// Use language "any" to allow any language (e.g. for i18n/locale files).
 	FileLanguages []FileLanguageRule `yaml:"file_languages"`
+
+	// CheckStrings: 문자열 리터럴도 주석과 동일하게 언어 검사 여부 (기본값: false).
+	// true 로 설정하면 소스 코드 내 문자열 리터럴에도 required_language 가 적용됨.
+	CheckStrings *bool `yaml:"check_strings"`
+
+	// SkipTechnicalStrings: check_strings=true 일 때 기술적 식별자로 판단되는 문자열을 건너뜀 (기본값: true).
+	// 건너뜀 조건:
+	//   - 슬래시(/) 포함 → 경로 또는 MIME 타입 (예: /api/v1, application/json)
+	//   - 소문자 없는 순수 ASCII → 대문자 상수 (예: ERR_TOKEN, MAX_SIZE)
+	// false 로 설정하면 모든 문자열을 언어 검사함.
+	SkipTechnicalStrings *bool `yaml:"skip_technical_strings"`
+
 }
 
 // FileLanguageRule maps a glob pattern to a required language.
@@ -92,6 +104,22 @@ func (c *CommentLanguageConfig) IsEnabled() bool {
 // IsFullMode returns true when check_mode is "full" (check all staged file comments).
 func (c *CommentLanguageConfig) IsFullMode() bool {
 	return c.CheckMode == "full"
+}
+
+// IsCheckStrings 는 문자열 리터럴 언어 검사가 활성화된 경우 true 반환 (기본값: false).
+func (c *CommentLanguageConfig) IsCheckStrings() bool {
+	if c.CheckStrings == nil {
+		return false
+	}
+	return *c.CheckStrings
+}
+
+// IsSkipTechnicalStrings 는 기술적 식별자 문자열을 건너뛰는 경우 true 반환 (기본값: true).
+func (c *CommentLanguageConfig) IsSkipTechnicalStrings() bool {
+	if c.SkipTechnicalStrings == nil {
+		return true
+	}
+	return *c.SkipTechnicalStrings
 }
 
 // CommitMessageLanguageConfig configures natural-language checking of the commit message body.
@@ -123,12 +151,15 @@ func (c *CommitMessageLanguageConfig) IsEnabled() bool {
 
 // CommitMessageConfig configures commit message checking
 type CommitMessageConfig struct {
-	// NoCoauthor disallows Co-authored-by: trailers (default: true)
+	// NoCoauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
+	// true이면 내장 AI 이메일 패턴 목록과 일치하는 Co-authored-by 줄을 거부/제거.
+	// 일반 사람 공동 작업자는 영향을 받지 않음.
 	NoCoauthor *bool `yaml:"no_coauthor"`
 
-	// CoauthorAllowEmails: no_coauthor=true일 때도 허용할 이메일 주소 또는 glob 패턴 목록.
-	// '*' 와일드카드 지원 (예: "*@company.com"), 대소문자 무시.
-	CoauthorAllowEmails []string `yaml:"coauthor_allow_emails"`
+	// CoauthorRemoveEmails: 내장 AI 패턴에 추가로 제거할 이메일 주소 또는 glob 패턴 목록.
+	// '*' 와일드카드 지원 (예: "*@myai.com"), 대소문자 무시.
+	// 내장 패턴: *copilot*, noreply@anthropic.com, *@cursor.sh, *@codeium.com 등.
+	CoauthorRemoveEmails []string `yaml:"coauthor_remove_emails"`
 
 	// NoUnicodeSpaces disallows invisible/non-standard Unicode space characters (default: true)
 	// Uses the same InvisibleRanges table as Gitea. BOM (U+FEFF) is excluded.
@@ -153,11 +184,32 @@ type CommitMessageConfig struct {
 
 func boolPtr(b bool) *bool { return &b }
 
-// CoauthorEmailAllowed: 주어진 이메일이 allow list에 있는지 확인.
-// 빈 목록이면 false 반환 (모두 차단).
-func (c *CommitMessageConfig) CoauthorEmailAllowed(email string) bool {
+// BuiltinAICoauthorPatterns: 내장 AI 도구 이메일 glob 패턴 목록.
+// GitHub Copilot, Claude, Cursor, Codeium, Tabnine, Amazon Q 등 주요 AI 도구를 대상으로 함.
+var BuiltinAICoauthorPatterns = []string{
+	"*copilot*@*",
+	"noreply@anthropic.com",
+	"*@cursor.sh",
+	"*@codeium.com",
+	"*@tabnine.com",
+	"*amazon-q*@*",
+	"*@sourcegraph.com",
+	"*gemini*@*",
+}
+
+// CoauthorShouldRemove: 주어진 이메일이 내장 AI 패턴 또는 사용자 정의 패턴과 일치하는지 확인.
+// 일치하면 해당 Co-authored-by 줄을 제거해야 함을 의미.
+func (c *CommitMessageConfig) CoauthorShouldRemove(email string) bool {
 	emailLower := strings.ToLower(strings.TrimSpace(email))
-	for _, pattern := range c.CoauthorAllowEmails {
+	// 내장 AI 패턴 확인
+	for _, pattern := range BuiltinAICoauthorPatterns {
+		matched, err := path.Match(pattern, emailLower)
+		if err == nil && matched {
+			return true
+		}
+	}
+	// 사용자 정의 추가 패턴 확인
+	for _, pattern := range c.CoauthorRemoveEmails {
 		matched, err := path.Match(strings.ToLower(strings.TrimSpace(pattern)), emailLower)
 		if err == nil && matched {
 			return true

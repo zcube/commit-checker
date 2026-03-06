@@ -33,6 +33,8 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 	minLength := cfg.CommentLanguage.MinLength
 	skipDirectives := cfg.CommentLanguage.SkipDirectives
 	fullMode := cfg.CommentLanguage.IsFullMode()
+	checkStrings := cfg.CommentLanguage.IsCheckStrings()
+	skipTechnical := cfg.CommentLanguage.IsSkipTechnicalStrings()
 
 	// Collect all ignore patterns: global + comment_language specific + inline ignore_files.
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore,
@@ -83,21 +85,33 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 			if state.Skip {
 				continue
 			}
+			// 문자열 리터럴은 check_strings: true 일 때만 검사
+			if c.Kind == comment.KindString && !checkStrings {
+				continue
+			}
 			// In diff mode, skip comments that don't touch any added line.
 			if !fullMode && !overlapsAddedLines(c, diff.AddedLines) {
 				continue
 			}
 
 			text := strings.TrimSpace(c.Text)
+			// 기술적 식별자 문자열 건너뜀 (skip_technical_strings: true, 기본값)
+			if c.Kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
+				continue
+			}
 			ok, hasContent := langdetect.IsRequiredLanguage(text, state.Language, minLength, skipDirectives)
 			if !hasContent {
 				continue
 			}
 			if !ok {
 				detected := langdetect.Dominant(text)
+				kind := "comment"
+				if c.Kind == comment.KindString {
+					kind = "string literal"
+				}
 				errs = append(errs, fmt.Sprintf(
-					"%s:%d: comment must be written in %s (detected: %s): %s",
-					diff.Path, c.Line, state.Language, detected,
+					"%s:%d: %s must be written in %s (detected: %s): %s",
+					diff.Path, c.Line, kind, state.Language, detected,
 					truncate(text, 80),
 				))
 			}
@@ -143,4 +157,30 @@ func truncate(s string, max int) string {
 		return string(r[:max]) + "…"
 	}
 	return s
+}
+
+// IsPathLikeString: 슬래시(/) 포함 문자열은 경로 또는 MIME 타입으로 판단.
+// 예: "/api/v1/users", "application/json", "text/html; charset=utf-8"
+func IsPathLikeString(s string) bool {
+	return strings.ContainsRune(s, '/')
+}
+
+// IsAllUppercaseASCII: 소문자와 비ASCII 문자 없는 순수 대문자 ASCII 문자열은 상수 식별자로 판단.
+// 예: "ERR_TOKEN", "MAX_RETRY_COUNT", "STATUS_OK"
+func IsAllUppercaseASCII(s string) bool {
+	for _, r := range s {
+		if r > 0x7F {
+			return false // 비ASCII 문자 포함
+		}
+		if r >= 'a' && r <= 'z' {
+			return false // 소문자 포함
+		}
+	}
+	return true
+}
+
+// IsTechnicalString: 언어 검사 대상에서 제외할 기술적 문자열인지 판단.
+// IsPathLikeString 또는 IsAllUppercaseASCII 조건 중 하나라도 해당하면 true.
+func IsTechnicalString(s string) bool {
+	return IsPathLikeString(s) || IsAllUppercaseASCII(s)
 }

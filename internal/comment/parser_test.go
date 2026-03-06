@@ -49,9 +49,15 @@ const tmpl = ` + "`" + `hello // also not a comment` + "`" + `;
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Should find exactly 2 comments: line + block
-	if len(comments) != 2 {
-		t.Errorf("expected 2 comments, got %d: %+v", len(comments), comments)
+	// Should find exactly 2 KindComment items: line + block (strings are KindString)
+	var onlyComments []comment.Comment
+	for _, c := range comments {
+		if c.Kind == comment.KindComment {
+			onlyComments = append(onlyComments, c)
+		}
+	}
+	if len(onlyComments) != 2 {
+		t.Errorf("expected 2 comments, got %d: %+v", len(onlyComments), onlyComments)
 	}
 }
 
@@ -69,7 +75,14 @@ triple quoted
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(comments) != 2 {
-		t.Errorf("expected 2 comments, got %d: %+v", len(comments), comments)
+	// 문자열 리터럴(KindString)을 제외하고 주석(KindComment)만 2개여야 함
+	var onlyComments []comment.Comment
+	for _, c := range comments {
+		if c.Kind == comment.KindComment {
+			onlyComments = append(onlyComments, c)
+		}
+	}
+	if len(onlyComments) != 2 {
+		t.Errorf("expected 2 comments, got %d: %+v", len(onlyComments), onlyComments)
 	}
 }

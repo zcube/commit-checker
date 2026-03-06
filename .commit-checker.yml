@@ -61,6 +61,18 @@ comment_language:
   #   - "internal:"
   #   - "ref:"
 
+  # check_strings: 문자열 리터럴도 주석과 동일하게 언어 검사 여부.
+  # true로 설정하면 소스 코드 내 문자열 리터럴에도 required_language가 적용됨.
+  # Default: false
+  # check_strings: false
+
+  # skip_technical_strings: check_strings=true일 때 기술적 식별자 문자열을 건너뜀 (기본값: true).
+  # 건너뜀 조건:
+  #   - 슬래시(/) 포함 → 경로/MIME 타입 (예: /api/v1, application/json)
+  #   - 소문자 없는 순수 ASCII → 대문자 상수 (예: ERR_TOKEN, MAX_SIZE)
+  # false로 설정하면 모든 문자열을 검사함.
+  # skip_technical_strings: true
+
   # ignore_files: glob patterns for files to skip in comment language checks.
   ignore_files:
     - "**/*_test.go"      # 테스트 파일은 영어 주석 허용
@@ -81,17 +93,19 @@ comment_language:
   #     language: zh
 
 commit_message:
-  # no_coauthor: disallow Co-authored-by: trailers.
-  # Prevents AI-generated attribution (GitHub Copilot, Claude, etc.).
+  # no_coauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
+  # true이면 내장 AI 이메일 패턴(Copilot, Claude, Cursor, Codeium 등)과 일치하는
+  # Co-authored-by 줄을 거부하고 fix 명령으로 자동 제거함.
+  # 일반 사람 공동 작업자는 영향을 받지 않음.
   # Default: true
   no_coauthor: true
 
-  # coauthor_allow_emails: no_coauthor가 true일 때도 허용할 이메일 목록.
-  # '*' 와일드카드 지원 (예: "*@mycompany.com"), 대소문자 무시.
-  # 미설정 시 모든 Co-authored-by: 트레일러를 거부.
-  # coauthor_allow_emails:
-  #   - "alice@myteam.com"
-  #   - "*@mycompany.com"
+  # coauthor_remove_emails: 내장 AI 패턴에 추가로 제거할 이메일 glob 패턴 목록.
+  # '*' 와일드카드 지원 (예: "*@myai.internal"), 대소문자 무시.
+  # 내장 AI 패턴: *copilot*@*, noreply@anthropic.com, *@cursor.sh, *@codeium.com 등.
+  # coauthor_remove_emails:
+  #   - "*@myai.internal"
+  #   - "aibot@company.com"
 
   # no_unicode_spaces: disallow invisible / non-standard Unicode characters.
   # Detected using the same InvisibleRanges table as Gitea.

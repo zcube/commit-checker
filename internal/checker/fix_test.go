@@ -8,18 +8,30 @@ import (
 	"github.com/zcube/commit-checker/internal/config"
 )
 
-func TestFixMsg_RemoveCoauthor(t *testing.T) {
+func TestFixMsg_RemoveCoauthor_AI(t *testing.T) {
 	cfg := allChecksConfig()
-	msg := "feat: add feature\n\nSome body.\n\nCo-authored-by: Bot <bot@example.com>\n"
+	msg := "feat: add feature\n\nSome body.\n\nCo-authored-by: Claude <noreply@anthropic.com>\n"
 	result := checker.FixMsg(cfg, msg)
 	if !result.NeedsFixing() {
-		t.Fatal("expected fix needed")
+		t.Fatal("expected fix needed for AI co-author")
 	}
 	if strings.Contains(result.Fixed, "Co-authored-by") {
-		t.Errorf("co-author trailer should be removed, got:\n%s", result.Fixed)
+		t.Errorf("AI co-author trailer should be removed, got:\n%s", result.Fixed)
 	}
 	if len(result.Changes) == 0 {
 		t.Error("expected at least one change description")
+	}
+}
+
+func TestFixMsg_KeepHumanCoauthor(t *testing.T) {
+	cfg := allChecksConfig()
+	msg := "feat: add feature\n\nCo-authored-by: Alice <alice@myteam.com>\n"
+	result := checker.FixMsg(cfg, msg)
+	if result.NeedsFixing() {
+		t.Errorf("human co-author should not be removed, got changes: %v", result.Changes)
+	}
+	if !strings.Contains(result.Fixed, "Co-authored-by: Alice") {
+		t.Error("human co-author should be preserved")
 	}
 }
 
@@ -81,8 +93,8 @@ func TestFixMsg_Clean_NoChanges(t *testing.T) {
 
 func TestFixMsg_MultipleIssues(t *testing.T) {
 	cfg := allChecksConfig()
-	// Ambiguous char + co-author
-	msg := "feat: \u0410dd\n\nCo-authored-by: Bot <x@y.com>\n"
+	// Ambiguous char + AI co-author
+	msg := "feat: \u0410dd\n\nCo-authored-by: Copilot <github-copilot[bot]@users.noreply.github.com>\n"
 	result := checker.FixMsg(cfg, msg)
 	if !result.NeedsFixing() {
 		t.Fatal("expected multiple fixes")

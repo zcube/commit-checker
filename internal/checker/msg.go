@@ -36,7 +36,9 @@ func CheckMsg(cfg *config.Config, content string) []string {
 	return errs
 }
 
-// checkCoauthor: allow list에 없는 Co-authored-by: 트레일러 줄을 에러로 보고.
+// checkCoauthor: AI 도구 이메일 패턴과 일치하는 Co-authored-by: 트레일러 줄을 에러로 보고.
+// 내장 AI 패턴(Copilot, Claude, Cursor 등) + 사용자 정의 패턴이 적용됨.
+// 패턴에 해당하지 않는 일반 공동 작업자는 허용됨.
 func checkCoauthor(content string, cfg *config.CommitMessageConfig) []string {
 	var errs []string
 	for i, line := range strings.Split(content, "\n") {
@@ -44,17 +46,13 @@ func checkCoauthor(content string, cfg *config.CommitMessageConfig) []string {
 		if !strings.HasPrefix(strings.ToLower(trimmed), "co-authored-by:") {
 			continue
 		}
-		// 허용된 이메일 목록에 있으면 통과
-		if len(cfg.CoauthorAllowEmails) > 0 {
-			email := config.ExtractCoauthorEmail(trimmed)
-			if cfg.CoauthorEmailAllowed(email) {
-				continue
-			}
+		email := config.ExtractCoauthorEmail(trimmed)
+		if cfg.CoauthorShouldRemove(email) {
+			errs = append(errs, fmt.Sprintf(
+				"commit message line %d: AI co-author trailer must be removed: %q",
+				i+1, trimmed,
+			))
 		}
-		errs = append(errs, fmt.Sprintf(
-			"commit message line %d: co-author trailer is not allowed: %q",
-			i+1, trimmed,
-		))
 	}
 	return errs
 }

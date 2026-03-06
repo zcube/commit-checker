@@ -1,6 +1,7 @@
 package checker_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/zcube/commit-checker/internal/checker"
@@ -20,19 +21,49 @@ func allChecksConfig() *config.Config {
 
 // --- co-author ---
 
-func TestCheckMsg_CoAuthor(t *testing.T) {
-	msg := "feat: add new feature\n\nCo-authored-by: Bot <bot@example.com>\n"
+func TestCheckMsg_CoAuthor_AI_Claude(t *testing.T) {
+	msg := "feat: add new feature\n\nCo-authored-by: Claude Sonnet 4.6 <noreply@anthropic.com>\n"
 	errs := checker.CheckMsg(allChecksConfig(), msg)
 	if len(errs) == 0 {
-		t.Error("expected co-author error, got none")
+		t.Error("expected co-author error for Claude, got none")
+	}
+}
+
+func TestCheckMsg_CoAuthor_AI_Copilot(t *testing.T) {
+	msg := "fix: bug\n\nCo-authored-by: GitHub Copilot <github-copilot[bot]@users.noreply.github.com>\n"
+	errs := checker.CheckMsg(allChecksConfig(), msg)
+	if len(errs) == 0 {
+		t.Error("expected co-author error for Copilot, got none")
 	}
 }
 
 func TestCheckMsg_CoAuthor_CaseInsensitive(t *testing.T) {
-	msg := "fix: bug\n\nco-authored-by: Someone <x@y.com>\n"
+	msg := "fix: bug\n\nco-authored-by: Claude <noreply@anthropic.com>\n"
 	errs := checker.CheckMsg(allChecksConfig(), msg)
 	if len(errs) == 0 {
 		t.Error("expected co-author error (case-insensitive), got none")
+	}
+}
+
+func TestCheckMsg_CoAuthor_Human_Allowed(t *testing.T) {
+	// 일반 사람 공동 작업자는 허용되어야 함
+	msg := "feat: add feature\n\nCo-authored-by: Alice <alice@myteam.com>\n"
+	errs := checker.CheckMsg(allChecksConfig(), msg)
+	for _, e := range errs {
+		if strings.Contains(e, "co-author") {
+			t.Errorf("human co-author should be allowed, got error: %s", e)
+		}
+	}
+}
+
+func TestCheckMsg_CoAuthor_Custom_Remove(t *testing.T) {
+	// 사용자 정의 패턴으로 추가 AI 이메일 제거
+	cfg := allChecksConfig()
+	cfg.CommitMessage.CoauthorRemoveEmails = []string{"*@myai.internal"}
+	msg := "feat: add\n\nCo-authored-by: InternalBot <bot@myai.internal>\n"
+	errs := checker.CheckMsg(cfg, msg)
+	if len(errs) == 0 {
+		t.Error("expected co-author error for custom AI pattern, got none")
 	}
 }
 

@@ -45,23 +45,19 @@ func FixMsg(cfg *config.Config, content string) FixResult {
 	return result
 }
 
-// fixCoauthor: allow list에 없는 Co-authored-by: 트레일러 줄을 제거.
+// fixCoauthor: AI 패턴과 일치하는 Co-authored-by: 트레일러 줄을 제거.
+// 패턴에 해당하지 않는 일반 공동 작업자 줄은 유지됨.
 func fixCoauthor(content string, changes []string, cfg *config.CommitMessageConfig) (string, []string) {
 	lines := strings.Split(content, "\n")
 	var kept []string
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(strings.ToLower(trimmed), "co-authored-by:") {
-			// 허용된 이메일이면 유지
-			if len(cfg.CoauthorAllowEmails) > 0 {
-				email := config.ExtractCoauthorEmail(trimmed)
-				if cfg.CoauthorEmailAllowed(email) {
-					kept = append(kept, line)
-					continue
-				}
+			email := config.ExtractCoauthorEmail(trimmed)
+			if cfg.CoauthorShouldRemove(email) {
+				changes = append(changes, fmt.Sprintf("line %d: removed AI co-author trailer: %q", i+1, trimmed))
+				continue
 			}
-			changes = append(changes, fmt.Sprintf("line %d: removed co-author trailer: %q", i+1, trimmed))
-			continue
 		}
 		kept = append(kept, line)
 	}

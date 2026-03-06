@@ -612,12 +612,21 @@ func TestE2E_Msg_Clean_Exit0(t *testing.T) {
 	}
 }
 
-func TestE2E_Msg_CoAuthor_Exit1(t *testing.T) {
+func TestE2E_Msg_CoAuthor_AI_Exit1(t *testing.T) {
 	r := newTestRepo(t)
-	msgFile := writeMsgFile(t, "feat: add feature\n\nCo-authored-by: Bot <bot@example.com>\n")
+	msgFile := writeMsgFile(t, "feat: add feature\n\nCo-authored-by: Claude <noreply@anthropic.com>\n")
 	out, code := r.run("msg", msgFile)
 	if code != 1 {
-		t.Errorf("co-author should cause exit 1, got %d\noutput: %s", code, out)
+		t.Errorf("AI co-author should cause exit 1, got %d\noutput: %s", code, out)
+	}
+}
+
+func TestE2E_Msg_CoAuthor_Human_Exit0(t *testing.T) {
+	r := newTestRepo(t)
+	msgFile := writeMsgFile(t, "feat: add feature\n\nCo-authored-by: Alice <alice@myteam.com>\n")
+	out, code := r.run("msg", msgFile)
+	if code != 0 {
+		t.Errorf("human co-author should exit 0, got %d\noutput: %s", code, out)
 	}
 }
 
@@ -701,7 +710,7 @@ func TestE2E_Msg_LanguageCheck_MergeSkipped(t *testing.T) {
 func TestE2E_Msg_MultipleViolations_AllReported(t *testing.T) {
 	r := newTestRepo(t)
 	// Both co-author AND invisible char
-	msgFile := writeMsgFile(t, "feat: hello\u00A0world\n\nCo-authored-by: Bot <x@y.com>\n")
+	msgFile := writeMsgFile(t, "feat: hello\u00A0world\n\nCo-authored-by: Copilot <github-copilot[bot]@users.noreply.github.com>\n")
 	out, code := r.run("msg", msgFile)
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
@@ -724,7 +733,7 @@ func TestE2E_Fix_DryRun_ShowsCoAuthor(t *testing.T) {
 	// Violating commit
 	r.write("init.go", "package main\nfunc f(){}\n")
 	r.git("add", "init.go")
-	r.commit("feat: 초기 커밋\n\nCo-authored-by: Bot <bot@x.com>")
+	r.commit("feat: 초기 커밋\n\nCo-authored-by: Claude <noreply@anthropic.com>")
 
 	out, code := r.run("fix", "--range", "HEAD~1..HEAD", "--dry-run")
 	if code != 0 {

@@ -2,14 +2,8 @@ package comment
 
 import "strings"
 
-// CStyleParser extracts comments from C-style languages (TypeScript, JavaScript,
-// Java, Kotlin, C, C++, C#, Swift, Rust, etc.) using a state machine.
-//
-// It correctly handles:
-//   - // line comments
-//   - /* block comments */ (including /** JavaDoc / JSDoc */)
-//   - "..." and '...' string literals with escape sequences
-//   - ` ` template literals (JS/TS) with escape sequences
+// CStyleParser 는 C 스타일 언어(TypeScript, JavaScript, Java, Kotlin, C, C++, C#, Swift, Rust 등)에서
+// 주석과 문자열 리터럴을 추출하는 상태 기계 기반 파서.
 type CStyleParser struct {
 	extensions  []string
 	hasTemplate bool // JS/TS have template literals (backticks)
@@ -36,12 +30,13 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 	)
 
 	var (
-		comments    []Comment
+		result      []Comment
 		runes       = []rune(content)
 		n           = len(runes)
 		state       = stCode
 		buf         strings.Builder
 		commentLine int
+		strLine     int
 		line        = 1
 	)
 
@@ -50,6 +45,20 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 			return runes[i+1]
 		}
 		return 0
+	}
+
+	emitString := func(endLine int) {
+		val := buf.String()
+		if val != "" {
+			result = append(result, Comment{
+				Text:    val,
+				Line:    strLine,
+				EndLine: endLine,
+				IsBlock: false,
+				Kind:    KindString,
+			})
+		}
+		buf.Reset()
 	}
 
 	for i := 0; i < n; i++ {
@@ -70,21 +79,28 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 				i++ // consume '*'
 			case ch == '"':
 				state = stDQ
+				strLine = line
+				buf.Reset()
 			case ch == '\'':
 				state = stSQ
+				strLine = line
+				buf.Reset()
 			case p.hasTemplate && ch == '`':
 				state = stTemplate
+				strLine = line
+				buf.Reset()
 			}
 
 		case stLine:
 			if ch == '\n' {
 				text := strings.TrimSpace(buf.String())
 				if text != "" {
-					comments = append(comments, Comment{
+					result = append(result, Comment{
 						Text:    text,
 						Line:    commentLine,
 						EndLine: line,
 						IsBlock: false,
+						Kind:    KindComment,
 					})
 				}
 				buf.Reset()
@@ -97,11 +113,12 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 		case stBlock:
 			if ch == '*' && peek(i) == '/' {
 				text := cleanBlockComment(buf.String())
-				comments = append(comments, Comment{
+				result = append(result, Comment{
 					Text:    text,
 					Line:    commentLine,
 					EndLine: line,
 					IsBlock: true,
+					Kind:    KindComment,
 				})
 				buf.Reset()
 				state = stCode
@@ -115,49 +132,66 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 
 		case stDQ:
 			if ch == '\n' {
+				emitString(line)
 				line++
-				state = stCode // treat as unterminated
-			} else if ch == '\\' && i+1 < n {
-				i++ // skip escaped character
-			} else if ch == '"' {
 				state = stCode
+			} else if ch == '\\' && i+1 < n {
+				i++ // 이스케이프 시퀀스는 언어 감지에 불필요하므로 건너뜀
+			} else if ch == '"' {
+				emitString(line)
+				state = stCode
+			} else {
+				buf.WriteRune(ch)
 			}
 
 		case stSQ:
 			if ch == '\n' {
+				emitString(line)
 				line++
 				state = stCode
 			} else if ch == '\\' && i+1 < n {
 				i++
 			} else if ch == '\'' {
+				emitString(line)
 				state = stCode
+			} else {
+				buf.WriteRune(ch)
 			}
 
 		case stTemplate:
 			if ch == '\n' {
 				line++
+				buf.WriteRune(ch)
 			} else if ch == '\\' && i+1 < n {
 				i++
 			} else if ch == '`' {
+				emitString(line)
 				state = stCode
+			} else {
+				buf.WriteRune(ch)
 			}
-			// ${...} expressions are skipped for simplicity; comments inside
-			// template expressions won't be caught, which is an acceptable trade-off.
+			// ${...} 표현식은 단순화를 위해 건너뜀.
 		}
 	}
 
-	// Handle file that ends without a trailing newline while in a line comment.
+	// 파일이 개행 없이 끝날 때 line comment 처리
 	if state == stLine {
 		text := strings.TrimSpace(buf.String())
 		if text != "" {
-			comments = append(comments, Comment{
+			result = append(result, Comment{
 				Text:    text,
 				Line:    commentLine,
 				EndLine: line,
 				IsBlock: false,
+				Kind:    KindComment,
 			})
 		}
 	}
 
-	return comments, nil
+	// 파일이 개행 없이 끝날 때 string 처리
+	if state == stDQ || state == stSQ || state == stTemplate {
+		emitString(line)
+	}
+
+	return result, nil
 }
