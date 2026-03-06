@@ -19,6 +19,46 @@ func (p *CStyleParser) SupportedExtensions() []string {
 	return p.extensions
 }
 
+// findImportLines 는 #include, import, require, export...from 등 import 구문이 포함된 줄 번호를 반환.
+func findImportLines(content string) map[int]bool {
+	lines := strings.Split(content, "\n")
+	importLines := make(map[int]bool)
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		lineNum := i + 1
+		// C/C++ #include
+		if strings.HasPrefix(trimmed, "#include") {
+			importLines[lineNum] = true
+			continue
+		}
+		// JS/TS/Java/Kotlin import ... from "..." or import "..."
+		if strings.HasPrefix(trimmed, "import") {
+			importLines[lineNum] = true
+			continue
+		}
+		// JS require("...")
+		if strings.Contains(trimmed, "require(") {
+			importLines[lineNum] = true
+			continue
+		}
+		// JS/TS export ... from "..."
+		if strings.HasPrefix(trimmed, "export") && strings.Contains(trimmed, " from ") {
+			importLines[lineNum] = true
+			continue
+		}
+		// Rust include!("..."), include_str!("..."), include_bytes!("...")
+		if strings.Contains(trimmed, "include!(") ||
+			strings.Contains(trimmed, "include_str!(") ||
+			strings.Contains(trimmed, "include_bytes!(") {
+			importLines[lineNum] = true
+			continue
+		}
+		// C# using (no string literals typically)
+		// Swift import (no string literals typically)
+	}
+	return importLines
+}
+
 func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 	const (
 		stCode     = iota
@@ -28,6 +68,8 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 		stSQ       // inside '...' string (also char literal)
 		stTemplate // inside `...` template literal
 	)
+
+	importLines := findImportLines(content)
 
 	var (
 		result      []Comment
@@ -50,12 +92,16 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 	emitString := func(endLine int) {
 		val := buf.String()
 		if val != "" {
+			kind := KindString
+			if importLines[strLine] {
+				kind = KindImportString
+			}
 			result = append(result, Comment{
 				Text:    val,
 				Line:    strLine,
 				EndLine: endLine,
 				IsBlock: false,
-				Kind:    KindString,
+				Kind:    kind,
 			})
 		}
 		buf.Reset()

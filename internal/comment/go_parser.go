@@ -53,6 +53,12 @@ func (p *GoParser) ParseFile(content string) ([]Comment, error) {
 		}
 	}
 
+	// import 경로 위치 수집 (언어 검사 제외 대상)
+	importPositions := make(map[token.Pos]bool)
+	for _, imp := range f.Imports {
+		importPositions[imp.Path.Pos()] = true
+	}
+
 	// 문자열 리터럴 추출 (AST 순회)
 	ast.Inspect(f, func(n ast.Node) bool {
 		lit, ok := n.(*ast.BasicLit)
@@ -67,12 +73,17 @@ func (p *GoParser) ParseFile(content string) ([]Comment, error) {
 			return true
 		}
 
+		kind := KindString
+		if importPositions[lit.Pos()] {
+			kind = KindImportString
+		}
+
 		result = append(result, Comment{
 			Text:    val,
 			Line:    pos.Line,
 			EndLine: endPos.Line,
 			IsBlock: false,
-			Kind:    KindString,
+			Kind:    kind,
 		})
 		return true
 	})

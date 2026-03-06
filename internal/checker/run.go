@@ -305,6 +305,10 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 			if state.Skip {
 				continue
 			}
+			// import/include 문자열은 항상 건너뜀
+			if c.Kind == comment.KindImportString {
+				continue
+			}
 			if c.Kind == comment.KindString && !checkStrings {
 				continue
 			}

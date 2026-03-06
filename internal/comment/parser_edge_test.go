@@ -419,6 +419,168 @@ y = 2
 	}
 }
 
+// ---- import/include string exclusion tests ----------------------------------
+
+func TestGoParser_ImportStrings_MarkedAsImport(t *testing.T) {
+	src := `package main
+
+import (
+	"fmt"
+	"os/exec"
+	"github.com/zcube/commit-checker/internal/comment"
+)
+
+func main() {
+	msg := "일반 문자열"
+	_ = msg
+}
+`
+	p := &comment.GoParser{}
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var importStrings, normalStrings []comment.Comment
+	for _, c := range comments {
+		switch c.Kind {
+		case comment.KindImportString:
+			importStrings = append(importStrings, c)
+		case comment.KindString:
+			normalStrings = append(normalStrings, c)
+		}
+	}
+	if len(importStrings) != 3 {
+		t.Errorf("expected 3 import strings (fmt, os/exec, github...), got %d: %+v", len(importStrings), importStrings)
+	}
+	if len(normalStrings) != 1 {
+		t.Errorf("expected 1 normal string, got %d: %+v", len(normalStrings), normalStrings)
+	}
+	if len(normalStrings) > 0 && normalStrings[0].Text != "일반 문자열" {
+		t.Errorf("expected normal string '일반 문자열', got %q", normalStrings[0].Text)
+	}
+}
+
+func TestGoParser_SingleImport_MarkedAsImport(t *testing.T) {
+	src := `package main
+
+import "fmt"
+
+func main() {}
+`
+	p := &comment.GoParser{}
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, c := range comments {
+		if c.Kind == comment.KindImportString && c.Text == "fmt" {
+			return // success
+		}
+	}
+	t.Error("expected import string 'fmt' with KindImportString")
+}
+
+func TestCStyleParser_CInclude_MarkedAsImport(t *testing.T) {
+	src := `#include "myheader.h"
+#include <stdio.h>
+
+int main() {
+    char *msg = "일반 문자열";
+    return 0;
+}
+`
+	p := comment.NewCStyleParser([]string{".c"}, false)
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var importStrings, normalStrings []comment.Comment
+	for _, c := range comments {
+		switch c.Kind {
+		case comment.KindImportString:
+			importStrings = append(importStrings, c)
+		case comment.KindString:
+			normalStrings = append(normalStrings, c)
+		}
+	}
+	// #include "myheader.h" should be KindImportString
+	if len(importStrings) != 1 {
+		t.Errorf("expected 1 import string (myheader.h), got %d: %+v", len(importStrings), importStrings)
+	}
+	// "일반 문자열" should remain as KindString
+	if len(normalStrings) != 1 {
+		t.Errorf("expected 1 normal string, got %d: %+v", len(normalStrings), normalStrings)
+	}
+}
+
+func TestCStyleParser_JSImport_MarkedAsImport(t *testing.T) {
+	src := `import React from "react";
+import { useState } from "react";
+const msg = "일반 문자열";
+const lib = require("lodash");
+export { default } from "other-module";
+`
+	p := comment.NewCStyleParser([]string{".js"}, true)
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var importStrings, normalStrings []comment.Comment
+	for _, c := range comments {
+		switch c.Kind {
+		case comment.KindImportString:
+			importStrings = append(importStrings, c)
+		case comment.KindString:
+			normalStrings = append(normalStrings, c)
+		}
+	}
+	// "react", "react", "lodash", "other-module" should be import strings
+	if len(importStrings) != 4 {
+		t.Errorf("expected 4 import strings, got %d: %+v", len(importStrings), importStrings)
+	}
+	// "일반 문자열" should be normal string
+	if len(normalStrings) != 1 {
+		t.Errorf("expected 1 normal string, got %d: %+v", len(normalStrings), normalStrings)
+	}
+}
+
+func TestCStyleParser_RustInclude_MarkedAsImport(t *testing.T) {
+	src := `use std::io;
+
+fn main() {
+    let data = include_str!("data.txt");
+    let msg = "일반 문자열";
+}
+`
+	p := comment.NewCStyleParser([]string{".rs"}, false)
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var importStrings, normalStrings []comment.Comment
+	for _, c := range comments {
+		switch c.Kind {
+		case comment.KindImportString:
+			importStrings = append(importStrings, c)
+		case comment.KindString:
+			normalStrings = append(normalStrings, c)
+		}
+	}
+	// "data.txt" should be import string
+	if len(importStrings) != 1 {
+		t.Errorf("expected 1 import string (data.txt), got %d: %+v", len(importStrings), importStrings)
+	}
+	// "일반 문자열" should be normal string
+	if len(normalStrings) != 1 {
+		t.Errorf("expected 1 normal string, got %d: %+v", len(normalStrings), normalStrings)
+	}
+}
+
 // ---- helper -----------------------------------------------------------------
 
 func containsText(s, sub string) bool {

@@ -91,6 +91,10 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 			if state.Skip {
 				continue
 			}
+			// import/include 문자열은 항상 건너뜀
+			if c.Kind == comment.KindImportString {
+				continue
+			}
 			// 문자열 리터럴은 check_strings: true 일 때만 검사
 			if c.Kind == comment.KindString && !checkStrings {
 				continue

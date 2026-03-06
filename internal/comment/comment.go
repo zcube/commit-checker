@@ -6,8 +6,9 @@ import "strings"
 type Kind uint8
 
 const (
-	KindComment Kind = iota // 주석
-	KindString              // 문자열 리터럴
+	KindComment      Kind = iota // 주석
+	KindString                   // 문자열 리터럴
+	KindImportString             // import/include 문자열 (언어 검사 제외)
 )
 
 // Comment 는 소스 코드에서 추출된 주석 또는 문자열 리터럴을 나타냄
