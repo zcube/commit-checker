@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/saintfish/chardet"
 )
 
@@ -70,17 +71,18 @@ func isValidUTF8(content []byte) bool {
 	return true
 }
 
-// IsBinary: 콘텐츠가 바이너리(널 바이트 포함)인지 확인.
+// IsBinary: mimetype 패키지를 사용하여 콘텐츠가 바이너리인지 확인.
+// magic bytes 기반으로 MIME 타입을 감지하고, text/plain 계열이 아니면 바이너리로 판단.
+// JSON, XML, HTML 등 text/plain을 부모로 가지는 타입은 텍스트로 처리.
 func IsBinary(content []byte) bool {
-	// 처음 8KB에서 널 바이트 검사
-	checkLen := len(content)
-	if checkLen > 8192 {
-		checkLen = 8192
+	if len(content) == 0 {
+		return false
 	}
-	for i := 0; i < checkLen; i++ {
-		if content[i] == 0 {
-			return true
+	mtype := mimetype.Detect(content)
+	for m := mtype; m != nil; m = m.Parent() {
+		if m.Is("text/plain") {
+			return false
 		}
 	}
-	return false
+	return true
 }

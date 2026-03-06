@@ -9,6 +9,7 @@ require (
 
 require (
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.4 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.6.1 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
