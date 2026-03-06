@@ -1,0 +1,242 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write   # GitHub Release 생성 및 assets 업로드
+  packages: write   # GHCR 이미지 push
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  # ---- 1. 바이너리 크로스컴파일 & GitHub Release ---------------------
+  binaries:
+    name: 바이너리 빌드 (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: 바이너리 빌드
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION="${{ github.ref_name }}"
+          COMMIT="${{ github.sha }}"
+          BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          LDFLAGS="-s -w \
+            -X github.com/zcube/commit-checker/internal/version.Version=${VERSION} \
+            -X github.com/zcube/commit-checker/internal/version.Commit=${COMMIT} \
+            -X github.com/zcube/commit-checker/internal/version.BuildTime=${BUILD_TIME}"
+
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY="commit-checker.exe"
+          else
+            BINARY="commit-checker"
+          fi
+
+          go build -trimpath -ldflags "${LDFLAGS}" -o "${BINARY}" .
+
+          # 아카이브 생성
+          ARCHIVE="commit-checker_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          mkdir -p dist
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            zip "dist/${ARCHIVE}.zip" "${BINARY}" .commit-checker.yml .commit-checker.schema.json
+          else
+            tar czf "dist/${ARCHIVE}.tar.gz" "${BINARY}" .commit-checker.yml .commit-checker.schema.json
+          fi
+
+      - name: 아티팩트 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+          retention-days: 1
+
+  # ---- 2. 체크섬 생성 & GitHub Release 생성 -------------------------
+  github-release:
+    name: GitHub Release
+    needs: binaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 빌드된 아티팩트 수집
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: dist/
+          merge-multiple: true
+
+      - name: SHA256 체크섬 생성
+        working-directory: dist
+        run: sha256sum * > checksums.txt
+
+      - name: 체인지로그 추출
+        id: changelog
+        run: |
+          # 이전 태그와 현재 태그 사이의 커밋 로그를 체인지로그로 사용
+          PREV_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed -n '2p')
+          if [ -z "${PREV_TAG}" ]; then
+            LOG=$(git log --pretty=format:"- %s (%h)" HEAD)
+          else
+            LOG=$(git log --pretty=format:"- %s (%h)" "${PREV_TAG}..HEAD")
+          fi
+          echo "CHANGELOG<<EOF" >> "$GITHUB_OUTPUT"
+          echo "${LOG}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub Release 생성
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "${{ github.ref_name }}"
+          body: |
+            ## 변경 사항
+
+            ${{ steps.changelog.outputs.CHANGELOG }}
+
+            ## 설치
+
+            ### 바이너리 직접 설치
+            ```bash
+            # Linux (amd64)
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/commit-checker_${{ github.ref_name }}_linux_amd64.tar.gz | tar xz
+            sudo mv commit-checker /usr/local/bin/
+
+            # macOS (Apple Silicon)
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/commit-checker_${{ github.ref_name }}_darwin_arm64.tar.gz | tar xz
+            sudo mv commit-checker /usr/local/bin/
+            ```
+
+            ### Docker
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ```
+          files: dist/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+  # ---- 3. Docker 이미지 빌드 & GHCR push ---------------------------
+  docker:
+    name: Docker (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            artifact-suffix: amd64
+          - platform: linux/arm64
+            artifact-suffix: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: QEMU 설치
+        uses: docker/setup-qemu-action@v3
+
+      - name: Docker Buildx 설치
+        uses: docker/setup-buildx-action@v3
+
+      - name: GHCR 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker 메타데이터
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},suffix=-${{ matrix.artifact-suffix }}
+            type=semver,pattern={{major}}.{{minor}},suffix=-${{ matrix.artifact-suffix }}
+            type=raw,value=latest,suffix=-${{ matrix.artifact-suffix }},enable={{is_default_branch}}
+
+      - name: Docker 빌드 & Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+            BUILD_TIME=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha,scope=${{ matrix.artifact-suffix }}
+          cache-to: type=gha,scope=${{ matrix.artifact-suffix }},mode=max
+
+  # ---- 4. 멀티아키 Docker manifest 생성 ----------------------------
+  docker-manifest:
+    name: Docker Manifest
+    needs: docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: GHCR 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Buildx 설치
+        uses: docker/setup-buildx-action@v3
+
+      - name: 버전 태그 manifest 생성
+        run: |
+          VERSION="${{ github.ref_name }}"
+          # v1.2.3 → 1.2.3
+          SEMVER="${VERSION#v}"
+          MAJOR_MINOR="${SEMVER%.*}"
+
+          docker buildx imagetools create \
+            -t ${{ env.IMAGE }}:${VERSION} \
+            ${{ env.IMAGE }}:${VERSION}-amd64 \
+            ${{ env.IMAGE }}:${VERSION}-arm64
+
+          docker buildx imagetools create \
+            -t ${{ env.IMAGE }}:${MAJOR_MINOR} \
+            ${{ env.IMAGE }}:${VERSION}-amd64 \
+            ${{ env.IMAGE }}:${VERSION}-arm64
+
+      - name: latest manifest 생성 (정식 릴리즈만)
+        if: ${{ !contains(github.ref_name, '-') }}
+        run: |
+          VERSION="${{ github.ref_name }}"
+          docker buildx imagetools create \
+            -t ${{ env.IMAGE }}:latest \
+            ${{ env.IMAGE }}:${VERSION}-amd64 \
+            ${{ env.IMAGE }}:${VERSION}-arm64

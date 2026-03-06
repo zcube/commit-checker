@@ -2,11 +2,9 @@ pre-commit:
   commands:
     comment-language:
       run: commit-checker diff
-      # To use a custom config location:
-      # run: commit-checker --config path/to/.commit-checker.yml diff
 
 commit-msg:
   commands:
     message-policy:
+      # {1} 은 lefthook 이 커밋 메시지 파일 경로로 치환
       run: commit-checker msg {1}
-      # {1} is the path to the commit message file passed by git

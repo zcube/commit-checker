@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+    tags-ignore: ["v*"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: 테스트
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.22", "1.23"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Go ${{ matrix.go-version }} 설치
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: 의존성 설치
+        run: go mod download
+
+      - name: 빌드 확인
+        run: go build ./...
+
+      - name: 테스트 (커버리지 포함)
+        run: go test ./... -coverprofile=coverage.out -timeout=180s
+
+      - name: 커버리지 리포트
+        run: go tool cover -func=coverage.out | tail -1
+
+  lint:
+    name: 린트
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
