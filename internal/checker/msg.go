@@ -7,6 +7,7 @@ import (
 
 	"github.com/zcube/commit-checker/internal/charset"
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/emoji"
 	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/langdetect"
 )
@@ -29,6 +30,9 @@ func CheckMsg(cfg *config.Config, content string) []string {
 	}
 	if cfg.CommitMessage.IsNoBadRunes() {
 		errs = append(errs, checkBadRunes(content)...)
+	}
+	if cfg.CommitMessage.IsNoEmoji() {
+		errs = append(errs, checkMsgEmoji(content)...)
 	}
 	if cfg.CommitMessage.LanguageCheck.IsEnabled() {
 		errs = append(errs, checkMsgLanguage(content, &cfg.CommitMessage.LanguageCheck)...)
@@ -184,5 +188,20 @@ func checkMsgLanguage(content string, cfg *config.CommitMessageLanguageConfig) [
 		checkLine(i+1, lines[i])
 	}
 
+	return errs
+}
+
+// checkMsgEmoji: 커밋 메시지에서 이모지 문자를 감지하여 에러 목록 반환.
+func checkMsgEmoji(content string) []string {
+	var errs []string
+	emojis := emoji.FindEmojis(content)
+	for _, e := range emojis {
+		errs = append(errs, i18n.T("msg.emoji_error", map[string]interface{}{
+			"Line":     e.Line,
+			"Col":      e.Col,
+			"Char":     e.Char,
+			"CharCode": fmt.Sprintf("%04X", e.Code),
+		}))
+	}
 	return errs
 }

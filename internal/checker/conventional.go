@@ -10,7 +10,8 @@ import (
 
 // conventionalPattern: 컨벤셔널 커밋 제목 줄 패턴
 // 형식: type[(scope)][!]: description
-var conventionalPattern = regexp.MustCompile(`^([a-zA-Z0-9_-]+)(\([^)]*\))?(!)?: .+`)
+// 타입에 유니코드 문자도 허용 (로컬라이즈된 타입 지원: 기능, 修正 등)
+var conventionalPattern = regexp.MustCompile(`^([^\s(:!]+)(\([^)]*\))?(!)?: .+`)
 
 // checkConventional: 커밋 메시지 제목이 Conventional Commits 명세를 따르는지 검증.
 func checkConventional(content string, cfg *config.ConventionalCommitConfig) []string {
@@ -50,10 +51,10 @@ func checkConventional(content string, cfg *config.ConventionalCommitConfig) []s
 	commitType := m[1]
 	scope := m[2]
 
-	// 허용된 타입 목록과 대조.
-	allowedTypes := cfg.GetTypes()
+	// 허용된 타입 목록과 대조 (표준 타입 + 별칭 모두 확인).
+	allTypes := cfg.GetAllAllowedTypes()
 	typeAllowed := false
-	for _, t := range allowedTypes {
+	for _, t := range allTypes {
 		if strings.EqualFold(commitType, t) {
 			typeAllowed = true
 			break
@@ -62,7 +63,7 @@ func checkConventional(content string, cfg *config.ConventionalCommitConfig) []s
 	if !typeAllowed {
 		return []string{i18n.T("msg.conventional_type_error", map[string]interface{}{
 			"Type":  commitType,
-			"Types": strings.Join(allowedTypes, ", "),
+			"Types": strings.Join(allTypes, ", "),
 		})}
 	}
 

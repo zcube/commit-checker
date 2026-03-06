@@ -13,15 +13,151 @@ import (
 type Config struct {
 	CommentLanguage CommentLanguageConfig `yaml:"comment_language"`
 	CommitMessage   CommitMessageConfig   `yaml:"commit_message"`
+	BinaryFile      BinaryFileConfig      `yaml:"binary_file"`
+	Lint            LintConfig            `yaml:"lint"`
+	Encoding        EncodingConfig        `yaml:"encoding"`
+	EditorConfig    EditorConfigConfig    `yaml:"editorconfig"`
 	Exceptions      ExceptionsConfig      `yaml:"exceptions"`
 }
 
-// ExceptionsConfig defines global and per-feature file exclusion patterns.
+// LintConfig: 데이터 파일(YAML, JSON, XML) 구문 lint 검사 설정.
+type LintConfig struct {
+	// Enabled: lint 검사 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// YAML lint 설정
+	YAML LintRuleConfig `yaml:"yaml"`
+
+	// JSON lint 설정
+	JSON JSONLintConfig `yaml:"json"`
+
+	// XML lint 설정
+	XML LintRuleConfig `yaml:"xml"`
+}
+
+// IsEnabled: lint 검사 활성화 여부 반환 (기본값: true).
+func (c *LintConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// LintRuleConfig: 단일 lint 규칙 타입 설정.
+type LintRuleConfig struct {
+	// Enabled: 이 lint 규칙 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// IgnoreFiles: 건너뛸 파일의 glob 패턴 목록.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: 이 lint 규칙 활성화 여부 반환 (기본값: true).
+func (c *LintRuleConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// JSONLintConfig: JSON lint 검사 설정.
+type JSONLintConfig struct {
+	// Enabled: JSON lint 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// AllowJSON5: JSON5 형식 허용 여부 (기본값: false).
+	// true이면 // 및 /* */ 주석, trailing comma 허용.
+	AllowJSON5 *bool `yaml:"allow_json5"`
+
+	// IgnoreFiles: 건너뛸 파일의 glob 패턴 목록.
+	// 기본 제외: package-lock.json, yarn.lock 등 auto-generated 파일.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: JSON lint 활성화 여부 반환 (기본값: true).
+func (c *JSONLintConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// IsAllowJSON5: JSON5 형식 허용 여부 반환 (기본값: false).
+func (c *JSONLintConfig) IsAllowJSON5() bool {
+	if c.AllowJSON5 == nil {
+		return false
+	}
+	return *c.AllowJSON5
+}
+
+// EncodingConfig: 파일 인코딩 검사 설정.
+type EncodingConfig struct {
+	// Enabled: 인코딩 검사 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// RequireUTF8: UTF-8 인코딩 필수 여부 (기본값: true).
+	// true이면 UTF-8이 아닌 파일을 커밋할 수 없음.
+	RequireUTF8 *bool `yaml:"require_utf8"`
+
+	// IgnoreFiles: 인코딩 검사에서 제외할 파일의 glob 패턴 목록.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: 인코딩 검사 활성화 여부 반환 (기본값: true).
+func (c *EncodingConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// IsRequireUTF8: UTF-8 인코딩 필수 여부 반환 (기본값: true).
+func (c *EncodingConfig) IsRequireUTF8() bool {
+	if c.RequireUTF8 == nil {
+		return true
+	}
+	return *c.RequireUTF8
+}
+
+// EditorConfigConfig: .editorconfig 규칙 검증 설정.
+type EditorConfigConfig struct {
+	// Enabled: editorconfig 검사 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+}
+
+// IsEnabled: editorconfig 검사 활성화 여부 반환 (기본값: true).
+func (c *EditorConfigConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// BinaryFileConfig: 스테이지된 diff에서 바이너리 파일 감지 설정.
+// 컴파일된 실행파일 등 바이너리 파일이 커밋되는 것을 방지.
+type BinaryFileConfig struct {
+	// Enabled: 바이너리 파일 감지 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// IgnoreFiles: 허용할 바이너리 파일의 glob 패턴 목록.
+	// 예: 이미지, 폰트 등 의도적으로 포함하는 바이너리 파일.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: 바이너리 파일 감지 활성화 여부 반환 (기본값: true).
+func (c *BinaryFileConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// ExceptionsConfig: 전역 및 기능별 파일 제외 패턴 설정.
 type ExceptionsConfig struct {
-	// GlobalIgnore lists glob patterns for files to skip in ALL checks.
+	// GlobalIgnore: 모든 검사에서 건너뛸 파일의 glob 패턴 목록.
 	GlobalIgnore []string `yaml:"global_ignore"`
 
-	// CommentLanguageIgnore lists glob patterns for files to skip only in comment language checks.
+	// CommentLanguageIgnore: 주석 언어 검사에서만 건너뛸 파일의 glob 패턴 목록.
 	CommentLanguageIgnore []string `yaml:"comment_language_ignore"`
 }
 
@@ -71,6 +207,10 @@ type CommentLanguageConfig struct {
 	// Use language "any" to allow any language (e.g. for i18n/locale files).
 	FileLanguages []FileLanguageRule `yaml:"file_languages"`
 
+	// NoEmoji: 주석에서 이모지 사용 금지 여부 (기본값: false).
+	// true이면 소스 코드 주석에 이모지 사용을 금지.
+	NoEmoji *bool `yaml:"no_emoji"`
+
 	// CheckStrings: 문자열 리터럴도 주석과 동일하게 언어 검사 여부 (기본값: false).
 	// true 로 설정하면 소스 코드 내 문자열 리터럴에도 required_language 가 적용됨.
 	CheckStrings *bool `yaml:"check_strings"`
@@ -99,6 +239,14 @@ func (c *CommentLanguageConfig) IsEnabled() bool {
 		return true
 	}
 	return *c.Enabled
+}
+
+// IsNoEmoji: 주석 이모지 검사 활성화 여부 반환 (기본값: false).
+func (c *CommentLanguageConfig) IsNoEmoji() bool {
+	if c.NoEmoji == nil {
+		return false
+	}
+	return *c.NoEmoji
 }
 
 // IsFullMode returns true when check_mode is "full" (check all staged file comments).
@@ -159,6 +307,16 @@ type ConventionalCommitConfig struct {
 	// 기본값: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
 	Types []string `yaml:"types"`
 
+	// TypeAliases: 로컬라이즈된 타입 별칭 매핑 (로컬라이즈 -> 표준 타입).
+	// 예: {"기능": "feat", "수정": "fix"} (한국어)
+	// 설정하면 로컬라이즈된 타입도 허용됨.
+	TypeAliases map[string]string `yaml:"type_aliases"`
+
+	// Locale: 로컬라이즈된 타입 기본값을 적용할 언어.
+	// type_aliases가 설정되지 않은 경우 내장 매핑을 사용.
+	// 지원: ko, ja, zh
+	Locale string `yaml:"locale"`
+
 	// RequireScope: 스코프 필수 여부 (기본값: false).
 	RequireScope *bool `yaml:"require_scope"`
 
@@ -207,12 +365,98 @@ var DefaultConventionalTypes = []string{
 	"perf", "test", "build", "ci", "chore", "revert",
 }
 
+// LocalizedConventionalTypes: 언어별 컨벤셔널 커밋 타입 매핑.
+// key: 로컬라이즈된 타입, value: 표준 타입.
+var LocalizedConventionalTypes = map[string]map[string]string{
+	"ko": {
+		"기능":   "feat",
+		"수정":   "fix",
+		"문서":   "docs",
+		"스타일":  "style",
+		"리팩터":  "refactor",
+		"리팩토링": "refactor",
+		"성능":   "perf",
+		"테스트":  "test",
+		"빌드":   "build",
+		"배포":   "ci",
+		"잡일":   "chore",
+		"되돌리기": "revert",
+	},
+	"ja": {
+		"機能":       "feat",
+		"修正":       "fix",
+		"ドキュメント":   "docs",
+		"スタイル":     "style",
+		"リファクタリング": "refactor",
+		"パフォーマンス":  "perf",
+		"テスト":      "test",
+		"ビルド":      "build",
+		"デプロイ":     "ci",
+		"雑務":       "chore",
+		"リバート":     "revert",
+	},
+	"zh": {
+		"功能": "feat",
+		"修复": "fix",
+		"文档": "docs",
+		"样式": "style",
+		"重构": "refactor",
+		"性能": "perf",
+		"测试": "test",
+		"构建": "build",
+		"部署": "ci",
+		"杂务": "chore",
+		"回退": "revert",
+	},
+}
+
 // GetTypes: 설정된 타입 목록을 반환하며, 미설정 시 DefaultConventionalTypes 반환.
 func (c *ConventionalCommitConfig) GetTypes() []string {
 	if len(c.Types) > 0 {
 		return c.Types
 	}
 	return DefaultConventionalTypes
+}
+
+// GetTypeAliases: 타입 별칭 매핑을 반환.
+// 사용자 설정 > 로케일 내장 매핑 > 빈 map 순서로 적용.
+func (c *ConventionalCommitConfig) GetTypeAliases() map[string]string {
+	if len(c.TypeAliases) > 0 {
+		return c.TypeAliases
+	}
+	if c.Locale != "" {
+		if m, ok := LocalizedConventionalTypes[c.Locale]; ok {
+			return m
+		}
+	}
+	return nil
+}
+
+// GetAllAllowedTypes: 허용된 모든 타입 목록을 반환 (표준 + 별칭).
+func (c *ConventionalCommitConfig) GetAllAllowedTypes() []string {
+	types := c.GetTypes()
+	aliases := c.GetTypeAliases()
+	if len(aliases) == 0 {
+		return types
+	}
+	all := make([]string, len(types))
+	copy(all, types)
+	for alias := range aliases {
+		all = append(all, alias)
+	}
+	return all
+}
+
+// ResolveType: 타입 문자열을 표준 타입으로 해석.
+// 별칭이면 표준 타입 반환, 아니면 입력 그대로 반환.
+func (c *ConventionalCommitConfig) ResolveType(commitType string) string {
+	aliases := c.GetTypeAliases()
+	if aliases != nil {
+		if standard, ok := aliases[commitType]; ok {
+			return standard
+		}
+	}
+	return commitType
 }
 
 // CommitMessageConfig configures commit message checking
@@ -238,6 +482,10 @@ type CommitMessageConfig struct {
 
 	// NoBadRunes disallows invalid UTF-8 byte sequences (default: true)
 	NoBadRunes *bool `yaml:"no_bad_runes"`
+
+	// NoEmoji: 커밋 메시지에서 이모지 사용 금지 여부 (기본값: false).
+	// true이면 커밋 메시지에 이모지 사용을 금지.
+	NoEmoji *bool `yaml:"no_emoji"`
 
 	// Locale is the BCP 47 locale used for locale-specific ambiguous character detection.
 	// Supported: ko, ja, zh-hans, zh-hant, ru, _default
@@ -328,6 +576,14 @@ func (c *CommitMessageConfig) IsNoBadRunes() bool {
 		return true
 	}
 	return *c.NoBadRunes
+}
+
+// IsNoEmoji: 커밋 메시지 이모지 검사 활성화 여부 반환 (기본값: false).
+func (c *CommitMessageConfig) IsNoEmoji() bool {
+	if c.NoEmoji == nil {
+		return false
+	}
+	return *c.NoEmoji
 }
 
 // Load reads configuration from the given YAML file.

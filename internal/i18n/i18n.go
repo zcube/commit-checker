@@ -36,6 +36,8 @@ func Init(lang string) {
 		bundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
 		_, _ = bundle.LoadMessageFileFS(localesFS, "locales/en.yaml")
 		_, _ = bundle.LoadMessageFileFS(localesFS, "locales/ko.yaml")
+		_, _ = bundle.LoadMessageFileFS(localesFS, "locales/ja.yaml")
+		_, _ = bundle.LoadMessageFileFS(localesFS, "locales/zh.yaml")
 	})
 	mu.Lock()
 	loc = goi18n.NewLocalizer(bundle, lang, "en")
@@ -69,7 +71,7 @@ func T(msgID string, data interface{}) string {
 
 // DetectLocale 는 환경 변수에서 언어 코드를 감지.
 // 우선순위: COMMIT_CHECKER_LANG > LC_ALL > LC_MESSAGES > LANG.
-// 지원 언어: ko, en. 감지 실패 시 "en" 반환.
+// 지원 언어: ko, en, ja, zh. 감지 실패 시 "en" 반환.
 func DetectLocale() string {
 	for _, env := range []string{"COMMIT_CHECKER_LANG", "LC_ALL", "LC_MESSAGES", "LANG"} {
 		if val := os.Getenv(env); val != "" {
@@ -91,6 +93,10 @@ func parseLocale(val string) string {
 	switch val {
 	case "ko":
 		return "ko"
+	case "ja":
+		return "ja"
+	case "zh":
+		return "zh"
 	case "en", "c", "posix":
 		return "en"
 	default:

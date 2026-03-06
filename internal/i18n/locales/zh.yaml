@@ -1,0 +1,71 @@
+# diff 检查消息
+diff.parse_warning:
+  other: "警告: 解析 {{.Path}} 时发生部分错误: {{.Error}}"
+diff.comment_language_error:
+  other: "{{.Path}}:{{.Line}}: {{.Kind}}必须使用{{.Language}}编写 (检测到: {{.Detected}}): {{.Text}}"
+diff.kind_comment:
+  other: "注释"
+diff.kind_string_literal:
+  other: "字符串字面量"
+diff.binary_file_error:
+  other: "{{.Path}}: 检测到二进制文件 — 编译后的可执行文件和二进制文件不应被提交"
+diff.lint_error:
+  other: "{{.Path}}:{{.Line}}: {{.Message}}"
+diff.encoding_error:
+  other: "{{.Path}}: 检测到非UTF-8编码 (检测到: {{.Charset}}) — 编码错误的文件不应被提交"
+diff.emoji_error:
+  other: "{{.Path}}:{{.Line}}: {{.Kind}}包含表情符号 {{.Char}} (U+{{.CharCode}}) — 不允许使用表情符号"
+diff.editorconfig_error:
+  other: "{{.Path}}:{{.Line}}: {{.Message}}"
+
+# 提交消息检查消息
+msg.ai_coauthor_error:
+  other: "提交消息第{{.Line}}行: 必须删除AI co-author尾部标记: {{.Trailer}}"
+msg.invisible_char_error:
+  other: "提交消息第{{.Line}}行, 第{{.Col}}列: 不允许使用非标准空白字符 {{.Desc}}"
+msg.ambiguous_char_error:
+  other: "提交消息第{{.Line}}行, 第{{.Col}}列: 易混淆字符 U+{{.CharCode}} {{.Char}} 与 {{.ASCII}} (U+{{.ASCIICode}}) 相似 — 请替换为ASCII字符"
+msg.bad_rune_error:
+  other: "提交消息第{{.Line}}行, 第{{.Col}}列: 无效的UTF-8字节序列 0x{{.Byte}}"
+msg.language_error:
+  other: "提交消息第{{.Line}}行: 必须使用{{.Language}}编写 (检测到: {{.Detected}}): {{.Text}}"
+msg.emoji_error:
+  other: "提交消息第{{.Line}}行, 第{{.Col}}列: 表情符号 {{.Char}} (U+{{.CharCode}}) 不被允许"
+msg.conventional_format_error:
+  other: "提交消息标题不符合约定式提交格式 (<type>[(<scope>)][!]: <description>): {{.Subject}}"
+msg.conventional_type_error:
+  other: "提交消息类型 '{{.Type}}' 不被允许; 允许的类型: {{.Types}}"
+msg.conventional_scope_required:
+  other: "提交消息需要作用域: {{.Subject}}"
+
+# fix 变更说明
+fix.removed_ai_coauthor:
+  other: "第{{.Line}}行: 删除AI co-author尾部标记: {{.Trailer}}"
+fix.replaced_invisible_space:
+  other: "第{{.Line}}行, 第{{.Col}}列: 将非标准空白 {{.Desc}} 替换为普通空格"
+fix.removed_invisible_char:
+  other: "第{{.Line}}行, 第{{.Col}}列: 删除非标准空白字符 {{.Desc}}"
+fix.replaced_ambiguous_char:
+  other: "第{{.Line}}行, 第{{.Col}}列: 将易混淆字符 U+{{.CharCode}} {{.Char}} 替换为ASCII {{.ASCII}} (U+{{.ASCIICode}})"
+fix.removed_bad_rune:
+  other: "第{{.Line}}行, 第{{.Col}}列: 删除无效的UTF-8字节 0x{{.Byte}}"
+
+# cmd 输出消息
+cmd.no_commits_found:
+  other: "范围内未找到提交。"
+cmd.checked_no_fixes:
+  other: "已检查{{.Count}}个提交 — 未发现可自动修复的违规。"
+cmd.found_fixable:
+  other: "发现{{.Count}}个包含可自动修复违规的提交:"
+cmd.language_violations_header:
+  other: "语言违规 (需要手动修复):"
+cmd.dry_run_no_changes:
+  other: "(dry-run: 未保存任何更改)"
+cmd.rewriting_commits:
+  other: "正在使用git filter-branch重写{{.Count}}个提交..."
+cmd.rewrite_done:
+  other: "完成。历史记录已成功重写。"
+cmd.force_push_note:
+  other: "注意: 如果这些提交已经推送过，您需要强制推送(force-push)。"
+cmd.no_staged_changes:
+  other: "未找到暂存的更改 — 跳过。"

@@ -1,0 +1,71 @@
+# diff チェックメッセージ
+diff.parse_warning:
+  other: "警告: {{.Path}} の解析中にエラーが発生しました: {{.Error}}"
+diff.comment_language_error:
+  other: "{{.Path}}:{{.Line}}: {{.Kind}}は{{.Language}}で記述する必要があります (検出: {{.Detected}}): {{.Text}}"
+diff.kind_comment:
+  other: "コメント"
+diff.kind_string_literal:
+  other: "文字列リテラル"
+diff.binary_file_error:
+  other: "{{.Path}}: バイナリファイル検出 — コンパイル済み実行ファイルやバイナリファイルはコミットすべきではありません"
+diff.lint_error:
+  other: "{{.Path}}:{{.Line}}: {{.Message}}"
+diff.encoding_error:
+  other: "{{.Path}}: UTF-8以外のエンコーディングが検出されました (検出: {{.Charset}}) — 不正なエンコーディングのファイルはコミットすべきではありません"
+diff.emoji_error:
+  other: "{{.Path}}:{{.Line}}: {{.Kind}}に絵文字 {{.Char}} (U+{{.CharCode}}) が含まれています — 絵文字は許可されていません"
+diff.editorconfig_error:
+  other: "{{.Path}}:{{.Line}}: {{.Message}}"
+
+# コミットメッセージチェックメッセージ
+msg.ai_coauthor_error:
+  other: "コミットメッセージ {{.Line}}行目: AI co-authorトレーラーを削除してください: {{.Trailer}}"
+msg.invisible_char_error:
+  other: "コミットメッセージ {{.Line}}行目, {{.Col}}列: 非標準の空白文字 {{.Desc}} は許可されていません"
+msg.ambiguous_char_error:
+  other: "コミットメッセージ {{.Line}}行目, {{.Col}}列: 紛らわしい文字 U+{{.CharCode}} {{.Char}} は {{.ASCII}} (U+{{.ASCIICode}}) に似ています — ASCII文字に置き換えてください"
+msg.bad_rune_error:
+  other: "コミットメッセージ {{.Line}}行目, {{.Col}}列: 不正なUTF-8バイトシーケンス 0x{{.Byte}}"
+msg.language_error:
+  other: "コミットメッセージ {{.Line}}行目: {{.Language}}で記述する必要があります (検出: {{.Detected}}): {{.Text}}"
+msg.emoji_error:
+  other: "コミットメッセージ {{.Line}}行目, {{.Col}}列: 絵文字 {{.Char}} (U+{{.CharCode}}) は許可されていません"
+msg.conventional_format_error:
+  other: "コミットメッセージの件名がConventional Commit形式に従っていません (<type>[(<scope>)][!]: <description>): {{.Subject}}"
+msg.conventional_type_error:
+  other: "コミットメッセージのタイプ '{{.Type}}' は許可されていません。許可されたタイプ: {{.Types}}"
+msg.conventional_scope_required:
+  other: "コミットメッセージにスコープが必要です: {{.Subject}}"
+
+# fix 変更の説明
+fix.removed_ai_coauthor:
+  other: "{{.Line}}行目: AI co-authorトレーラーを削除: {{.Trailer}}"
+fix.replaced_invisible_space:
+  other: "{{.Line}}行目, {{.Col}}列: 非標準の空白 {{.Desc}} を通常の空白に置換"
+fix.removed_invisible_char:
+  other: "{{.Line}}行目, {{.Col}}列: 非標準の空白文字 {{.Desc}} を削除"
+fix.replaced_ambiguous_char:
+  other: "{{.Line}}行目, {{.Col}}列: 紛らわしい文字 U+{{.CharCode}} {{.Char}} をASCII {{.ASCII}} (U+{{.ASCIICode}}) に置換"
+fix.removed_bad_rune:
+  other: "{{.Line}}行目, {{.Col}}列: 不正なUTF-8バイト 0x{{.Byte}} を削除"
+
+# cmd 出力メッセージ
+cmd.no_commits_found:
+  other: "範囲内にコミットが見つかりません。"
+cmd.checked_no_fixes:
+  other: "{{.Count}}件のコミットを検査完了 — 自動修正可能な違反はありません。"
+cmd.found_fixable:
+  other: "自動修正可能な違反がある{{.Count}}件のコミットが見つかりました:"
+cmd.language_violations_header:
+  other: "言語違反 (手動修正が必要):"
+cmd.dry_run_no_changes:
+  other: "(dry-run: 変更は保存されません)"
+cmd.rewriting_commits:
+  other: "git filter-branchで{{.Count}}件のコミットを書き換え中..."
+cmd.rewrite_done:
+  other: "完了。履歴が正常に書き換えられました。"
+cmd.force_push_note:
+  other: "注意: 既にプッシュ済みのコミットがある場合、強制プッシュ(force-push)が必要です。"
+cmd.no_staged_changes:
+  other: "ステージされた変更がありません — スキップします。"

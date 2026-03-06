@@ -7,6 +7,16 @@ diff.kind_comment:
   other: "주석"
 diff.kind_string_literal:
   other: "문자열 리터럴"
+diff.binary_file_error:
+  other: "{{.Path}}: 바이너리 파일 감지 — 컴파일된 실행파일 및 바이너리 파일은 커밋하면 안 됩니다"
+diff.lint_error:
+  other: "{{.Path}}:{{.Line}}: {{.Message}}"
+diff.encoding_error:
+  other: "{{.Path}}: UTF-8이 아닌 인코딩 감지 (감지됨: {{.Charset}}) — 잘못된 인코딩의 파일은 커밋하면 안 됩니다"
+diff.emoji_error:
+  other: "{{.Path}}:{{.Line}}: {{.Kind}}에 이모지 {{.Char}} (U+{{.CharCode}})가 포함되어 있습니다 — 이모지는 허용되지 않습니다"
+diff.editorconfig_error:
+  other: "{{.Path}}:{{.Line}}: {{.Message}}"
 
 # 커밋 메시지 검사 메시지
 msg.ai_coauthor_error:
@@ -19,6 +29,8 @@ msg.bad_rune_error:
   other: "커밋 메시지 {{.Line}}번 줄, {{.Col}}열: 잘못된 UTF-8 바이트 시퀀스 0x{{.Byte}}"
 msg.language_error:
   other: "커밋 메시지 {{.Line}}번 줄: {{.Language}}(으)로 작성되어야 합니다 (감지됨: {{.Detected}}): {{.Text}}"
+msg.emoji_error:
+  other: "커밋 메시지 {{.Line}}번 줄, {{.Col}}열: 이모지 {{.Char}} (U+{{.CharCode}})는 허용되지 않습니다"
 msg.conventional_format_error:
   other: "커밋 메시지 제목이 컨벤셔널 커밋 형식을 따르지 않습니다 (<type>[(<scope>)][!]: <description>): {{.Subject}}"
 msg.conventional_type_error:

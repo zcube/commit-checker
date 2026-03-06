@@ -1,18 +1,27 @@
+[한국어](./README.md) | [English](./README.en.md) | [日本語](./README.ja.md) | [中文](./README.zh.md)
+
 # commit-checker
 
-Git 커밋 메시지와 소스 코드 주석의 정책을 자동으로 검사하는 CLI 도구입니다.
+Git 커밋 메시지와 소스 코드의 정책을 자동으로 검사하는 CLI 도구입니다.
 [lefthook](https://github.com/evilmartians/lefthook) / husky 등 Git 훅 매니저와 함께 사용합니다.
 
 ## 기능
 
 | 검사 항목 | 설명 |
 |---|---|
-| **주석 언어** | 지정된 언어(한국어·영어·일본어·중국어)로 작성된 주석인지 검사 |
+| **주석 언어** | 지정된 언어(한국어/영어/일본어/중국어)로 작성된 주석인지 검사 |
 | **Co-authored-by** | AI 기여 표시 트레일러 차단 (이메일 허용 목록 지원) |
 | **비표준 유니코드 공백** | NBSP, EM SPACE, ZWSP, BiDi 제어문자 등 차단 |
 | **모호한 유니코드 문자** | 키릴 А ↔ 라틴 A 등 시각적 혼동 문자 차단 |
 | **잘못된 UTF-8** | 잘못된 바이트 시퀀스 차단 |
-| **자동 수정 (fix)** | 위 위반 사항을 git history에서 일괄 수정 |
+| **이모지 금지** | 커밋 메시지 및 주석에서 이모지 사용 차단 (선택적) |
+| **바이너리 파일 감지** | 컴파일된 실행파일 등 바이너리 파일 커밋 차단 |
+| **인코딩 검사** | UTF-8이 아닌 파일 커밋 차단 (chardet 기반) |
+| **데이터 파일 린트** | YAML, JSON (JSON5 지원), XML 구문 검사 |
+| **EditorConfig** | .editorconfig 규칙 준수 여부 검사 |
+| **Conventional Commits** | 커밋 메시지 형식 강제 (선택적) |
+| **리포지터리 분석** | 개발 언어 감지 및 린트 설정 누락 경고 |
+| **자동 수정 (fix)** | 유니코드/인코딩 위반 사항을 git history에서 일괄 수정 |
 
 ## 설치
 
@@ -131,20 +140,46 @@ comment_language:
   required_language: korean   # korean | english | japanese | chinese | any
   min_length: 5
   check_mode: diff            # diff | full
+  no_emoji: false             # true이면 주석에서 이모지 금지
   extensions:
     - .go
     - .ts
     - .py
 
+binary_file:
+  enabled: true
+  # ignore_files:
+  #   - "**/*.png"
+
+lint:
+  enabled: true
+  yaml:
+    enabled: true
+  json:
+    enabled: true
+    # allow_json5: true       # JSON5 주석/trailing comma 허용
+  xml:
+    enabled: true
+
+encoding:
+  enabled: true
+  require_utf8: true
+
+editorconfig:
+  enabled: true
+
 commit_message:
   no_coauthor: true
-  # 특정 이메일은 허용 ('*' 와일드카드 지원)
-  # coauthor_allow_emails:
-  #   - "*@mycompany.com"
   no_unicode_spaces: true
   no_ambiguous_chars: true
   no_bad_runes: true
+  no_emoji: false             # true이면 커밋 메시지에서 이모지 금지
   locale: ko
+  conventional_commit:
+    enabled: false
+  language_check:
+    enabled: false
+    required_language: korean
 ```
 
 설정 파일이 없으면 기본값이 적용됩니다.
@@ -173,7 +208,7 @@ comment_language:
 // commit-checker:ignore
 // This English comment is intentional (next comment only)
 
-// commit-checker:file-lang=english  ← 파일 전체에 적용
+// commit-checker:file-lang=english  <- 파일 전체에 적용
 
 // commit-checker:disable:lang=english
 // This block is intentionally in English
@@ -196,10 +231,11 @@ comment_language:
 ## 커맨드
 
 ```
-commit-checker diff       staged diff의 주석 언어 검사
-commit-checker msg <file> 커밋 메시지 파일 검사
-commit-checker fix        git history 자동 수정 (dry-run 지원)
-commit-checker version    버전 정보 출력
+commit-checker diff          staged diff의 주석/인코딩/린트/바이너리 검사
+commit-checker msg <file>    커밋 메시지 파일 검사
+commit-checker fix           git history 자동 수정 (dry-run 지원)
+commit-checker analyze       리포지터리 분석 (언어 감지, 린트 설정 확인)
+commit-checker version       버전 정보 출력
 ```
 
 ### fix 커맨드
@@ -215,6 +251,16 @@ commit-checker fix --range HEAD~5..HEAD
 commit-checker fix --mine --dry-run
 ```
 
+### analyze 커맨드
+
+```bash
+# 현재 리포지터리 분석
+commit-checker analyze
+```
+
+개발 언어를 감지하고, 해당 언어에 대한 린트 설정 파일(`.golangci.yml`, `.eslintrc.*`, `pyproject.toml` 등)이
+없으면 경고합니다. `.editorconfig`, `.gitattributes`, `.gitignore` 존재 여부도 확인합니다.
+
 ## 지원 언어
 
 | 언어 | 확장자 |
@@ -229,6 +275,17 @@ commit-checker fix --mine --dry-run
 | C# | `.cs` |
 | Swift | `.swift` |
 | Rust | `.rs` |
+
+## i18n 지원
+
+CLI 출력은 다음 언어를 지원합니다:
+
+- 한국어 (ko) - 기본
+- English (en)
+- 日本語 (ja)
+- 中文 (zh)
+
+환경 변수 `COMMIT_CHECKER_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANG` 또는 설정 파일의 `locale` 값으로 선택합니다.
 
 ## 라이선스
 

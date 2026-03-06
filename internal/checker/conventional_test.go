@@ -195,3 +195,84 @@ func TestConventional_RequireScope_Present(t *testing.T) {
 		t.Errorf("scope provided, expected no errors, got: %v", errs)
 	}
 }
+
+// --- localized types ---
+
+func TestConventional_LocalizedType_Korean(t *testing.T) {
+	t2 := true
+	cfg := &config.Config{}
+	cfg.CommitMessage.ConventionalCommit.Enabled = &t2
+	cfg.CommitMessage.ConventionalCommit.Locale = "ko"
+
+	errs := checker.CheckMsg(cfg, "기능: 새로운 로그인 페이지 추가\n")
+	if len(errs) != 0 {
+		t.Errorf("Korean localized type should be valid, got: %v", errs)
+	}
+
+	errs = checker.CheckMsg(cfg, "수정: 인증 널 포인터 수정\n")
+	if len(errs) != 0 {
+		t.Errorf("Korean localized 'fix' type should be valid, got: %v", errs)
+	}
+
+	// Standard types should still work
+	errs = checker.CheckMsg(cfg, "feat: add something\n")
+	if len(errs) != 0 {
+		t.Errorf("Standard type should still work with locale, got: %v", errs)
+	}
+}
+
+func TestConventional_LocalizedType_Japanese(t *testing.T) {
+	t2 := true
+	cfg := &config.Config{}
+	cfg.CommitMessage.ConventionalCommit.Enabled = &t2
+	cfg.CommitMessage.ConventionalCommit.Locale = "ja"
+
+	errs := checker.CheckMsg(cfg, "機能: 新しいログインページを追加\n")
+	if len(errs) != 0 {
+		t.Errorf("Japanese localized type should be valid, got: %v", errs)
+	}
+}
+
+func TestConventional_LocalizedType_Chinese(t *testing.T) {
+	t2 := true
+	cfg := &config.Config{}
+	cfg.CommitMessage.ConventionalCommit.Enabled = &t2
+	cfg.CommitMessage.ConventionalCommit.Locale = "zh"
+
+	errs := checker.CheckMsg(cfg, "功能: 添加新的登录页面\n")
+	if len(errs) != 0 {
+		t.Errorf("Chinese localized type should be valid, got: %v", errs)
+	}
+}
+
+func TestConventional_CustomTypeAliases(t *testing.T) {
+	t2 := true
+	cfg := &config.Config{}
+	cfg.CommitMessage.ConventionalCommit.Enabled = &t2
+	cfg.CommitMessage.ConventionalCommit.TypeAliases = map[string]string{
+		"fonctionnalite": "feat",
+		"correction":     "fix",
+	}
+
+	errs := checker.CheckMsg(cfg, "fonctionnalite: ajouter une page\n")
+	if len(errs) != 0 {
+		t.Errorf("Custom alias should be valid, got: %v", errs)
+	}
+
+	errs = checker.CheckMsg(cfg, "unknown_alias: something\n")
+	if len(errs) == 0 {
+		t.Error("Non-aliased unknown type should fail")
+	}
+}
+
+func TestConventional_LocalizedWithScope(t *testing.T) {
+	t2 := true
+	cfg := &config.Config{}
+	cfg.CommitMessage.ConventionalCommit.Enabled = &t2
+	cfg.CommitMessage.ConventionalCommit.Locale = "ko"
+
+	errs := checker.CheckMsg(cfg, "기능(인증): OAuth2 지원 추가\n")
+	if len(errs) != 0 {
+		t.Errorf("Korean localized type with scope should be valid, got: %v", errs)
+	}
+}

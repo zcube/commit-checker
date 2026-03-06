@@ -7,6 +7,7 @@ import (
 	"github.com/zcube/commit-checker/internal/comment"
 	"github.com/zcube/commit-checker/internal/config"
 	"github.com/zcube/commit-checker/internal/directive"
+	"github.com/zcube/commit-checker/internal/emoji"
 	"github.com/zcube/commit-checker/internal/gitdiff"
 	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/langdetect"
@@ -36,6 +37,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 	fullMode := cfg.CommentLanguage.IsFullMode()
 	checkStrings := cfg.CommentLanguage.IsCheckStrings()
 	skipTechnical := cfg.CommentLanguage.IsSkipTechnicalStrings()
+	noEmoji := cfg.CommentLanguage.IsNoEmoji()
 
 	// Collect all ignore patterns: global + comment_language specific + inline ignore_files.
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore,
@@ -121,6 +123,24 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 					"Detected": detected,
 					"Text":     truncate(text, 80),
 				}))
+			}
+
+			// 이모지 검사
+			if noEmoji {
+				emojis := emoji.FindEmojis(text)
+				for _, e := range emojis {
+					kindID := "diff.kind_comment"
+					if c.Kind == comment.KindString {
+						kindID = "diff.kind_string_literal"
+					}
+					errs = append(errs, i18n.T("diff.emoji_error", map[string]interface{}{
+						"Path":     diff.Path,
+						"Line":     c.Line + e.Line - 1,
+						"Kind":     i18n.T(kindID, nil),
+						"Char":     e.Char,
+						"CharCode": fmt.Sprintf("%04X", e.Code),
+					}))
+				}
 			}
 		}
 	}

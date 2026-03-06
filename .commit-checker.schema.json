@@ -71,6 +71,11 @@
           "items": { "type": "string" },
           "examples": [["**/*_test.go", "vendor/**", "*.pb.go", "internal/generated/**"]]
         },
+        "no_emoji": {
+          "description": "주석에서 이모지 사용 금지 여부 (기본값: false).\ntrue이면 소스 코드 주석에 이모지가 포함된 경우 에러 보고.",
+          "type": "boolean",
+          "default": false
+        },
         "check_strings": {
           "description": "문자열 리터럴도 주석과 동일하게 언어 검사 여부 (기본값: false).\ntrue로 설정하면 소스 코드 내 string literal에도 required_language가 적용됨.",
           "type": "boolean",
@@ -112,6 +117,132 @@
       }
     },
 
+    "binary_file": {
+      "description": "바이너리 파일(컴파일된 실행파일 등) 커밋 차단 설정",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "바이너리 파일 감지 활성화 여부 (기본값: true).\ngit diff --staged --numstat에서 바이너리로 판별된 파일을 감지하여 커밋을 차단함.",
+          "type": "boolean",
+          "default": true
+        },
+        "ignore_files": {
+          "description": "바이너리 파일 검사에서 제외할 파일 glob 패턴 목록. '**' 지원.\n이미지, 폰트 등 의도적으로 포함하는 바이너리 파일을 허용.",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["**/*.png", "**/*.jpg", "**/*.woff2", "**/*.pdf"]]
+        }
+      }
+    },
+
+    "lint": {
+      "description": "데이터 파일(YAML, JSON, XML) 구문 검사 설정",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "lint 검사 활성화 여부 (기본값: true)",
+          "type": "boolean",
+          "default": true
+        },
+        "yaml": {
+          "description": "YAML 구문 검사 설정",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "YAML lint 활성화 여부 (기본값: true)",
+              "type": "boolean",
+              "default": true
+            },
+            "ignore_files": {
+              "description": "YAML lint에서 제외할 glob 패턴 목록",
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "json": {
+          "description": "JSON 구문 검사 설정",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "JSON lint 활성화 여부 (기본값: true)",
+              "type": "boolean",
+              "default": true
+            },
+            "allow_json5": {
+              "description": "JSON5 형식 허용 여부 (기본값: false).\ntrue이면 // 주석, /* */ 블록 주석, trailing comma를 허용.",
+              "type": "boolean",
+              "default": false
+            },
+            "ignore_files": {
+              "description": "JSON lint에서 제외할 glob 패턴 목록.\n기본 제외: package-lock.json, yarn.lock 등 auto-generated 파일.\n설정 시 기본 목록을 덮어씀.",
+              "type": "array",
+              "items": { "type": "string" },
+              "examples": [["package-lock.json", "*.generated.json"]]
+            }
+          }
+        },
+        "xml": {
+          "description": "XML 구문 검사 설정",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "XML lint 활성화 여부 (기본값: true)",
+              "type": "boolean",
+              "default": true
+            },
+            "ignore_files": {
+              "description": "XML lint에서 제외할 glob 패턴 목록",
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "encoding": {
+      "description": "파일 인코딩 검사 설정",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "인코딩 검사 활성화 여부 (기본값: true)",
+          "type": "boolean",
+          "default": true
+        },
+        "require_utf8": {
+          "description": "UTF-8 인코딩 필수 여부 (기본값: true).\ntrue이면 UTF-8이 아닌 텍스트 파일의 커밋을 차단.",
+          "type": "boolean",
+          "default": true
+        },
+        "ignore_files": {
+          "description": "인코딩 검사에서 제외할 glob 패턴 목록",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["**/*.bin", "legacy/**"]]
+        }
+      }
+    },
+
+    "editorconfig": {
+      "description": ".editorconfig 규칙 검사 설정",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": ".editorconfig 검사 활성화 여부 (기본값: true).\n.editorconfig 파일이 없으면 자동으로 건너뜀.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+
     "commit_message": {
       "description": "커밋 메시지 정책 검사 설정",
       "type": "object",
@@ -146,6 +277,11 @@
           "type": "boolean",
           "default": true
         },
+        "no_emoji": {
+          "description": "커밋 메시지에서 이모지 사용 금지 여부 (기본값: false).\ntrue이면 커밋 메시지에 이모지가 포함된 경우 에러 보고.",
+          "type": "boolean",
+          "default": false
+        },
         "locale": {
           "description": "모호한 문자 감지에 사용할 BCP 47 로케일 (기본값: ko).\n로케일별 혼동 문자 테이블(Gitea 기반)을 선택함.",
           "type": "string",
@@ -167,6 +303,18 @@
               "type": "array",
               "items": { "type": "string" },
               "default": ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
+            },
+            "type_aliases": {
+              "description": "로컬라이즈된 타입 별칭 매핑.\n키: 로컬라이즈된 타입, 값: 표준 타입.\n예: {\"기능\": \"feat\", \"수정\": \"fix\"}\n설정하면 로컬라이즈된 타입도 커밋에 사용 가능.",
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "examples": [{"기능": "feat", "수정": "fix", "문서": "docs"}]
+            },
+            "locale": {
+              "description": "로컬라이즈된 타입 기본값을 적용할 언어.\ntype_aliases가 설정되지 않은 경우 내장 매핑 사용.\n지원: ko, ja, zh",
+              "type": "string",
+              "enum": ["ko", "ja", "zh"],
+              "examples": ["ko", "ja", "zh"]
             },
             "require_scope": {
               "description": "스코프 필수 여부 (기본값: false). true이면 feat(scope): 형식 필수.",

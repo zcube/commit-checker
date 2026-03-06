@@ -61,6 +61,10 @@ comment_language:
   #   - "internal:"
   #   - "ref:"
 
+  # no_emoji: 주석에서 이모지 사용 금지 여부 (기본값: false).
+  # true이면 소스 코드 주석에 이모지가 포함된 경우 에러로 보고.
+  # no_emoji: false
+
   # check_strings: 문자열 리터럴도 주석과 동일하게 언어 검사 여부.
   # true로 설정하면 소스 코드 내 문자열 리터럴에도 required_language가 적용됨.
   # Default: false
@@ -91,6 +95,73 @@ comment_language:
   #     language: ja
   #   - pattern: "locale/zh/**"
   #     language: zh
+
+binary_file:
+  # enabled: 바이너리 파일(컴파일된 실행파일 등) 커밋 차단 여부.
+  # git diff --staged --numstat에서 바이너리로 판별된 파일을 감지.
+  # Default: true
+  enabled: true
+
+  # ignore_files: 바이너리 파일 검사에서 제외할 glob 패턴 목록.
+  # 이미지, 폰트, 아이콘 등 의도적으로 포함하는 바이너리 파일을 허용.
+  # ignore_files:
+  #   - "**/*.png"
+  #   - "**/*.jpg"
+  #   - "**/*.jpeg"
+  #   - "**/*.gif"
+  #   - "**/*.ico"
+  #   - "**/*.woff"
+  #   - "**/*.woff2"
+  #   - "**/*.ttf"
+  #   - "**/*.eot"
+  #   - "**/*.pdf"
+
+lint:
+  # enabled: 데이터 파일 구문 검사 활성화 여부 (기본값: true).
+  # YAML, JSON, XML 파일의 구문 오류를 감지.
+  enabled: true
+
+  yaml:
+    # enabled: YAML 구문 검사 활성화 (기본값: true)
+    enabled: true
+    # ignore_files: YAML lint에서 제외할 glob 패턴
+    # ignore_files:
+    #   - "vendor/**"
+
+  json:
+    # enabled: JSON 구문 검사 활성화 (기본값: true)
+    enabled: true
+    # allow_json5: JSON5 형식 허용 (// 주석, trailing comma 등) (기본값: false)
+    # allow_json5: false
+    # ignore_files: JSON lint에서 제외할 glob 패턴.
+    # 기본 제외: package-lock.json, yarn.lock, pnpm-lock.yaml 등 auto-generated 파일.
+    # 사용자 설정 시 기본 제외를 덮어씀.
+    # ignore_files:
+    #   - "package-lock.json"
+    #   - "*.generated.json"
+
+  xml:
+    # enabled: XML 구문 검사 활성화 (기본값: true)
+    enabled: true
+    # ignore_files: XML lint에서 제외할 glob 패턴
+    # ignore_files:
+    #   - "vendor/**"
+
+encoding:
+  # enabled: 파일 인코딩 검사 활성화 여부 (기본값: true)
+  enabled: true
+  # require_utf8: UTF-8 인코딩 필수 여부 (기본값: true).
+  # true이면 UTF-8이 아닌 텍스트 파일의 커밋을 차단.
+  require_utf8: true
+  # ignore_files: 인코딩 검사에서 제외할 glob 패턴
+  # ignore_files:
+  #   - "**/*.bin"
+  #   - "legacy/**"
+
+editorconfig:
+  # enabled: .editorconfig 규칙 검사 활성화 여부 (기본값: true).
+  # .editorconfig 파일이 없으면 자동으로 건너뜀.
+  enabled: true
 
 commit_message:
   # no_coauthor: AI 도구의 Co-authored-by: 트레일러를 차단 (기본값: true).
@@ -123,6 +194,10 @@ commit_message:
   # no_bad_runes: disallow invalid UTF-8 byte sequences in commit messages.
   # Default: true
   no_bad_runes: true
+
+  # no_emoji: 커밋 메시지에서 이모지 사용 금지 여부 (기본값: false).
+  # true이면 커밋 메시지에 이모지 문자가 포함된 경우 에러로 보고.
+  # no_emoji: false
 
   # locale: BCP 47 locale for locale-specific ambiguous character detection.
   # Supported: ko, ja, zh-hans, zh-hant, ru, _default
