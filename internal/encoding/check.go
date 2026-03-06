@@ -1,6 +1,11 @@
 package encoding
 
 import (
+	"bytes"
+	"debug/elf"
+	"debug/macho"
+	"debug/pe"
+
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/saintfish/chardet"
 )
@@ -71,13 +76,36 @@ func isValidUTF8(content []byte) bool {
 	return true
 }
 
-// IsBinary: mimetype 패키지를 사용하여 콘텐츠가 바이너리인지 확인.
-// magic bytes 기반으로 MIME 타입을 감지하고, text/plain 계열이 아니면 바이너리로 판단.
-// JSON, XML, HTML 등 text/plain을 부모로 가지는 타입은 텍스트로 처리.
+// IsBinary: 콘텐츠가 바이너리인지 확인.
+// 우선 Go 표준 라이브러리의 포맷 파서로 실행파일 형식을 감지하고,
+// 이후 mimetype으로 이미지/아카이브 등 기타 바이너리를 판별.
+//   - debug/elf:   Linux/BSD ELF 실행파일
+//   - debug/macho: macOS Mach-O 실행파일
+//   - debug/pe:    Windows PE 실행파일
+//   - mimetype:    그 외 바이너리 (이미지, ZIP, PDF 등)
 func IsBinary(content []byte) bool {
 	if len(content) == 0 {
 		return false
 	}
+	r := bytes.NewReader(content)
+
+	// ELF 실행파일 (Linux/BSD)
+	if f, err := elf.NewFile(r); err == nil {
+		_ = f.Close()
+		return true
+	}
+	// Mach-O 실행파일 (macOS)
+	if f, err := macho.NewFile(r); err == nil {
+		_ = f.Close()
+		return true
+	}
+	// PE 실행파일 (Windows)
+	if f, err := pe.NewFile(r); err == nil {
+		_ = f.Close()
+		return true
+	}
+
+	// 기타 바이너리 (이미지, 아카이브 등) - mimetype으로 판별
 	mtype := mimetype.Detect(content)
 	for m := mtype; m != nil; m = m.Parent() {
 		if m.Is("text/plain") {
