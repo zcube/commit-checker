@@ -15,8 +15,8 @@ import (
 	"github.com/zcube/commit-checker/internal/pathutil"
 )
 
-// CheckDiff inspects the staged diff for comment language violations.
-// It returns a list of human-readable error strings (empty = no violations).
+// CheckDiff: 스테이징된 diff에서 주석 언어 위반 사항을 검사.
+// 사람이 읽을 수 있는 에러 문자열 목록을 반환 (비어 있으면 위반 없음).
 func CheckDiff(cfg *config.Config) ([]string, error) {
 	if !cfg.CommentLanguage.IsEnabled() {
 		return nil, nil
@@ -27,7 +27,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 		return nil, err
 	}
 
-	// Resolve the effective extension list: languages takes priority over extensions.
+	// 유효한 확장자 목록 결정: languages가 extensions보다 우선.
 	extensions := cfg.CommentLanguage.Extensions
 	if len(cfg.CommentLanguage.Languages) > 0 {
 		extensions = comment.ExtensionsForLanguages(cfg.CommentLanguage.Languages)
@@ -41,7 +41,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 	noEmoji := cfg.CommentLanguage.IsNoEmoji()
 	skipPatterns := compileSkipStringPatterns(cfg.CommentLanguage.SkipStringPatterns)
 
-	// Collect all ignore patterns: global + comment_language specific + inline ignore_files.
+	// 모든 무시 패턴 수집: 전역 + comment_language 전용 + 인라인 ignore_files.
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore,
 		cfg.Exceptions.CommentLanguageIgnore...)
 	ignorePatterns = append(ignorePatterns, cfg.CommentLanguage.IgnoreFiles...)
@@ -69,7 +69,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 
 		stagedContent, err := gitdiff.GetStagedContent(diff.Path)
 		if err != nil {
-			// File may be absent from index (e.g. submodule) — skip silently.
+			// 인덱스에 파일이 없을 수 있음 (예: 서브모듈) — 조용히 건너뜀.
 			continue
 		}
 
@@ -81,11 +81,11 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 			}))
 		}
 
-		// Resolve the base language for this file:
-		// file_languages rules override the global required_language.
+		// 이 파일의 기본 언어 결정:
+		// file_languages 규칙이 전역 required_language를 재정의.
 		fileLang := resolveFileLang(diff.Path, cfg)
 
-		// Apply inline directives (commit-checker:disable / :ignore / :lang= etc.)
+		// 인라인 디렉티브 적용 (commit-checker:disable / :ignore / :lang= 등)
 		states := directive.Analyze(comments, fileLang)
 
 		for i, c := range comments {
@@ -101,7 +101,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 			if c.Kind == comment.KindString && !checkStrings {
 				continue
 			}
-			// In diff mode, skip comments that don't touch any added line.
+			// diff 모드에서 추가된 줄에 해당하지 않는 주석은 건너뜀.
 			if !fullMode && !overlapsAddedLines(c, diff.AddedLines) {
 				continue
 			}
@@ -158,9 +158,9 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 	return errs, nil
 }
 
-// resolveFileLang returns the required language for a given file path by
-// checking file_languages rules in order. The first matching rule wins.
-// Falls back to the global required_language.
+// resolveFileLang: 주어진 파일 경로에 대한 필수 언어를 반환.
+// file_languages 규칙을 순서대로 확인하여 첫 번째 일치하는 규칙을 적용.
+// 일치하는 규칙이 없으면 전역 required_language로 폴백.
 func resolveFileLang(path string, cfg *config.Config) string {
 	for _, rule := range cfg.CommentLanguage.FileLanguages {
 		if pathutil.MatchesAny(path, []string{rule.Pattern}) {
@@ -170,7 +170,7 @@ func resolveFileLang(path string, cfg *config.Config) string {
 	return cfg.CommentLanguage.RequiredLanguage
 }
 
-// normaliseLanguage maps locale codes to full language names and lowercases.
+// normaliseLanguage: 로케일 코드를 전체 언어 이름으로 매핑하고 소문자화.
 func normaliseLanguage(lang string) string {
 	if mapped := langdetect.LocaleToLanguage(strings.ToLower(lang)); mapped != "" {
 		return mapped
@@ -178,7 +178,7 @@ func normaliseLanguage(lang string) string {
 	return strings.ToLower(lang)
 }
 
-// overlapsAddedLines reports whether any line of the comment was added in the diff.
+// overlapsAddedLines: 주석의 줄 중 diff에서 추가된 줄이 있는지 확인.
 func overlapsAddedLines(c comment.Comment, addedLines map[int]bool) bool {
 	for line := c.Line; line <= c.EndLine; line++ {
 		if addedLines[line] {

@@ -53,13 +53,13 @@ func runFix(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	// Determine the revision range to scan.
+	// 검사할 리비전 범위 결정.
 	revRange, err := resolveRange(fixRange, fixMine)
 	if err != nil {
 		return err
 	}
 
-	// Collect commits (SHA + message) in the range.
+	// 범위 내 커밋(SHA + 메시지) 수집.
 	commits, err := listCommits(revRange)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Compute fixes.
+	// 수정 사항 계산.
 	var fixes []commitFix
 	var langIssues []string
 
@@ -78,14 +78,14 @@ func runFix(cmd *cobra.Command, args []string) error {
 		if result.NeedsFixing() {
 			fixes = append(fixes, commitFix{sha: c.sha, result: result})
 		}
-		// Also report language violations (not auto-fixable).
+		// 언어 위반도 보고 (자동 수정 불가).
 		msgErrs := checker.CheckMsg(cfg, c.message)
 		for _, e := range msgErrs {
 			langIssues = append(langIssues, fmt.Sprintf("  %s: %s", c.sha[:12], e))
 		}
 	}
 
-	// Report.
+	// 결과 보고.
 	if len(fixes) == 0 {
 		fmt.Println(i18n.T("cmd.checked_no_fixes", map[string]interface{}{"Count": len(commits)}))
 	} else {
@@ -122,7 +122,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Apply fixes using git filter-branch.
+	// git filter-branch를 사용하여 수정 적용.
 	return applyFixes(revRange, fixes)
 }
 
@@ -131,9 +131,9 @@ type commitFix struct {
 	result checker.FixResult
 }
 
-// applyFixes rewrites commit messages using git filter-branch.
-// Fixed messages are stored as files in a temp directory; the filter script
-// reads them by $GIT_COMMIT so special characters are handled safely.
+// applyFixes: git filter-branch를 사용하여 커밋 메시지를 재작성.
+// 수정된 메시지는 임시 디렉토리에 파일로 저장되며, 필터 스크립트가
+// $GIT_COMMIT 기준으로 읽어서 특수 문자를 안전하게 처리.
 func applyFixes(revRange string, fixes []commitFix) error {
 	tmpDir, err := os.MkdirTemp("", "commit-checker-fix-*")
 	if err != nil {
@@ -141,7 +141,7 @@ func applyFixes(revRange string, fixes []commitFix) error {
 	}
 	defer os.RemoveAll(tmpDir) //nolint:errcheck
 
-	// Write each fixed message as a file named by SHA.
+	// 각 수정된 메시지를 SHA 이름의 파일로 저장.
 	for _, f := range fixes {
 		msgPath := filepath.Join(tmpDir, f.sha)
 		if err := os.WriteFile(msgPath, []byte(f.result.Fixed), 0600); err != nil {
@@ -149,7 +149,7 @@ func applyFixes(revRange string, fixes []commitFix) error {
 		}
 	}
 
-	// Shell script: if a fixed message file exists for this commit, use it; else pass through.
+	// 셸 스크립트: 해당 커밋에 수정 파일이 있으면 사용, 없으면 원본 유지.
 	script := fmt.Sprintf(`#!/bin/sh
 fix="%s/$GIT_COMMIT"
 if [ -f "$fix" ]; then
@@ -179,7 +179,7 @@ fi
 	return nil
 }
 
-// resolveRange returns the effective git revision range.
+// resolveRange: 유효한 git 리비전 범위를 반환.
 func resolveRange(rangeStr string, mine bool) (string, error) {
 	if rangeStr != "" && mine {
 		return "", fmt.Errorf("--range and --mine cannot be used together")
@@ -194,7 +194,7 @@ func resolveRange(rangeStr string, mine bool) (string, error) {
 		}
 		return fmt.Sprintf("--author=%s --all", email), nil
 	}
-	// Default: entire reachable history
+	// 기본값: 전체 도달 가능 히스토리
 	return "HEAD", nil
 }
 
@@ -203,11 +203,11 @@ type commitInfo struct {
 	message string
 }
 
-// listCommits returns commits reachable from revRange as (sha, full_message) pairs.
-// It first fetches all SHAs, then retrieves each commit message individually to
-// avoid null-byte or delimiter conflicts in format strings.
+// listCommits: revRange에서 도달 가능한 커밋을 (sha, 전체_메시지) 쌍으로 반환.
+// 먼저 모든 SHA를 가져온 다음, 각 커밋 메시지를 개별적으로 조회하여
+// 포맷 문자열에서 null 바이트나 구분자 충돌을 방지.
 func listCommits(revRange string) ([]commitInfo, error) {
-	// Step 1: get just the SHA list.
+	// 1단계: SHA 목록만 가져오기.
 	shaArgs := append([]string{"log", "--format=%H"}, strings.Fields(revRange)...)
 	shaOut, err := runGit(shaArgs...)
 	if err != nil {
@@ -220,7 +220,7 @@ func listCommits(revRange string) ([]commitInfo, error) {
 		if sha == "" {
 			continue
 		}
-		// Step 2: get the full commit message for this SHA.
+		// 2단계: 해당 SHA의 전체 커밋 메시지 가져오기.
 		msg, err := runGit("log", "-1", "--format=%B", sha)
 		if err != nil {
 			return nil, fmt.Errorf("git log -1 %s: %w", sha[:12], err)

@@ -69,8 +69,8 @@ func checkCoauthor(content string, cfg *config.CommitMessageConfig) []string {
 	return errs
 }
 
-// checkInvisibleChars reports invisible / non-standard space characters.
-// Detection is based on Gitea's InvisibleRanges table. BOM (U+FEFF) is allowed.
+// checkInvisibleChars: 보이지 않는 / 비표준 공백 문자를 보고.
+// Gitea의 InvisibleRanges 테이블 기반 감지. BOM (U+FEFF)은 허용.
 func checkInvisibleChars(content string) []string {
 	var errs []string
 	for lineIdx, line := range strings.Split(content, "\n") {
@@ -94,9 +94,9 @@ func checkInvisibleChars(content string) []string {
 	return errs
 }
 
-// checkAmbiguousChars reports Unicode characters that are visually indistinguishable
-// from ASCII characters but have different codepoints (e.g. Cyrillic А vs Latin A).
-// Detection uses Gitea's AmbiguousCharacters locale tables.
+// checkAmbiguousChars: ASCII 문자와 시각적으로 구분 불가능하지만 다른 코드포인트를 가진
+// 유니코드 문자를 보고 (예: 키릴 문자 А vs 라틴 문자 A).
+// Gitea의 AmbiguousCharacters 로케일 테이블 사용.
 func checkAmbiguousChars(content string, tables []*charset.AmbiguousTable) []string {
 	var errs []string
 	for lineIdx, line := range strings.Split(content, "\n") {
@@ -119,7 +119,7 @@ func checkAmbiguousChars(content string, tables []*charset.AmbiguousTable) []str
 	return errs
 }
 
-// checkBadRunes reports invalid UTF-8 byte sequences in the commit message.
+// checkBadRunes: 커밋 메시지에서 잘못된 UTF-8 바이트 시퀀스를 보고.
 func checkBadRunes(content string) []string {
 	var errs []string
 	bytes := []byte(content)
@@ -145,9 +145,9 @@ func checkBadRunes(content string) []string {
 	return errs
 }
 
-// checkMsgLanguage checks that the commit message body is written in the required language.
-// The subject line (first line) is checked; body lines after a blank separator are also checked.
-// Lines starting with configured skip_prefixes on the subject are exempt.
+// checkMsgLanguage: 커밋 메시지 본문이 필수 언어로 작성되었는지 검사.
+// 제목 줄(첫 번째 줄)을 검사하고, 빈 줄 구분자 이후의 본문 줄도 검사.
+// 제목이 설정된 skip_prefixes로 시작하면 면제.
 func checkMsgLanguage(content string, cfg *config.CommitMessageLanguageConfig) []string {
 	lines := strings.Split(strings.TrimRight(content, "\n"), "\n")
 	if len(lines) == 0 {
@@ -156,7 +156,7 @@ func checkMsgLanguage(content string, cfg *config.CommitMessageLanguageConfig) [
 
 	subject := strings.TrimSpace(lines[0])
 
-	// Skip entire message if subject starts with a skip prefix.
+	// 제목이 건너뜀 접두사로 시작하면 전체 메시지 건너뜀.
 	for _, prefix := range cfg.SkipPrefixes {
 		if strings.HasPrefix(subject, prefix) {
 			return nil
@@ -184,10 +184,10 @@ func checkMsgLanguage(content string, cfg *config.CommitMessageLanguageConfig) [
 		}
 	}
 
-	// Check subject line.
+	// 제목 줄 검사.
 	checkLine(1, subject)
 
-	// Check body lines (skip the blank separator line between subject and body).
+	// 본문 줄 검사 (제목과 본문 사이의 빈 구분 줄은 건너뜀).
 	for i := 1; i < len(lines); i++ {
 		checkLine(i+1, lines[i])
 	}

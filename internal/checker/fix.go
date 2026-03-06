@@ -11,24 +11,24 @@ import (
 )
 
 
-// FixResult holds a fixed commit message and a description of every change made.
+// FixResult: 수정된 커밋 메시지와 적용된 모든 변경 사항의 설명을 보관.
 type FixResult struct {
 	Original string
 	Fixed    string
 	Changes  []string
 }
 
-// NeedsFixing reports whether the commit message has any auto-fixable violations.
+// NeedsFixing: 커밋 메시지에 자동 수정 가능한 위반이 있는지 확인.
 func (r FixResult) NeedsFixing() bool { return len(r.Changes) > 0 }
 
-// FixMsg applies all auto-fixable corrections to a commit message.
-// It only fixes structural violations (co-author, invisible chars, ambiguous chars, bad runes).
-// Language violations in the body are NOT auto-fixable.
+// FixMsg: 커밋 메시지에 자동 수정 가능한 모든 교정을 적용.
+// 구조적 위반(co-author, 보이지 않는 문자, 모호한 문자, 잘못된 룬)만 수정.
+// 본문의 언어 위반은 자동 수정 불가.
 func FixMsg(cfg *config.Config, content string) FixResult {
 	result := FixResult{Original: content, Fixed: content}
 
-	// Bad runes must run first: other fixers use range-over-string which silently
-	// replaces invalid UTF-8 bytes with U+FFFD, hiding them from detection.
+	// 잘못된 룬을 먼저 처리: 다른 수정기는 range-over-string 사용 시
+	// 잘못된 UTF-8 바이트를 U+FFFD로 자동 교체하여 감지가 불가능해짐.
 	if cfg.CommitMessage.IsNoBadRunes() {
 		result.Fixed, result.Changes = fixBadRunes(result.Fixed, result.Changes)
 	}
@@ -65,18 +65,18 @@ func fixCoauthor(content string, changes []string, cfg *config.CommitMessageConf
 		}
 		kept = append(kept, line)
 	}
-	// Remove trailing blank lines that may have been left after removing trailers,
-	// but preserve the final newline if the original had one.
+	// 트레일러 제거 후 남은 후행 빈 줄 제거.
+	// 단, 원본에 최종 개행이 있었다면 유지.
 	result := strings.Join(kept, "\n")
-	// Collapse multiple trailing newlines to at most one.
+	// 여러 후행 개행을 최대 하나로 축소.
 	for strings.HasSuffix(result, "\n\n") {
 		result = result[:len(result)-1]
 	}
 	return result, changes
 }
 
-// fixInvisibleChars replaces invisible/non-standard space characters with a regular space.
-// BiDi control characters and zero-width characters are removed entirely.
+// fixInvisibleChars: 보이지 않는/비표준 공백 문자를 일반 공백으로 교체.
+// BiDi 제어 문자와 폭 없는 문자는 완전히 제거.
 func fixInvisibleChars(content string, changes []string) (string, []string) {
 	var sb strings.Builder
 	for lineIdx, line := range strings.Split(content, "\n") {
@@ -92,7 +92,7 @@ func fixInvisibleChars(content string, changes []string) (string, []string) {
 				if name != "" {
 					desc += " " + name
 				}
-				// Space variants → regular space; control/zero-width chars → removed
+				// 공백 변형 → 일반 공백; 제어/폭 없는 문자 → 제거
 				if isSpaceVariant(r) {
 					changes = append(changes, i18n.T("fix.replaced_invisible_space", map[string]interface{}{
 						"Line": lineIdx + 1,
@@ -115,23 +115,23 @@ func fixInvisibleChars(content string, changes []string) (string, []string) {
 	return sb.String(), changes
 }
 
-// isSpaceVariant returns true for invisible characters that are semantically spaces
-// (should be replaced with U+0020) rather than control characters (should be removed).
+// isSpaceVariant: 의미적으로 공백인 보이지 않는 문자에 대해 true를 반환
+// (제거가 아닌 U+0020으로 교체해야 하는 문자).
 func isSpaceVariant(r rune) bool {
 	switch r {
-	case 0x00A0, // NO-BREAK SPACE
-		0x1680, // OGHAM SPACE MARK
+	case 0x00A0, // 줄바꿈 없는 공백
+		0x1680, // 오검 공백 기호
 		0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
-		0x2006, 0x2007, 0x2008, 0x2009, 0x200A, // various em/en/thin spaces
-		0x202F, // NARROW NO-BREAK SPACE
-		0x205F, // MEDIUM MATHEMATICAL SPACE
-		0x3000: // IDEOGRAPHIC SPACE
+		0x2006, 0x2007, 0x2008, 0x2009, 0x200A, // 다양한 em/en/thin 공백
+		0x202F, // 좁은 줄바꿈 없는 공백
+		0x205F, // 수학용 중간 공백
+		0x3000: // 전각 공백
 		return true
 	}
 	return false
 }
 
-// fixAmbiguousChars replaces ambiguous Unicode characters with their ASCII lookalikes.
+// fixAmbiguousChars: 모호한 유니코드 문자를 ASCII 유사 문자로 교체.
 func fixAmbiguousChars(content string, changes []string, tables []*charset.AmbiguousTable) (string, []string) {
 	var sb strings.Builder
 	for lineIdx, line := range strings.Split(content, "\n") {
@@ -160,7 +160,7 @@ func fixAmbiguousChars(content string, changes []string, tables []*charset.Ambig
 	return sb.String(), changes
 }
 
-// fixBadRunes removes invalid UTF-8 byte sequences.
+// fixBadRunes: 잘못된 UTF-8 바이트 시퀀스를 제거.
 func fixBadRunes(content string, changes []string) (string, []string) {
 	b := []byte(content)
 	var sb strings.Builder

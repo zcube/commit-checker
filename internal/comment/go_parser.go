@@ -18,7 +18,7 @@ func (p *GoParser) SupportedExtensions() []string {
 
 func (p *GoParser) ParseFile(content string) ([]Comment, error) {
 	fset := token.NewFileSet()
-	// ParseComments includes comment nodes; AllErrors continues past syntax errors.
+	// ParseComments: 주석 노드 포함; AllErrors: 구문 오류 무시하고 계속 파싱.
 	f, err := parser.ParseFile(fset, "", content, parser.ParseComments|parser.AllErrors)
 	if err != nil && f == nil {
 		return nil, err

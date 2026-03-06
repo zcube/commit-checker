@@ -6,11 +6,11 @@ import "strings"
 // 주석과 문자열 리터럴을 추출하는 상태 기계 기반 파서.
 type CStyleParser struct {
 	extensions  []string
-	hasTemplate bool // JS/TS have template literals (backticks)
+	hasTemplate bool // JS/TS에서 템플릿 리터럴(백틱) 사용
 }
 
-// NewCStyleParser creates a parser for the given extensions.
-// Set hasTemplate=true for JS/TS to handle backtick template literals.
+// NewCStyleParser: 주어진 확장자에 대한 파서를 생성.
+// JS/TS의 백틱 템플릿 리터럴을 처리하려면 hasTemplate=true로 설정.
 func NewCStyleParser(extensions []string, hasTemplate bool) *CStyleParser {
 	return &CStyleParser{extensions: extensions, hasTemplate: hasTemplate}
 }
@@ -26,35 +26,35 @@ func findImportLines(content string) map[int]bool {
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		lineNum := i + 1
-		// C/C++ #include
+		// C/C++ 전처리기 포함
 		if strings.HasPrefix(trimmed, "#include") {
 			importLines[lineNum] = true
 			continue
 		}
-		// JS/TS/Java/Kotlin import ... from "..." or import "..."
+		// JS/TS/Java/Kotlin 임포트 구문
 		if strings.HasPrefix(trimmed, "import") {
 			importLines[lineNum] = true
 			continue
 		}
-		// JS require("...")
+		// JS 모듈 요청 구문
 		if strings.Contains(trimmed, "require(") {
 			importLines[lineNum] = true
 			continue
 		}
-		// JS/TS export ... from "..."
+		// JS/TS 재내보내기 구문
 		if strings.HasPrefix(trimmed, "export") && strings.Contains(trimmed, " from ") {
 			importLines[lineNum] = true
 			continue
 		}
-		// Rust include!("..."), include_str!("..."), include_bytes!("...")
+		// Rust 파일 포함 매크로
 		if strings.Contains(trimmed, "include!(") ||
 			strings.Contains(trimmed, "include_str!(") ||
 			strings.Contains(trimmed, "include_bytes!(") {
 			importLines[lineNum] = true
 			continue
 		}
-		// C# using (no string literals typically)
-		// Swift import (no string literals typically)
+		// C# using (일반적으로 문자열 리터럴 없음)
+		// Swift import (일반적으로 문자열 리터럴 없음)
 	}
 	return importLines
 }
@@ -62,11 +62,11 @@ func findImportLines(content string) map[int]bool {
 func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 	const (
 		stCode     = iota
-		stLine     // inside // comment
-		stBlock    // inside /* comment
-		stDQ       // inside "..." string
-		stSQ       // inside '...' string (also char literal)
-		stTemplate // inside `...` template literal
+		stLine     // // 주석 내부
+		stBlock    // /* 주석 내부
+		stDQ       // "..." 문자열 내부
+		stSQ       // '...' 문자열 내부 (문자 리터럴 포함)
+		stTemplate // `...` 템플릿 리터럴 내부
 	)
 
 	importLines := findImportLines(content)
@@ -118,11 +118,11 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 			case ch == '/' && peek(i) == '/':
 				state = stLine
 				commentLine = line
-				i++ // consume second '/'
+				i++ // 두 번째 '/' 소비
 			case ch == '/' && peek(i) == '*':
 				state = stBlock
 				commentLine = line
-				i++ // consume '*'
+				i++ // '*' 소비
 			case ch == '"':
 				state = stDQ
 				strLine = line
@@ -168,7 +168,7 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 				})
 				buf.Reset()
 				state = stCode
-				i++ // consume '/'
+				i++ // '/' 소비
 			} else {
 				if ch == '\n' {
 					line++
