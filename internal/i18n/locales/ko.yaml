@@ -17,6 +17,10 @@ diff.emoji_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}에 이모지 {{.Char}} (U+{{.CharCode}})가 포함되어 있습니다 — 이모지는 허용되지 않습니다"
 diff.editorconfig_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
+diff.file_invisible_char:
+  other: "{{.Path}}:{{.Line}}: 비가시 유니코드 문자 {{.Char}} ({{.Name}}) 감지 — 비표준 공백/제어 문자는 허용되지 않습니다"
+diff.file_ambiguous_char:
+  other: "{{.Path}}:{{.Line}}: 모호한 유니코드 문자 {{.Char}}이(가) ASCII '{{.LooksAs}}'과(와) 유사합니다 — ASCII 문자로 교체하세요"
 
 # 커밋 메시지 검사 메시지
 msg.ai_coauthor_error:

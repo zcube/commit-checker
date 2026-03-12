@@ -169,10 +169,10 @@ func TestE2E_Diff_NoStagedFiles_Exit0(t *testing.T) {
 
 func TestE2E_Diff_UnsupportedExtension_Exit0(t *testing.T) {
 	r := newTestRepo(t)
-	r.stage("README.md", "# Title\n\nThis is all English content.\n")
+	r.stage("notes.txt", "This is all English content in a plain text file.\n")
 	_, code := r.run("diff")
 	if code != 0 {
-		t.Errorf("markdown should be skipped, expected exit 0, got %d", code)
+		t.Errorf("txt should be skipped, expected exit 0, got %d", code)
 	}
 }
 

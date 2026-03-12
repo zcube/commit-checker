@@ -17,6 +17,10 @@ diff.emoji_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}包含表情符号 {{.Char}} (U+{{.CharCode}}) — 不允许使用表情符号"
 diff.editorconfig_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
+diff.file_invisible_char:
+  other: "{{.Path}}:{{.Line}}: 检测到不可见Unicode字符 {{.Char}} ({{.Name}}) — 不允许使用非标准空格/控制字符"
+diff.file_ambiguous_char:
+  other: "{{.Path}}:{{.Line}}: 易混淆Unicode字符 {{.Char}} 看起来像ASCII '{{.LooksAs}}' — 请替换为ASCII字符"
 
 # 提交消息检查消息
 msg.ai_coauthor_error:

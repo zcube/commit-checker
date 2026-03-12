@@ -10,9 +10,11 @@ Works with [lefthook](https://github.com/evilmartians/lefthook), husky, or any G
 | Check | Description |
 |---|---|
 | **Comment language** | Verify comments are written in the required language (Korean/English/Japanese/Chinese) |
+| **Allowed words** | Register technical terms and proper nouns to prevent false positives |
 | **Co-authored-by** | Block AI co-author trailers (with email allow-list support) |
 | **Unicode spaces** | Block invisible/non-standard Unicode space characters (NBSP, ZWSP, BiDi, etc.) |
 | **Ambiguous chars** | Block Unicode characters that look like ASCII (e.g., Cyrillic A vs Latin A) |
+| **File Unicode check** | Detect invisible/ambiguous Unicode characters in source and markdown files |
 | **Invalid UTF-8** | Block invalid byte sequences |
 | **Emoji ban** | Block emojis in commit messages and comments (optional) |
 | **Binary file detection** | Block compiled executables and binary files from being committed |
@@ -22,6 +24,7 @@ Works with [lefthook](https://github.com/evilmartians/lefthook), husky, or any G
 | **Conventional Commits** | Enforce commit message format (optional) |
 | **Repository analysis** | Detect development languages and warn about missing lint configs |
 | **Auto-fix** | Batch-fix unicode/encoding violations across git history |
+| **Progress indicator** | Bubbletea TUI spinner (TTY-aware, plain text fallback) |
 
 ## Installation
 
@@ -119,6 +122,7 @@ commit-checker msg "$1"
 ## Configuration
 
 Create `.commit-checker.yml` in your project root.
+Run `commit-checker init` to generate a default config file automatically.
 Use `.commit-checker.schema.json` for IDE autocompletion in VS Code.
 
 ```yaml
@@ -131,6 +135,17 @@ comment_language:
   check_mode: diff             # diff | full
   no_emoji: false              # true to ban emojis in comments
 
+  # Allowed words: English terms to ignore during language detection
+  allowed_words:
+    - TypeScript
+    - JavaScript
+    - API
+  # allowed_words_file: .commit-checker-words.txt
+  # allowed_words_url: https://example.com/allowed-words.txt
+  # allowed_words_cache:
+  #   enabled: true
+  #   ttl: 24h
+
 binary_file:
   enabled: true
 
@@ -142,6 +157,8 @@ lint:
 encoding:
   enabled: true
   require_utf8: true
+  # no_invisible_chars: true   # Detect invisible Unicode chars in file content
+  # no_ambiguous_chars: true   # Detect ASCII-confusable Unicode chars in file content
 
 editorconfig:
   enabled: true
@@ -159,6 +176,32 @@ commit_message:
 ```
 
 Defaults apply when the config file is absent.
+
+### Allowed words dictionary
+
+Exclude technical terms and proper nouns from language detection:
+
+```yaml
+comment_language:
+  # Inline list
+  allowed_words:
+    - TypeScript
+    - JavaScript
+    - API
+
+  # Local file (one word per line, # comments supported)
+  allowed_words_file: .commit-checker-words.txt
+
+  # URL (same format, HTTP/HTTPS)
+  allowed_words_url: https://example.com/allowed-words.txt
+
+  # URL caching (optional)
+  allowed_words_cache:
+    enabled: true
+    ttl: 24h                  # Cache TTL
+```
+
+All three sources (inline, file, URL) are merged.
 
 ### Per-file language rules
 
@@ -188,12 +231,30 @@ comment_language:
 ## Commands
 
 ```
-commit-checker diff          Check staged diff (comments/encoding/lint/binary)
+commit-checker init          Generate default config file (.commit-checker.yml)
+commit-checker diff          Check staged diff (comments/encoding/lint/binary/unicode)
+commit-checker run           Check all tracked files for policy compliance
 commit-checker msg <file>    Check commit message file
 commit-checker fix           Auto-fix git history (supports --dry-run)
 commit-checker analyze       Analyze repository (language detection, lint config check)
 commit-checker version       Print version info
 ```
+
+### init command
+
+```bash
+commit-checker init              # Auto-detect system locale
+commit-checker init --lang en    # Specify locale
+commit-checker init --force      # Overwrite existing file
+```
+
+### run command
+
+```bash
+commit-checker run    # Check all tracked files regardless of staged state
+```
+
+Unlike `diff`, this checks all files tracked by `git ls-files`.
 
 ### fix command
 
@@ -226,6 +287,8 @@ are missing. Also checks for `.editorconfig`, `.gitattributes`, `.gitignore`.
 | C# | `.cs` |
 | Swift | `.swift` |
 | Rust | `.rs` |
+| Dockerfile | `Dockerfile` `Dockerfile.*` `*.dockerfile` |
+| Markdown | `.md` `.markdown` |
 
 ## i18n Support
 

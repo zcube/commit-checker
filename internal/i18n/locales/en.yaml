@@ -17,6 +17,10 @@ diff.emoji_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}} contains emoji {{.Char}} (U+{{.CharCode}}) — emojis are not allowed"
 diff.editorconfig_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
+diff.file_invisible_char:
+  other: "{{.Path}}:{{.Line}}: invisible Unicode character {{.Char}} ({{.Name}}) detected — non-standard space/control characters are not allowed"
+diff.file_ambiguous_char:
+  other: "{{.Path}}:{{.Line}}: ambiguous Unicode character {{.Char}} looks like ASCII '{{.LooksAs}}' — replace with the ASCII character"
 
 # commit message checker messages
 msg.ai_coauthor_error:

@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zcube/commit-checker/internal/checker"
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/progress"
 )
 
 var diffCmd = &cobra.Command{
@@ -24,42 +25,19 @@ var diffCmd = &cobra.Command{
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		var allErrs []string
-
-		// 바이너리 파일 감지
-		binErrs, err := checker.CheckBinaryFiles(cfg)
-		if err != nil {
-			return fmt.Errorf("failed to check binary files: %w", err)
+		steps := []progress.Step{
+			{Name: "Binary file detection", Fn: func() ([]string, error) { return checker.CheckBinaryFiles(cfg) }},
+			{Name: "Encoding check (UTF-8)", Fn: func() ([]string, error) { return checker.CheckEncoding(cfg) }},
+			{Name: "Unicode character check", Fn: func() ([]string, error) { return checker.CheckUnicode(cfg) }},
+			{Name: "Data file lint (YAML, JSON, XML)", Fn: func() ([]string, error) { return checker.CheckLint(cfg) }},
+			{Name: "EditorConfig compliance", Fn: func() ([]string, error) { return checker.CheckEditorConfig(cfg) }},
+			{Name: "Comment language check", Fn: func() ([]string, error) { return checker.CheckDiff(cfg) }},
 		}
-		allErrs = append(allErrs, binErrs...)
 
-		// 인코딩 검사 (UTF-8)
-		encErrs, err := checker.CheckEncoding(cfg)
+		allErrs, err := progress.RunWithProgress(steps)
 		if err != nil {
-			return fmt.Errorf("failed to check encoding: %w", err)
+			return err
 		}
-		allErrs = append(allErrs, encErrs...)
-
-		// 데이터 파일 lint (YAML, JSON, XML)
-		lintErrs, err := checker.CheckLint(cfg)
-		if err != nil {
-			return fmt.Errorf("failed to check lint: %w", err)
-		}
-		allErrs = append(allErrs, lintErrs...)
-
-		// .editorconfig 검사
-		ecErrs, err := checker.CheckEditorConfig(cfg)
-		if err != nil {
-			return fmt.Errorf("failed to check editorconfig: %w", err)
-		}
-		allErrs = append(allErrs, ecErrs...)
-
-		// 주석 언어 검사
-		errs, err := checker.CheckDiff(cfg)
-		if err != nil {
-			return fmt.Errorf("failed to check diff: %w", err)
-		}
-		allErrs = append(allErrs, errs...)
 
 		if len(allErrs) > 0 {
 			for _, e := range allErrs {

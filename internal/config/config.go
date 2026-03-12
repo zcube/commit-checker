@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/zcube/commit-checker/internal/langdetect"
 	"gopkg.in/yaml.v3"
@@ -98,6 +99,9 @@ type CommentLanguageConfig struct {
 	// allowed_words, allowed_words_file과 병합됩니다.
 	// 형식은 allowed_words_file과 동일합니다 (줄 단위, # 주석).
 	AllowedWordsURL string `yaml:"allowed_words_url"`
+
+	// AllowedWordsCache: URL에서 가져온 허용 단어의 로컬 캐싱 설정.
+	AllowedWordsCache AllowedWordsCacheConfig `yaml:"allowed_words_cache"`
 }
 
 // FileLanguageRule: glob 패턴을 필수 언어에 매핑하는 규칙.
@@ -570,6 +574,17 @@ type EncodingConfig struct {
 	// true이면 UTF-8이 아닌 파일을 커밋할 수 없음.
 	RequireUTF8 *bool `yaml:"require_utf8"`
 
+	// NoInvisibleChars: 파일 내용에서 비가시 유니코드 문자 금지 여부 (기본값: false).
+	// NBSP, ZWSP, BiDi 제어 문자 등을 감지.
+	NoInvisibleChars *bool `yaml:"no_invisible_chars"`
+
+	// NoAmbiguousChars: 파일 내용에서 ASCII와 혼동되는 유니코드 문자 금지 여부 (기본값: false).
+	// 키릴 А (U+0410) vs 라틴 A (U+0041) 등을 감지.
+	NoAmbiguousChars *bool `yaml:"no_ambiguous_chars"`
+
+	// Locale: 모호한 문자 감지에 사용할 BCP-47 로케일 코드 (기본값: ko).
+	Locale string `yaml:"locale"`
+
 	// IgnoreFiles: 인코딩 검사에서 제외할 파일의 glob 패턴 목록.
 	IgnoreFiles []string `yaml:"ignore_files"`
 }
@@ -588,6 +603,22 @@ func (c *EncodingConfig) IsRequireUTF8() bool {
 		return true
 	}
 	return *c.RequireUTF8
+}
+
+// IsNoInvisibleChars: 비가시 유니코드 문자 검사 활성화 여부 반환 (기본값: false).
+func (c *EncodingConfig) IsNoInvisibleChars() bool {
+	if c.NoInvisibleChars == nil {
+		return false
+	}
+	return *c.NoInvisibleChars
+}
+
+// IsNoAmbiguousChars: 모호한 유니코드 문자 검사 활성화 여부 반환 (기본값: false).
+func (c *EncodingConfig) IsNoAmbiguousChars() bool {
+	if c.NoAmbiguousChars == nil {
+		return false
+	}
+	return *c.NoAmbiguousChars
 }
 
 // EditorConfigConfig: .editorconfig 규칙 검증 설정.
@@ -652,11 +683,17 @@ func resolveAllowedWords(cfg *Config) error {
 		cfg.CommentLanguage.AllowedWords = append(cfg.CommentLanguage.AllowedWords, words...)
 	}
 	if cfg.CommentLanguage.AllowedWordsURL != "" {
-		words, err := loadWordsFromURL(cfg.CommentLanguage.AllowedWordsURL)
-		if err != nil {
-			return fmt.Errorf("allowed_words_url 가져오기 실패: %w", err)
+		cache := &cfg.CommentLanguage.AllowedWordsCache
+		if words, ok := loadCachedWords(cache, cfg.CommentLanguage.AllowedWordsURL); ok {
+			cfg.CommentLanguage.AllowedWords = append(cfg.CommentLanguage.AllowedWords, words...)
+		} else {
+			words, body, err := loadWordsFromURLWithBody(cfg.CommentLanguage.AllowedWordsURL)
+			if err != nil {
+				return fmt.Errorf("allowed_words_url 가져오기 실패: %w", err)
+			}
+			cfg.CommentLanguage.AllowedWords = append(cfg.CommentLanguage.AllowedWords, words...)
+			saveCachedWords(cache, cfg.CommentLanguage.AllowedWordsURL, body)
 		}
-		cfg.CommentLanguage.AllowedWords = append(cfg.CommentLanguage.AllowedWords, words...)
 	}
 	return nil
 }
@@ -683,20 +720,21 @@ func loadWordsFromFile(filePath string) ([]string, error) {
 	return parseWordLines(string(data)), nil
 }
 
-func loadWordsFromURL(rawURL string) ([]string, error) {
-	resp, err := http.Get(rawURL) //nolint:gosec
+func loadWordsFromURLWithBody(rawURL string) ([]string, []byte, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(rawURL) //nolint:gosec
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return parseWordLines(string(body)), nil
+	return parseWordLines(string(body)), body, nil
 }
 
 func applyDefaults(cfg *Config) {
@@ -721,6 +759,9 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.CommentLanguage.CheckMode == "" {
 		cfg.CommentLanguage.CheckMode = "diff"
+	}
+	if cfg.Encoding.Locale == "" {
+		cfg.Encoding.Locale = "ko"
 	}
 	if cfg.CommitMessage.Locale == "" {
 		cfg.CommitMessage.Locale = "ko"

@@ -17,6 +17,10 @@ diff.emoji_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}に絵文字 {{.Char}} (U+{{.CharCode}}) が含まれています — 絵文字は許可されていません"
 diff.editorconfig_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
+diff.file_invisible_char:
+  other: "{{.Path}}:{{.Line}}: 不可視Unicode文字 {{.Char}} ({{.Name}}) が検出されました — 非標準の空白/制御文字は許可されていません"
+diff.file_ambiguous_char:
+  other: "{{.Path}}:{{.Line}}: 紛らわしいUnicode文字 {{.Char}} がASCII '{{.LooksAs}}' に似ています — ASCII文字に置換してください"
 
 # コミットメッセージチェックメッセージ
 msg.ai_coauthor_error:

@@ -10,9 +10,11 @@
 | 检查项 | 说明 |
 |---|---|
 | **注释语言** | 检查注释是否使用指定语言（韩语/英语/日语/中文）编写 |
+| **允许词典** | 注册技术术语和专有名词以防止误报 |
 | **Co-authored-by** | 阻止AI共同作者尾部标记（支持邮箱白名单） |
 | **Unicode空格** | 阻止不可见/非标准Unicode空白字符（NBSP、ZWSP、BiDi等） |
 | **易混淆字符** | 阻止与ASCII字符相似的Unicode字符（如西里尔字母A vs 拉丁字母A） |
+| **文件Unicode检查** | 检测源代码/Markdown文件中的不可见和易混淆Unicode字符 |
 | **无效UTF-8** | 阻止无效的字节序列 |
 | **表情符号禁止** | 阻止在提交消息和注释中使用表情符号（可选） |
 | **二进制文件检测** | 阻止提交编译后的可执行文件和二进制文件 |
@@ -22,6 +24,7 @@
 | **约定式提交** | 强制执行提交消息格式（可选） |
 | **仓库分析** | 检测开发语言并警告缺失的lint配置 |
 | **自动修复（fix）** | 在git历史中批量修复unicode/编码违规 |
+| **进度指示器** | bubbletea TUI旋转器（TTY感知，非TTY时纯文本回退） |
 
 ## 安装
 
@@ -90,6 +93,7 @@ lefthook install
 ## 配置
 
 在项目根目录创建 `.commit-checker.yml`。
+运行 `commit-checker init` 可自动生成默认配置文件。
 
 ```yaml
 comment_language:
@@ -97,6 +101,22 @@ comment_language:
   required_language: chinese   # korean | english | japanese | chinese | any
   min_length: 5
   no_emoji: false              # true 禁止注释中的表情符号
+
+  # 允许词: 语言检查中忽略的英语单词
+  allowed_words:
+    - TypeScript
+    - API
+  # allowed_words_file: .commit-checker-words.txt
+  # allowed_words_url: https://example.com/allowed-words.txt
+  # allowed_words_cache:
+  #   enabled: true
+  #   ttl: 24h
+
+encoding:
+  enabled: true
+  require_utf8: true
+  # no_invisible_chars: true   # 检测文件中的不可见Unicode字符
+  # no_ambiguous_chars: true   # 检测文件中与ASCII易混淆的Unicode字符
 
 commit_message:
   # enabled: true  # false 禁用所有提交消息检查
@@ -114,6 +134,7 @@ commit_message:
 |---|---|
 | `commit-checker:ignore` | 仅跳过下一个注释的检查 |
 | `commit-checker:disable` | 从此行开始禁用检查 |
+| `commit-checker:disable:lang=<L>` | 禁用并在此区间使用语言L检查 |
 | `commit-checker:enable` | 重新启用检查 |
 | `commit-checker:lang=<L>` | 从此行开始切换所需语言 |
 | `commit-checker:file-lang=<L>` | 设置整个文件的所需语言 |
@@ -121,12 +142,31 @@ commit_message:
 ## 命令
 
 ```
+commit-checker init          生成默认配置文件
 commit-checker diff          检查暂存的diff
+commit-checker run           检查所有已跟踪文件
 commit-checker msg <file>    检查提交消息
 commit-checker fix           自动修复git历史（支持 --dry-run）
 commit-checker analyze       仓库分析
 commit-checker version       版本信息
 ```
+
+## 支持的语言
+
+| 语言 | 扩展名 |
+|---|---|
+| Go | `.go` |
+| TypeScript | `.ts` `.tsx` |
+| JavaScript | `.js` `.jsx` `.mjs` `.cjs` |
+| Java | `.java` |
+| Kotlin | `.kt` `.kts` |
+| Python | `.py` |
+| C / C++ | `.c` `.h` `.cpp` `.cc` `.hpp` |
+| C# | `.cs` |
+| Swift | `.swift` |
+| Rust | `.rs` |
+| Dockerfile | `Dockerfile` `Dockerfile.*` `*.dockerfile` |
+| Markdown | `.md` `.markdown` |
 
 ## i18n支持
 
