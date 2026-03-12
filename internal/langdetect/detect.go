@@ -53,6 +53,12 @@ func HasNaturalLanguageContent(text string, minLetters int, extraSkip []string) 
 		return false
 	}
 
+	// XML/HTML 태그만 있는 주석은 건너뜁니다.
+	// C# XML doc (/// <summary>, /// </summary>, /// <param name="x"/> 등)이 대표적입니다.
+	if isXMLTagOnly(text) {
+		return false
+	}
+
 	lower := strings.ToLower(strings.TrimSpace(text))
 	for _, prefix := range builtinSkipPrefixes {
 		if strings.HasPrefix(lower, prefix) {
@@ -73,6 +79,39 @@ func HasNaturalLanguageContent(text string, minLetters int, extraSkip []string) 
 		}
 	}
 	return count >= minLetters
+}
+
+// isXMLTagOnly 는 텍스트가 XML/HTML 태그만으로 구성되어 있는지 확인합니다.
+// C# XML doc 주석에서 CStyleParser 가 "/ " 접두사를 남기므로 이를 제거한 후 확인합니다.
+// <summary>, </summary>, <param name="x"/>, <returns/> 등이 해당됩니다.
+// 태그 사이에 일반 텍스트가 있으면 false 를 반환합니다.
+func isXMLTagOnly(text string) bool {
+	s := strings.TrimSpace(text)
+	// CStyleParser 는 "///" 에서 "//" 를 제거하여 "/ <tag>" 형태로 남깁니다.
+	if strings.HasPrefix(s, "/ ") {
+		s = strings.TrimSpace(s[2:])
+	} else if len(s) > 0 && s[0] == '/' {
+		s = strings.TrimSpace(s[1:])
+	}
+	if s == "" || s[0] != '<' {
+		return false
+	}
+	// '<' 로 시작하면서 전체가 태그로만 구성되어 있는지 스캔합니다.
+	for len(s) > 0 {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			break
+		}
+		if s[0] != '<' {
+			return false // 태그 밖에 텍스트가 있음
+		}
+		end := strings.IndexByte(s, '>')
+		if end == -1 {
+			return false // 닫히지 않은 태그
+		}
+		s = s[end+1:]
+	}
+	return true
 }
 
 // IsRequiredLanguage 는 주석 텍스트가 필수 언어 요건을 충족하는지 확인합니다.

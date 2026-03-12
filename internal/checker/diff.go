@@ -86,44 +86,40 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 		// 인라인 지시자 처리 (commit-checker:disable / :ignore / :lang= 등).
 		states := directive.Analyze(comments, fileLang)
 
-		for i, c := range comments {
-			state := states[i]
-			if state.Skip {
-				continue
-			}
-			// import/include 경로는 언어 검사 대상에서 항상 제외
-			if c.Kind == comment.KindImport {
-				continue
-			}
-			// 문자열 리터럴은 check_strings: true 일 때만 검사
-			if c.Kind == comment.KindString && !checkStrings {
-				continue
-			}
-			// diff 모드에서는 추가된 줄에 포함되지 않는 주석 건너뜀.
-			if !fullMode && !overlapsAddedLines(c, diff.AddedLines) {
-				continue
+		for _, u := range buildCommentUnits(comments, states, checkStrings) {
+			// diff 모드에서는 해당 단위의 줄 범위가 추가된 줄과 겹쳐야 합니다.
+			if !fullMode {
+				overlaps := false
+				for ln := u.line; ln <= u.endLine; ln++ {
+					if diff.AddedLines[ln] {
+						overlaps = true
+						break
+					}
+				}
+				if !overlaps {
+					continue
+				}
 			}
 
-			text := strings.TrimSpace(c.Text)
-			// 기술적 식별자 문자열 건너뜀 (skip_technical_strings: true, 기본값)
-			if c.Kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
+			text := u.text
+			if u.kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
 				continue
 			}
-			ok, hasContent := langdetect.IsRequiredLanguage(text, state.Language, minLength, skipDirectives)
+			ok, hasContent := langdetect.IsRequiredLanguage(text, u.lang, minLength, skipDirectives)
 			if !hasContent {
 				continue
 			}
 			if !ok {
 				detected := langdetect.Dominant(text)
 				kindID := "diff.kind_comment"
-				if c.Kind == comment.KindString {
+				if u.kind == comment.KindString {
 					kindID = "diff.kind_string_literal"
 				}
 				errs = append(errs, i18n.T("diff.comment_language_error", map[string]any{
 					"Path":     diff.Path,
-					"Line":     c.Line,
+					"Line":     u.line,
 					"Kind":     i18n.T(kindID, nil),
-					"Language": state.Language,
+					"Language": u.lang,
 					"Detected": detected,
 					"Text":     truncate(text, 80),
 				}))
@@ -134,12 +130,12 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 				emojis := emoji.FindEmojis(text)
 				for _, e := range emojis {
 					kindID := "diff.kind_comment"
-					if c.Kind == comment.KindString {
+					if u.kind == comment.KindString {
 						kindID = "diff.kind_string_literal"
 					}
 					errs = append(errs, i18n.T("diff.emoji_error", map[string]any{
 						"Path":     diff.Path,
-						"Line":     c.Line + e.Line - 1,
+						"Line":     u.line + e.Line - 1,
 						"Kind":     i18n.T(kindID, nil),
 						"Char":     e.Char,
 						"CharCode": fmt.Sprintf("%04X", e.Code),
@@ -169,16 +165,6 @@ func normaliseLanguage(lang string) string {
 		return mapped
 	}
 	return strings.ToLower(lang)
-}
-
-// overlapsAddedLines 는 주석의 줄 중 하나라도 diff 에서 추가된 줄인지 확인합니다.
-func overlapsAddedLines(c comment.Comment, addedLines map[int]bool) bool {
-	for line := c.Line; line <= c.EndLine; line++ {
-		if addedLines[line] {
-			return true
-		}
-	}
-	return false
 }
 
 func truncate(s string, max int) string {

@@ -60,7 +60,7 @@ func RunBinaryFiles(cfg *config.Config) ([]string, error) {
 			continue
 		}
 		if encoding.IsBinary(content) {
-			errs = append(errs, i18n.T("diff.binary_file_error", map[string]interface{}{
+			errs = append(errs, i18n.T("diff.binary_file_error", map[string]any{
 				"Path": path,
 			}))
 		}
@@ -105,7 +105,7 @@ func RunEncoding(cfg *config.Config) ([]string, error) {
 
 		result := encoding.CheckUTF8(content)
 		if !result.Valid {
-			errs = append(errs, i18n.T("diff.encoding_error", map[string]interface{}{
+			errs = append(errs, i18n.T("diff.encoding_error", map[string]any{
 				"Path":    path,
 				"Charset": result.DetectedCharset,
 			}))
@@ -186,7 +186,7 @@ func RunLint(cfg *config.Config) ([]string, error) {
 		}
 
 		for _, ve := range validationErrs {
-			errs = append(errs, i18n.T("diff.lint_error", map[string]interface{}{
+			errs = append(errs, i18n.T("diff.lint_error", map[string]any{
 				"Path":    ve.File,
 				"Line":    ve.Line,
 				"Message": ve.Message,
@@ -232,7 +232,7 @@ func RunEditorConfig(cfg *config.Config) ([]string, error) {
 
 		violations := ecmod.Check(path, content, def)
 		for _, v := range violations {
-			errs = append(errs, i18n.T("diff.editorconfig_error", map[string]interface{}{
+			errs = append(errs, i18n.T("diff.editorconfig_error", map[string]any{
 				"Path":    v.File,
 				"Line":    v.Line,
 				"Message": v.Message,
@@ -291,7 +291,7 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 
 		comments, err := parser.ParseFile(string(content))
 		if err != nil {
-			fmt.Println(i18n.T("diff.parse_warning", map[string]interface{}{
+			fmt.Println(i18n.T("diff.parse_warning", map[string]any{
 				"Path":  filePath,
 				"Error": err,
 			}))
@@ -300,39 +300,27 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 		fileLang := resolveFileLang(filePath, cfg)
 		states := directive.Analyze(comments, fileLang)
 
-		for i, c := range comments {
-			state := states[i]
-			if state.Skip {
-				continue
-			}
-			// import/include 경로는 언어 검사 대상에서 항상 제외
-			if c.Kind == comment.KindImport {
-				continue
-			}
-			if c.Kind == comment.KindString && !checkStrings {
+		for _, u := range buildCommentUnits(comments, states, checkStrings) {
+			text := u.text
+			if u.kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
 				continue
 			}
 
-			text := strings.TrimSpace(c.Text)
-			if c.Kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
-				continue
-			}
-
-			ok, hasContent := langdetect.IsRequiredLanguage(text, state.Language, minLength, skipDirectives)
+			ok, hasContent := langdetect.IsRequiredLanguage(text, u.lang, minLength, skipDirectives)
 			if !hasContent {
 				continue
 			}
 			if !ok {
 				detected := langdetect.Dominant(text)
 				kindID := "diff.kind_comment"
-				if c.Kind == comment.KindString {
+				if u.kind == comment.KindString {
 					kindID = "diff.kind_string_literal"
 				}
-				errs = append(errs, i18n.T("diff.comment_language_error", map[string]interface{}{
+				errs = append(errs, i18n.T("diff.comment_language_error", map[string]any{
 					"Path":     filePath,
-					"Line":     c.Line,
+					"Line":     u.line,
 					"Kind":     i18n.T(kindID, nil),
-					"Language": state.Language,
+					"Language": u.lang,
 					"Detected": detected,
 					"Text":     truncate(text, 80),
 				}))
@@ -342,12 +330,12 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 				emojis := emoji.FindEmojis(text)
 				for _, e := range emojis {
 					kindID := "diff.kind_comment"
-					if c.Kind == comment.KindString {
+					if u.kind == comment.KindString {
 						kindID = "diff.kind_string_literal"
 					}
-					errs = append(errs, i18n.T("diff.emoji_error", map[string]interface{}{
+					errs = append(errs, i18n.T("diff.emoji_error", map[string]any{
 						"Path":     filePath,
-						"Line":     c.Line + e.Line - 1,
+						"Line":     u.line + e.Line - 1,
 						"Kind":     i18n.T(kindID, nil),
 						"Char":     e.Char,
 						"CharCode": fmt.Sprintf("%04X", e.Code),

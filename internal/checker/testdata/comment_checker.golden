@@ -1,7 +1,7 @@
 Dockerfile: comments=6 strings=0 imports=0 lang=PASS
 sample.c: comments=4 strings=4 imports=2 lang=PASS
 sample.cpp: comments=6 strings=2 imports=1 lang=PASS
-sample.cs: comments=6 strings=1 imports=0 lang=PASS
+sample.cs: comments=10 strings=1 imports=0 lang=PASS
 sample.go: comments=5 strings=2 imports=3 lang=PASS
 sample.java: comments=5 strings=1 imports=0 lang=PASS
 sample.js: comments=3 strings=2 imports=3 lang=PASS

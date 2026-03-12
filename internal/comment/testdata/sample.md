@@ -14,11 +14,11 @@ go install github.com/zcube/commit-checker@latest
 
 현재 지원하는 언어 목록입니다:
 
-- 고(Go)
+- Go
 - 타입스크립트 / 자바스크립트
 - 자바, 코틀린
 - 파이썬
-- C, C++, C샵
+- C, C++, C#
 - 스위프트, 러스트
 - 도커파일
 
