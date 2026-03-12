@@ -18,7 +18,7 @@ func (p *GoParser) SupportedExtensions() []string {
 
 func (p *GoParser) ParseFile(content string) ([]Comment, error) {
 	fset := token.NewFileSet()
-	// ParseComments includes comment nodes; AllErrors continues past syntax errors.
+	// ParseComments 는 주석 노드를 포함하고, AllErrors 는 구문 오류 이후에도 계속 파싱합니다.
 	f, err := parser.ParseFile(fset, "", content, parser.ParseComments|parser.AllErrors)
 	if err != nil && f == nil {
 		return nil, err
@@ -53,6 +53,14 @@ func (p *GoParser) ParseFile(content string) ([]Comment, error) {
 		}
 	}
 
+	// import 경로 위치 수집 — 언어 검사에서 제외할 KindImport로 표시하기 위함.
+	importPositions := make(map[token.Pos]bool, len(f.Imports))
+	for _, imp := range f.Imports {
+		if imp.Path != nil {
+			importPositions[imp.Path.Pos()] = true
+		}
+	}
+
 	// 문자열 리터럴 추출 (AST 순회)
 	ast.Inspect(f, func(n ast.Node) bool {
 		lit, ok := n.(*ast.BasicLit)
@@ -67,12 +75,17 @@ func (p *GoParser) ParseFile(content string) ([]Comment, error) {
 			return true
 		}
 
+		kind := KindString
+		if importPositions[lit.Pos()] {
+			kind = KindImport
+		}
+
 		result = append(result, Comment{
 			Text:    val,
 			Line:    pos.Line,
 			EndLine: endPos.Line,
 			IsBlock: false,
-			Kind:    KindString,
+			Kind:    kind,
 		})
 		return true
 	})

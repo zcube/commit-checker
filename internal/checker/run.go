@@ -305,6 +305,10 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 			if state.Skip {
 				continue
 			}
+			// import/include 경로는 언어 검사 대상에서 항상 제외
+			if c.Kind == comment.KindImport {
+				continue
+			}
 			if c.Kind == comment.KindString && !checkStrings {
 				continue
 			}

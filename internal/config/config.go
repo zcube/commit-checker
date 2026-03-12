@@ -613,7 +613,7 @@ func Load(path string) (*Config, error) {
 
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, err
+		return nil, formatConfigError(path, err)
 	}
 
 	applyDefaults(&cfg)
@@ -634,6 +634,7 @@ func applyDefaults(cfg *Config) {
 		cfg.CommentLanguage.Extensions = []string{
 			".go", ".ts", ".tsx", ".js", ".jsx", ".mjs",
 			".java", ".kt", ".py", ".c", ".cpp", ".cs", ".swift", ".rs",
+			"dockerfile",
 		}
 	}
 	if cfg.CommentLanguage.MinLength == 0 {

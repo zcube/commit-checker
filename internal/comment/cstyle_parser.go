@@ -6,11 +6,11 @@ import "strings"
 // 주석과 문자열 리터럴을 추출하는 상태 기계 기반 파서.
 type CStyleParser struct {
 	extensions  []string
-	hasTemplate bool // JS/TS have template literals (backticks)
+	hasTemplate bool // JS/TS 는 백틱 템플릿 리터럴을 지원합니다.
 }
 
-// NewCStyleParser creates a parser for the given extensions.
-// Set hasTemplate=true for JS/TS to handle backtick template literals.
+// NewCStyleParser 는 주어진 확장자를 처리하는 파서를 생성합니다.
+// JS/TS 의 백틱 템플릿 리터럴 처리를 위해 hasTemplate=true 로 설정하세요.
 func NewCStyleParser(extensions []string, hasTemplate bool) *CStyleParser {
 	return &CStyleParser{extensions: extensions, hasTemplate: hasTemplate}
 }
@@ -19,14 +19,22 @@ func (p *CStyleParser) SupportedExtensions() []string {
 	return p.extensions
 }
 
+// kindForImport 는 import 컨텍스트 여부에 따라 KindImport 또는 KindString을 반환.
+func kindForImport(isImport bool) Kind {
+	if isImport {
+		return KindImport
+	}
+	return KindString
+}
+
 func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 	const (
 		stCode     = iota
-		stLine     // inside // comment
-		stBlock    // inside /* comment
-		stDQ       // inside "..." string
-		stSQ       // inside '...' string (also char literal)
-		stTemplate // inside `...` template literal
+		stLine     // // 주석 내부
+		stBlock    // /* 주석 내부
+		stDQ       // "..." 문자열 내부
+		stSQ       // '...' 문자열 내부 (문자 리터럴 포함)
+		stTemplate // `...` 템플릿 리터럴 내부
 	)
 
 	var (
@@ -35,6 +43,7 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 		n           = len(runes)
 		state       = stCode
 		buf         strings.Builder
+		linePre     strings.Builder // stCode 상태에서 현재 줄의 앞쪽 내용 추적
 		commentLine int
 		strLine     int
 		line        = 1
@@ -47,7 +56,25 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 		return 0
 	}
 
-	emitString := func(endLine int) {
+	// isImportContext 는 현재 줄 앞부분이 import/include 경로 컨텍스트인지 판단합니다.
+	isImportContext := func() bool {
+		pre := strings.TrimSpace(linePre.String())
+		// C/C++: #include "file.h" 패턴
+		if strings.HasPrefix(pre, "#include") {
+			return true
+		}
+		// JS/TS: import ... from "module" 또는 import ... from 'module'
+		if pre == "from" || strings.HasSuffix(pre, " from") {
+			return true
+		}
+		// ESM 단독 import: import "polyfill" 또는 import 'polyfill'
+		if pre == "import" {
+			return true
+		}
+		return false
+	}
+
+	emitString := func(endLine int, kind Kind) {
 		val := buf.String()
 		if val != "" {
 			result = append(result, Comment{
@@ -55,7 +82,7 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 				Line:    strLine,
 				EndLine: endLine,
 				IsBlock: false,
-				Kind:    KindString,
+				Kind:    kind,
 			})
 		}
 		buf.Reset()
@@ -69,14 +96,15 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 			switch {
 			case ch == '\n':
 				line++
+				linePre.Reset()
 			case ch == '/' && peek(i) == '/':
 				state = stLine
 				commentLine = line
-				i++ // consume second '/'
+				i++ // 두 번째 '/' 소비
 			case ch == '/' && peek(i) == '*':
 				state = stBlock
 				commentLine = line
-				i++ // consume '*'
+				i++ // '*' 소비
 			case ch == '"':
 				state = stDQ
 				strLine = line
@@ -89,6 +117,8 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 				state = stTemplate
 				strLine = line
 				buf.Reset()
+			default:
+				linePre.WriteRune(ch)
 			}
 
 		case stLine:
@@ -106,6 +136,7 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 				buf.Reset()
 				state = stCode
 				line++
+				linePre.Reset()
 			} else {
 				buf.WriteRune(ch)
 			}
@@ -122,7 +153,7 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 				})
 				buf.Reset()
 				state = stCode
-				i++ // consume '/'
+				i++ // '/' 소비
 			} else {
 				if ch == '\n' {
 					line++
@@ -132,13 +163,14 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 
 		case stDQ:
 			if ch == '\n' {
-				emitString(line)
+				emitString(line, kindForImport(isImportContext()))
 				line++
+				linePre.Reset()
 				state = stCode
 			} else if ch == '\\' && i+1 < n {
 				i++ // 이스케이프 시퀀스는 언어 감지에 불필요하므로 건너뜀
 			} else if ch == '"' {
-				emitString(line)
+				emitString(line, kindForImport(isImportContext()))
 				state = stCode
 			} else {
 				buf.WriteRune(ch)
@@ -146,13 +178,14 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 
 		case stSQ:
 			if ch == '\n' {
-				emitString(line)
+				emitString(line, kindForImport(isImportContext()))
 				line++
+				linePre.Reset()
 				state = stCode
 			} else if ch == '\\' && i+1 < n {
 				i++
 			} else if ch == '\'' {
-				emitString(line)
+				emitString(line, kindForImport(isImportContext()))
 				state = stCode
 			} else {
 				buf.WriteRune(ch)
@@ -165,7 +198,7 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 			} else if ch == '\\' && i+1 < n {
 				i++
 			} else if ch == '`' {
-				emitString(line)
+				emitString(line, KindString)
 				state = stCode
 			} else {
 				buf.WriteRune(ch)
@@ -190,7 +223,7 @@ func (p *CStyleParser) ParseFile(content string) ([]Comment, error) {
 
 	// 파일이 개행 없이 끝날 때 string 처리
 	if state == stDQ || state == stSQ || state == stTemplate {
-		emitString(line)
+		emitString(line, kindForImport(isImportContext()))
 	}
 
 	return result, nil

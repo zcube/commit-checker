@@ -80,8 +80,10 @@ comment_language:
   # ignore_files: 주석 언어 검사에서 제외할 glob 패턴 목록.
   # exceptions.comment_language_ignore 와 동일한 역할이며 병합되어 적용됨.
   ignore_files:
-    - "**/*_test.go"      # 테스트 파일은 영어 주석 허용
+    - "**/*_test.go"                     # 테스트 파일은 영어 주석 허용
     - "internal/charset/ambiguous_gen.go"  # 자동 생성 파일
+    - "internal/comment/testdata/**"       # 파서 테스트 픽스처 — 언어 혼용 허용
+    - "internal/checker/testdata/**"       # 파서 테스트 픽스처 — 언어 혼용 허용
 
   # file_languages: per-file language rules (first matching pattern wins).
   # Overrides required_language for matching files.

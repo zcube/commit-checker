@@ -1,0 +1,37 @@
+# 프로젝트 소개
+
+이 프로젝트는 커밋 메시지와 소스 코드 주석의 품질을 검사하는 도구입니다.
+
+## 설치 방법
+
+다음 명령어로 설치할 수 있습니다:
+
+```bash
+go install github.com/zcube/commit-checker@latest
+```
+
+## 지원 언어
+
+현재 지원하는 언어 목록입니다:
+
+- Go
+- TypeScript / JavaScript
+- Java, Kotlin
+- Python
+- C, C++, C#
+- Swift, Rust
+- Dockerfile
+
+## 설정 예시
+
+`enabled` 필드로 각 검사를 활성화하거나 비활성화할 수 있습니다.
+
+```yaml
+comment_language:
+  enabled: true
+  required_language: korean
+```
+
+## 기여 방법
+
+버그 리포트나 기능 요청은 이슈 트래커를 이용해 주세요.

@@ -59,6 +59,7 @@ comment_language:
     - .cs
     - .swift
     - .rs
+    - dockerfile
 
 binary_file:
   enabled: true
