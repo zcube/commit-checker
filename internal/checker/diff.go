@@ -38,6 +38,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 	checkStrings := cfg.CommentLanguage.IsCheckStrings()
 	skipTechnical := cfg.CommentLanguage.IsSkipTechnicalStrings()
 	noEmoji := cfg.CommentLanguage.IsNoEmoji()
+	allowedWords := cfg.CommentLanguage.AllowedWords
 
 	// 무시 패턴 수집: 전역 + comment_language 전용 + 인라인 ignore_files.
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore,
@@ -101,7 +102,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 				}
 			}
 
-			text := u.text
+			text := langdetect.StripAllowedWords(u.text, allowedWords)
 			if u.kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
 				continue
 			}

@@ -1,6 +1,9 @@
 package config
 
 import (
+	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -80,6 +83,21 @@ type CommentLanguageConfig struct {
 	//   - 소문자 없는 순수 ASCII → 대문자 상수 (예: ERR_TOKEN, MAX_SIZE)
 	// false 로 설정하면 모든 문자열을 언어 검사함.
 	SkipTechnicalStrings *bool `yaml:"skip_technical_strings"`
+
+	// AllowedWords: 언어 검사에서 무시할 영어 단어 목록.
+	// 주석에서 해당 단어를 제거한 후 나머지 텍스트로 언어를 판별합니다.
+	// 고유명사, 기술 용어 등에 활용합니다.
+	// 예: TypeScript, JavaScript, API, URL
+	AllowedWords []string `yaml:"allowed_words"`
+
+	// AllowedWordsFile: 허용 단어가 한 줄에 하나씩 적힌 텍스트 파일 경로.
+	// allowed_words와 병합됩니다. 줄 단위로 읽으며 # 로 시작하는 줄은 주석으로 무시합니다.
+	AllowedWordsFile string `yaml:"allowed_words_file"`
+
+	// AllowedWordsURL: 허용 단어 파일을 HTTP/HTTPS로 가져올 URL.
+	// allowed_words, allowed_words_file과 병합됩니다.
+	// 형식은 allowed_words_file과 동일합니다 (줄 단위, # 주석).
+	AllowedWordsURL string `yaml:"allowed_words_url"`
 }
 
 // FileLanguageRule: glob 패턴을 필수 언어에 매핑하는 규칙.
@@ -600,8 +618,8 @@ type ExceptionsConfig struct {
 
 // Load: 주어진 YAML 파일에서 설정을 읽음.
 // 파일이 없으면 기본 설정을 반환.
-func Load(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+func Load(cfgPath string) (*Config, error) {
+	data, err := os.ReadFile(cfgPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			cfg := &Config{}
@@ -613,11 +631,72 @@ func Load(path string) (*Config, error) {
 
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, formatConfigError(path, err)
+		return nil, formatConfigError(cfgPath, err)
 	}
 
 	applyDefaults(&cfg)
+	if err := resolveAllowedWords(&cfg); err != nil {
+		return nil, err
+	}
 	return &cfg, nil
+}
+
+// resolveAllowedWords 는 allowed_words_file, allowed_words_url 에서 단어를 읽어
+// allowed_words 목록에 병합합니다.
+func resolveAllowedWords(cfg *Config) error {
+	if cfg.CommentLanguage.AllowedWordsFile != "" {
+		words, err := loadWordsFromFile(cfg.CommentLanguage.AllowedWordsFile)
+		if err != nil {
+			return fmt.Errorf("allowed_words_file 읽기 실패: %w", err)
+		}
+		cfg.CommentLanguage.AllowedWords = append(cfg.CommentLanguage.AllowedWords, words...)
+	}
+	if cfg.CommentLanguage.AllowedWordsURL != "" {
+		words, err := loadWordsFromURL(cfg.CommentLanguage.AllowedWordsURL)
+		if err != nil {
+			return fmt.Errorf("allowed_words_url 가져오기 실패: %w", err)
+		}
+		cfg.CommentLanguage.AllowedWords = append(cfg.CommentLanguage.AllowedWords, words...)
+	}
+	return nil
+}
+
+// parseWordLines 는 텍스트를 줄 단위로 분리하여 단어 목록을 반환합니다.
+// '#' 로 시작하는 줄과 빈 줄은 무시합니다.
+func parseWordLines(text string) []string {
+	var words []string
+	for _, line := range strings.Split(text, "\n") {
+		word := strings.TrimSpace(line)
+		if word == "" || strings.HasPrefix(word, "#") {
+			continue
+		}
+		words = append(words, word)
+	}
+	return words
+}
+
+func loadWordsFromFile(filePath string) ([]string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return parseWordLines(string(data)), nil
+}
+
+func loadWordsFromURL(rawURL string) ([]string, error) {
+	resp, err := http.Get(rawURL) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return parseWordLines(string(body)), nil
 }
 
 func applyDefaults(cfg *Config) {

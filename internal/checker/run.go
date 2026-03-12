@@ -264,6 +264,7 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 	checkStrings := cfg.CommentLanguage.IsCheckStrings()
 	skipTechnical := cfg.CommentLanguage.IsSkipTechnicalStrings()
 	noEmoji := cfg.CommentLanguage.IsNoEmoji()
+	allowedWords := cfg.CommentLanguage.AllowedWords
 
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore,
 		cfg.Exceptions.CommentLanguageIgnore...)
@@ -301,7 +302,7 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 		states := directive.Analyze(comments, fileLang)
 
 		for _, u := range buildCommentUnits(comments, states, checkStrings) {
-			text := u.text
+			text := langdetect.StripAllowedWords(u.text, allowedWords)
 			if u.kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
 				continue
 			}

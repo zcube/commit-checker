@@ -1,6 +1,7 @@
 package langdetect
 
 import (
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -231,4 +232,68 @@ func isChinese(r rune) bool {
 
 func isLatin(r rune) bool {
 	return (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+}
+
+// StripAllowedWords 는 텍스트에서 허용 단어 목록에 해당하는 단어를 공백으로 대체합니다.
+// 단어 경계 규칙: 앞뒤에 라틴 문자가 없어야 일치로 간주합니다.
+// 예) "Java"는 "JavaScript"에서 일치하지 않고, "Java 언어"에서는 일치합니다.
+// 긴 단어를 먼저 처리하여 부분 일치를 방지합니다.
+func StripAllowedWords(text string, words []string) string {
+	if len(words) == 0 {
+		return text
+	}
+
+	// 긴 단어 먼저 처리 (부분 일치 방지)
+	sorted := make([]string, len(words))
+	copy(sorted, words)
+	sort.Slice(sorted, func(i, j int) bool {
+		return len(sorted[i]) > len(sorted[j])
+	})
+
+	runes := []rune(text)
+	lower := []rune(strings.ToLower(text))
+	skip := make([]bool, len(runes))
+
+	for _, word := range sorted {
+		wRunes := []rune(strings.ToLower(word))
+		wLen := len(wRunes)
+		if wLen == 0 {
+			continue
+		}
+		for i := range len(lower) - wLen + 1 {
+			if skip[i] {
+				continue
+			}
+			match := true
+			for j := range wLen {
+				if lower[i+j] != wRunes[j] {
+					match = false
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+			// 단어 경계 확인: 앞뒤에 라틴 문자가 없어야 합니다.
+			if i > 0 && isLatin(runes[i-1]) {
+				continue
+			}
+			if i+wLen < len(runes) && isLatin(runes[i+wLen]) {
+				continue
+			}
+			for j := range wLen {
+				skip[i+j] = true
+			}
+		}
+	}
+
+	var sb strings.Builder
+	for i, r := range runes {
+		if skip[i] {
+			sb.WriteRune(' ')
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String()
 }
