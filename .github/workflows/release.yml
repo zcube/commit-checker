@@ -144,7 +144,88 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
 
-  # ---- 3. Docker 이미지 빌드 & GHCR push ---------------------------
+  # ---- 3. Homebrew Formula 업데이트 ----------------------------------
+  homebrew:
+    name: Homebrew Formula
+    needs: github-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 빌드된 아티팩트 수집
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: dist/
+          merge-multiple: true
+
+      - name: SHA256 계산 및 Formula 생성
+        id: formula
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION_NUM="${VERSION#v}"
+          BASE_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
+
+          SHA_DARWIN_ARM64=$(sha256sum dist/commit-checker_${VERSION}_darwin_arm64.tar.gz | awk '{print $1}')
+          SHA_DARWIN_AMD64=$(sha256sum dist/commit-checker_${VERSION}_darwin_amd64.tar.gz | awk '{print $1}')
+          SHA_LINUX_AMD64=$(sha256sum dist/commit-checker_${VERSION}_linux_amd64.tar.gz | awk '{print $1}')
+          SHA_LINUX_ARM64=$(sha256sum dist/commit-checker_${VERSION}_linux_arm64.tar.gz | awk '{print $1}')
+
+          cat > formula.rb <<FORMULA
+          class CommitChecker < Formula
+            desc "Git commit message and source code policy checker"
+            homepage "https://github.com/${{ github.repository }}"
+            version "${VERSION_NUM}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "${BASE_URL}/commit-checker_${VERSION}_darwin_arm64.tar.gz"
+                sha256 "${SHA_DARWIN_ARM64}"
+              else
+                url "${BASE_URL}/commit-checker_${VERSION}_darwin_amd64.tar.gz"
+                sha256 "${SHA_DARWIN_AMD64}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "${BASE_URL}/commit-checker_${VERSION}_linux_arm64.tar.gz"
+                sha256 "${SHA_LINUX_ARM64}"
+              else
+                url "${BASE_URL}/commit-checker_${VERSION}_linux_amd64.tar.gz"
+                sha256 "${SHA_LINUX_AMD64}"
+              end
+            end
+
+            def install
+              bin.install "commit-checker"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/commit-checker version")
+            end
+          end
+          FORMULA
+
+      - name: homebrew-tap 리포에 Formula 푸시
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/homebrew-tap.git tap
+          mkdir -p tap/Formula
+          # 들여쓰기 정리 (heredoc 들여쓰기 제거)
+          sed 's/^          //' formula.rb > tap/Formula/commit-checker.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/commit-checker.rb
+          git diff --staged --quiet && echo "Formula unchanged" && exit 0
+          git commit -m "Update commit-checker to ${{ github.ref_name }}"
+          git push
+
+  # ---- 4. Docker 이미지 빌드 & GHCR push ----------------------------
   docker:
     name: Docker (${{ matrix.platform }})
     runs-on: ubuntu-latest
@@ -198,7 +279,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.artifact-suffix }}
           cache-to: type=gha,scope=${{ matrix.artifact-suffix }},mode=max
 
-  # ---- 4. 멀티아키 Docker manifest 생성 ----------------------------
+  # ---- 5. 멀티아키 Docker manifest 생성 ----------------------------
   docker-manifest:
     name: Docker Manifest
     needs: docker

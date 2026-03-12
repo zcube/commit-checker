@@ -28,7 +28,13 @@ Git 커밋 메시지와 소스 코드의 정책을 자동으로 검사하는 CLI
 
 ## 설치
 
-### go install (권장)
+### Homebrew (macOS / Linux)
+
+```bash
+brew install zcube/tap/commit-checker
+```
+
+### go install
 
 ```bash
 go install github.com/zcube/commit-checker@latest

@@ -28,7 +28,13 @@
 
 ## 安装
 
-### go install（推荐）
+### Homebrew (macOS / Linux)
+
+```bash
+brew install zcube/tap/commit-checker
+```
+
+### go install
 
 ```bash
 go install github.com/zcube/commit-checker@latest

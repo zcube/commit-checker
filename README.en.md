@@ -28,7 +28,13 @@ Works with [lefthook](https://github.com/evilmartians/lefthook), husky, or any G
 
 ## Installation
 
-### go install (recommended)
+### Homebrew (macOS / Linux)
+
+```bash
+brew install zcube/tap/commit-checker
+```
+
+### go install
 
 ```bash
 go install github.com/zcube/commit-checker@latest
