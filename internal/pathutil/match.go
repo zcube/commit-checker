@@ -2,20 +2,20 @@ package pathutil
 
 import "path/filepath"
 
-// MatchesAny reports whether path matches any of the given glob patterns.
-// Patterns are matched against the path using filepath.Match semantics.
-// "**" glob matching is supported by also testing the base name alone.
+// MatchesAny 는 path 가 주어진 glob 패턴 중 하나와 일치하는지 확인합니다.
+// 패턴은 filepath.Match 의미론으로 경로와 매칭됩니다.
+// "**" glob 매칭은 기본 이름만 단독으로 테스트하는 방식으로 지원됩니다.
 func MatchesAny(path string, patterns []string) bool {
 	for _, pattern := range patterns {
-		// Try full path match
+		// 전체 경로 매칭 시도
 		if m, _ := filepath.Match(pattern, path); m {
 			return true
 		}
-		// Try matching just the base name
+		// 기본 이름만 매칭 시도
 		if m, _ := filepath.Match(pattern, filepath.Base(path)); m {
 			return true
 		}
-		// Try matching with forward-slash normalisation
+		// 슬래시 정규화 후 매칭 시도
 		if matchDoubleStarGlob(path, pattern) {
 			return true
 		}
@@ -23,11 +23,10 @@ func MatchesAny(path string, patterns []string) bool {
 	return false
 }
 
-// matchDoubleStarGlob handles patterns containing "**" by splitting on "/" and
-// matching path segments progressively. It supports patterns like "vendor/**"
-// and "**/generated/*.go".
+// matchDoubleStarGlob 는 "**" 를 포함한 패턴을 "/" 로 분리하여 경로 세그먼트를 순차적으로 매칭합니다.
+// "vendor/**" 나 "**/generated/*.go" 같은 패턴을 지원합니다.
 func matchDoubleStarGlob(path, pattern string) bool {
-	// Use filepath.ToSlash for consistent separator handling
+	// 일관된 구분자 처리를 위해 filepath.ToSlash 사용
 	pathParts := splitPath(filepath.ToSlash(path))
 	patParts := splitPath(filepath.ToSlash(pattern))
 	return matchParts(pathParts, patParts)
@@ -40,7 +39,7 @@ func splitPath(p string) []string {
 			parts = append(parts, seg)
 		}
 	}
-	// filepath.SplitList splits on OS list separator; use manual split instead
+	// filepath.SplitList 은 OS 구분자로 분리하므로 수동 분리 사용
 	_ = parts
 	result := []string{}
 	current := ""
@@ -65,8 +64,8 @@ func matchParts(pathParts, patParts []string) bool {
 		return len(pathParts) == 0
 	}
 	if patParts[0] == "**" {
-		// ** can match zero or more path segments
-		for i := 0; i <= len(pathParts); i++ {
+		// ** 는 0개 이상의 경로 세그먼트와 매칭 가능
+		for i := range len(pathParts) + 1 {
 			if matchParts(pathParts[i:], patParts[1:]) {
 				return true
 			}

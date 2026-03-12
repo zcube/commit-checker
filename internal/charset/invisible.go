@@ -1,14 +1,13 @@
-// Package charset provides Unicode character classification utilities.
-// The InvisibleRanges table is adapted from Gitea (MIT License):
+// Package charset 는 유니코드 문자 분류 유틸리티를 제공합니다.
+// InvisibleRanges 테이블은 Gitea (MIT License) 에서 응용했습니다:
 // https://github.com/go-gitea/gitea/blob/main/modules/charset/invisible_gen.go
 package charset
 
 import "unicode"
 
-// InvisibleRanges is a unicode.RangeTable that covers invisible / zero-width
-// characters including non-standard spaces, bidirectional control characters,
-// variation selectors, and other characters that are visually indistinguishable
-// from whitespace or empty.
+// InvisibleRanges 는 비표준 공백, 양방향 제어 문자, 변형 선택자 등
+// 공백이나 빈 문자처럼 시각적으로 구분이 불가능한 비가시/영폭 문자를 포괄하는
+// unicode.RangeTable 입니다.
 var InvisibleRanges = &unicode.RangeTable{
 	R16: []unicode.Range16{
 		{Lo: 11, Hi: 13, Stride: 1},
@@ -25,8 +24,8 @@ var InvisibleRanges = &unicode.RangeTable{
 		{Lo: 10240, Hi: 12288, Stride: 2048},
 		{Lo: 12644, Hi: 65024, Stride: 52380},
 		{Lo: 65025, Hi: 65039, Stride: 1},
-		// Note: 65279 (U+FEFF, BOM/ZWNBSP) is intentionally excluded — a BOM
-		// at the start of a file is a valid UTF-8 encoding marker and is allowed.
+		// 참고: 65279 (U+FEFF, BOM/ZWNBSP) 는 의도적으로 제외됨 —
+		// 파일 시작의 BOM 은 유효한 UTF-8 인코딩 마커로 허용됩니다.
 		{Lo: 65440, Hi: 65440, Stride: 1},
 		{Lo: 65520, Hi: 65528, Stride: 1},
 		{Lo: 65532, Hi: 65532, Stride: 1},
@@ -40,11 +39,10 @@ var InvisibleRanges = &unicode.RangeTable{
 	LatinOffset: 2,
 }
 
-// IsInvisible reports whether r is an invisible or zero-width character
-// that should not appear in a commit message.
+// IsInvisible 는 r 이 커밋 메시지에 나타나면 안 되는 비가시/영폭 문자인지 확인합니다.
 //
-// Allowed: regular space U+0020, tab U+0009, LF U+000A, CR U+000D,
-// and U+FEFF (BOM) which is a valid UTF-8 file encoding marker.
+// 허용 문자: 일반 공백 U+0020, 탭 U+0009, LF U+000A, CR U+000D,
+// 그리고 U+FEFF (BOM) — 유효한 UTF-8 파일 인코딩 마커.
 func IsInvisible(r rune) bool {
 	if r == ' ' || r == '\t' || r == '\n' || r == '\r' {
 		return false
@@ -52,7 +50,7 @@ func IsInvisible(r rune) bool {
 	return unicode.Is(InvisibleRanges, r)
 }
 
-// InvisibleName returns a human-readable description of an invisible rune.
+// InvisibleName 는 비가시 룬에 대한 사람이 읽을 수 있는 설명을 반환합니다.
 func InvisibleName(r rune) string {
 	names := map[rune]string{
 		0x00A0: "NO-BREAK SPACE",

@@ -53,13 +53,13 @@ func runFix(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	// Determine the revision range to scan.
+	// 검사할 리비전 범위를 결정합니다.
 	revRange, err := resolveRange(fixRange, fixMine)
 	if err != nil {
 		return err
 	}
 
-	// Collect commits (SHA + message) in the range.
+	// 범위 내의 커밋 목록(SHA + 메시지)을 수집합니다.
 	commits, err := listCommits(revRange)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Compute fixes.
+	// 수정 사항을 계산합니다.
 	var fixes []commitFix
 	var langIssues []string
 
@@ -78,24 +78,24 @@ func runFix(cmd *cobra.Command, args []string) error {
 		if result.NeedsFixing() {
 			fixes = append(fixes, commitFix{sha: c.sha, result: result})
 		}
-		// Also report language violations (not auto-fixable).
+		// 언어 위반 사항도 보고합니다 (자동 수정 불가).
 		msgErrs := checker.CheckMsg(cfg, c.message)
 		for _, e := range msgErrs {
 			langIssues = append(langIssues, fmt.Sprintf("  %s: %s", c.sha[:12], e))
 		}
 	}
 
-	// Report.
+	// 결과를 출력합니다.
 	if len(fixes) == 0 {
-		fmt.Println(i18n.T("cmd.checked_no_fixes", map[string]interface{}{"Count": len(commits)}))
+		fmt.Println(i18n.T("cmd.checked_no_fixes", map[string]any{"Count": len(commits)}))
 	} else {
-		fmt.Println(i18n.T("cmd.found_fixable", map[string]interface{}{"Count": len(fixes)}))
+		fmt.Println(i18n.T("cmd.found_fixable", map[string]any{"Count": len(fixes)}))
 		for _, f := range fixes {
 			sha := f.sha
-		if len(sha) > 12 {
-			sha = sha[:12]
-		}
-		fmt.Printf("commit %s\n", sha)
+			if len(sha) > 12 {
+				sha = sha[:12]
+			}
+			fmt.Printf("commit %s\n", sha)
 			for _, ch := range f.result.Changes {
 				fmt.Printf("  - %s\n", ch)
 			}
@@ -122,7 +122,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Apply fixes using git filter-branch.
+	// git filter-branch 로 수정 사항을 적용합니다.
 	return applyFixes(revRange, fixes)
 }
 
@@ -131,9 +131,9 @@ type commitFix struct {
 	result checker.FixResult
 }
 
-// applyFixes rewrites commit messages using git filter-branch.
-// Fixed messages are stored as files in a temp directory; the filter script
-// reads them by $GIT_COMMIT so special characters are handled safely.
+// applyFixes 는 git filter-branch 를 사용하여 커밋 메시지를 재작성합니다.
+// 수정된 메시지는 임시 디렉터리에 파일로 저장되며, 필터 스크립트가
+// $GIT_COMMIT 으로 파일을 읽어 특수 문자를 안전하게 처리합니다.
 func applyFixes(revRange string, fixes []commitFix) error {
 	tmpDir, err := os.MkdirTemp("", "commit-checker-fix-*")
 	if err != nil {
@@ -141,7 +141,7 @@ func applyFixes(revRange string, fixes []commitFix) error {
 	}
 	defer os.RemoveAll(tmpDir) //nolint:errcheck
 
-	// Write each fixed message as a file named by SHA.
+	// 수정된 메시지를 SHA 이름의 파일로 각각 저장합니다.
 	for _, f := range fixes {
 		msgPath := filepath.Join(tmpDir, f.sha)
 		if err := os.WriteFile(msgPath, []byte(f.result.Fixed), 0600); err != nil {
@@ -149,7 +149,7 @@ func applyFixes(revRange string, fixes []commitFix) error {
 		}
 	}
 
-	// Shell script: if a fixed message file exists for this commit, use it; else pass through.
+	// 셸 스크립트: 수정된 메시지 파일이 있으면 사용하고, 없으면 그대로 통과시킵니다.
 	script := fmt.Sprintf(`#!/bin/sh
 fix="%s/$GIT_COMMIT"
 if [ -f "$fix" ]; then
@@ -164,7 +164,7 @@ fi
 		return fmt.Errorf("writing filter script: %w", err)
 	}
 
-	fmt.Println(i18n.T("cmd.rewriting_commits", map[string]interface{}{"Count": len(fixes)}))
+	fmt.Println(i18n.T("cmd.rewriting_commits", map[string]any{"Count": len(fixes)}))
 
 	gitArgs := []string{"filter-branch", "-f", "--msg-filter", scriptPath, revRange}
 	gitCmd := exec.Command("git", gitArgs...)
@@ -179,7 +179,7 @@ fi
 	return nil
 }
 
-// resolveRange returns the effective git revision range.
+// resolveRange 는 유효한 git 리비전 범위를 반환합니다.
 func resolveRange(rangeStr string, mine bool) (string, error) {
 	if rangeStr != "" && mine {
 		return "", fmt.Errorf("--range and --mine cannot be used together")
@@ -194,7 +194,7 @@ func resolveRange(rangeStr string, mine bool) (string, error) {
 		}
 		return fmt.Sprintf("--author=%s --all", email), nil
 	}
-	// Default: entire reachable history
+	// 기본값: 전체 도달 가능한 히스토리
 	return "HEAD", nil
 }
 
@@ -203,11 +203,11 @@ type commitInfo struct {
 	message string
 }
 
-// listCommits returns commits reachable from revRange as (sha, full_message) pairs.
-// It first fetches all SHAs, then retrieves each commit message individually to
-// avoid null-byte or delimiter conflicts in format strings.
+// listCommits 는 revRange 에서 도달 가능한 커밋을 (sha, 전체 메시지) 쌍으로 반환합니다.
+// 먼저 SHA 목록을 가져온 다음 각 커밋 메시지를 개별적으로 조회하여
+// 포맷 문자열의 null 바이트나 구분자 충돌을 방지합니다.
 func listCommits(revRange string) ([]commitInfo, error) {
-	// Step 1: get just the SHA list.
+	// 1단계: SHA 목록만 가져옵니다.
 	shaArgs := append([]string{"log", "--format=%H"}, strings.Fields(revRange)...)
 	shaOut, err := runGit(shaArgs...)
 	if err != nil {
@@ -220,7 +220,7 @@ func listCommits(revRange string) ([]commitInfo, error) {
 		if sha == "" {
 			continue
 		}
-		// Step 2: get the full commit message for this SHA.
+		// 2단계: 해당 SHA 의 전체 커밋 메시지를 가져옵니다.
 		msg, err := runGit("log", "-1", "--format=%B", sha)
 		if err != nil {
 			return nil, fmt.Errorf("git log -1 %s: %w", sha[:12], err)

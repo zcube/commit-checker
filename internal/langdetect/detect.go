@@ -5,7 +5,7 @@ import (
 	"unicode"
 )
 
-// Language represents a natural language identifier used in config.
+// Language 는 설정에서 사용되는 자연어 식별자입니다.
 type Language = string
 
 const (
@@ -16,8 +16,8 @@ const (
 	Any      Language = "any"
 )
 
-// LocaleToLanguage maps a BCP-47 locale code to a Language constant.
-// Returns "" if the locale is not recognised.
+// LocaleToLanguage 는 BCP-47 로케일 코드를 Language 상수로 변환합니다.
+// 인식하지 못하는 로케일이면 "" 를 반환합니다.
 func LocaleToLanguage(locale string) Language {
 	switch locale {
 	case "ko":
@@ -33,8 +33,7 @@ func LocaleToLanguage(locale string) Language {
 	}
 }
 
-// builtinSkipPrefixes are comment prefixes that are always treated as
-// technical/directive comments and skipped regardless of language.
+// builtinSkipPrefixes 는 언어에 관계없이 항상 기술적/지시자 주석으로 처리되어 건너뛰는 접두사 목록입니다.
 var builtinSkipPrefixes = []string{
 	"todo", "fixme", "hack", "note:", "xxx", "bug",
 	"nolint", "noqa", "nosec", "noinspection",
@@ -46,9 +45,9 @@ var builtinSkipPrefixes = []string{
 	"suppress warnings",
 }
 
-// HasNaturalLanguageContent reports whether the comment text contains enough
-// letter characters to warrant a language check, and is not a pure directive.
-// extraSkip adds project-specific prefixes from config.
+// HasNaturalLanguageContent 는 주석 텍스트가 언어 검사를 수행하기에 충분한 문자를 포함하는지,
+// 그리고 순수 지시자가 아닌지 확인합니다.
+// extraSkip 은 설정에서 지정한 프로젝트별 추가 접두사입니다.
 func HasNaturalLanguageContent(text string, minLetters int, extraSkip []string) bool {
 	if len([]rune(text)) < minLetters {
 		return false
@@ -66,7 +65,7 @@ func HasNaturalLanguageContent(text string, minLetters int, extraSkip []string) 
 		}
 	}
 
-	// Count letter-class characters
+	// 문자 클래스 문자 수 계산
 	count := 0
 	for _, r := range text {
 		if unicode.IsLetter(r) {
@@ -76,10 +75,10 @@ func HasNaturalLanguageContent(text string, minLetters int, extraSkip []string) 
 	return count >= minLetters
 }
 
-// IsRequiredLanguage checks whether the comment text satisfies the required language.
-// Returns (ok, hasContent):
-//   - hasContent=false means the comment was skipped (too short or directive)
-//   - ok=false means it failed the language check
+// IsRequiredLanguage 는 주석 텍스트가 필수 언어 요건을 충족하는지 확인합니다.
+// (ok, hasContent) 반환:
+//   - hasContent=false: 너무 짧거나 지시자이므로 건너뜀
+//   - ok=false: 언어 검사 실패
 func IsRequiredLanguage(text, required Language, minLetters int, extraSkip []string) (ok bool, hasContent bool) {
 	if !HasNaturalLanguageContent(text, minLetters, extraSkip) {
 		return true, false
@@ -88,21 +87,21 @@ func IsRequiredLanguage(text, required Language, minLetters int, extraSkip []str
 		return true, true
 	}
 
-	// Allow mixed-language comments as long as the required language is present.
-	// e.g. "// 변수 name을 설정합니다" is OK when required=korean.
+	// 혼합 언어 주석은 필수 언어가 포함되어 있으면 허용합니다.
+	// 예: "// 변수 name을 설정합니다" 는 required=korean 일 때 통과.
 	if hasScript(text, required) {
 		return true, true
 	}
 
-	// No required language script found; check if there's any identifiable content.
-	dominant := dominant(text)
-	if dominant == "" {
-		return true, false // only punctuation / numbers
+	// 필수 언어 문자가 없음. 식별 가능한 언어가 있는지 확인합니다.
+	dom := dominant(text)
+	if dom == "" {
+		return true, false // 구두점/숫자만 있는 경우
 	}
 	return false, true
 }
 
-// hasScript reports whether text contains at least one character of the given language's script.
+// hasScript 는 텍스트에 특정 언어의 문자가 하나 이상 포함되는지 확인합니다.
 func hasScript(text, lang Language) bool {
 	for _, r := range text {
 		switch lang {
@@ -127,7 +126,7 @@ func hasScript(text, lang Language) bool {
 	return false
 }
 
-// dominant returns the dominant language script in text, or "" if none.
+// dominant 는 텍스트에서 지배적인 언어 스크립트를 반환합니다. 없으면 "" 를 반환합니다.
 func dominant(text string) Language {
 	var korean, japanese, chinese, latin int
 	for _, r := range text {
@@ -162,7 +161,7 @@ func dominant(text string) Language {
 	return dom
 }
 
-// Dominant returns the dominant natural language detected in text (exported for error messages).
+// Dominant 는 텍스트에서 감지된 지배적 자연어를 반환합니다 (오류 메시지용 공개 함수).
 func Dominant(text string) Language {
 	d := dominant(text)
 	if d == "" {
@@ -172,23 +171,23 @@ func Dominant(text string) Language {
 }
 
 func isKorean(r rune) bool {
-	return (r >= 0xAC00 && r <= 0xD7A3) || // Hangul Syllables
-		(r >= 0x1100 && r <= 0x11FF) || // Hangul Jamo
-		(r >= 0x3130 && r <= 0x318F) || // Hangul Compatibility Jamo
-		(r >= 0xA960 && r <= 0xA97F) || // Hangul Jamo Extended-A
-		(r >= 0xD7B0 && r <= 0xD7FF) // Hangul Jamo Extended-B
+	return (r >= 0xAC00 && r <= 0xD7A3) || // 한글 음절
+		(r >= 0x1100 && r <= 0x11FF) || // 한글 자모
+		(r >= 0x3130 && r <= 0x318F) || // 한글 호환 자모
+		(r >= 0xA960 && r <= 0xA97F) || // 한글 자모 확장-A
+		(r >= 0xD7B0 && r <= 0xD7FF) // 한글 자모 확장-B
 }
 
 func isJapanese(r rune) bool {
-	return (r >= 0x3041 && r <= 0x309F) || // Hiragana
-		(r >= 0x30A0 && r <= 0x30FF) || // Katakana
-		(r >= 0x31F0 && r <= 0x31FF) // Katakana Phonetic Extensions
+	return (r >= 0x3041 && r <= 0x309F) || // 히라가나
+		(r >= 0x30A0 && r <= 0x30FF) || // 가타카나
+		(r >= 0x31F0 && r <= 0x31FF) // 가타카나 음성 확장
 }
 
 func isChinese(r rune) bool {
-	return (r >= 0x4E00 && r <= 0x9FFF) || // CJK Unified Ideographs
-		(r >= 0x3400 && r <= 0x4DBF) || // CJK Extension A
-		(r >= 0x20000 && r <= 0x2A6DF) // CJK Extension B
+	return (r >= 0x4E00 && r <= 0x9FFF) || // CJK 통합 한자
+		(r >= 0x3400 && r <= 0x4DBF) || // CJK 확장 A
+		(r >= 0x20000 && r <= 0x2A6DF) // CJK 확장 B
 }
 
 func isLatin(r rune) bool {

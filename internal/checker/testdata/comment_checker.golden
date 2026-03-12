@@ -1,0 +1,22 @@
+Dockerfile: comments=6 strings=0 imports=0 lang=PASS
+sample.c: comments=4 strings=4 imports=2 lang=PASS
+sample.cpp: comments=6 strings=2 imports=1 lang=PASS
+sample.cs: comments=10 strings=1 imports=0 lang=FAIL
+  line 8: detected=english text="/ <summary>"
+  line 11: detected=english text="/ </summary>"
+  line 17: detected=english text="/ <summary>"
+  line 19: detected=english text="/ </summary>"
+sample.go: comments=5 strings=2 imports=3 lang=PASS
+sample.java: comments=5 strings=1 imports=0 lang=PASS
+sample.js: comments=3 strings=2 imports=3 lang=PASS
+sample.kt: comments=4 strings=1 imports=0 lang=PASS
+sample.md: comments=17 strings=0 imports=0 lang=FAIL
+  line 18: detected=english text="- TypeScript / JavaScript"
+  line 19: detected=english text="- Java, Kotlin"
+  line 20: detected=english text="- Python"
+  line 22: detected=english text="- Swift, Rust"
+  line 23: detected=english text="- Dockerfile"
+sample.py: comments=3 strings=3 imports=0 lang=PASS
+sample.rs: comments=7 strings=2 imports=0 lang=PASS
+sample.swift: comments=8 strings=2 imports=0 lang=PASS
+sample.ts: comments=4 strings=2 imports=4 lang=PASS

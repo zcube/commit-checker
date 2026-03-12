@@ -1,8 +1,8 @@
-// Ambiguous character detection adapted from Gitea (MIT License):
+// 모호한 문자 감지 로직은 Gitea (MIT License) 에서 응용했습니다:
 // https://github.com/go-gitea/gitea/blob/main/modules/charset/ambiguous.go
 // https://github.com/go-gitea/gitea/blob/main/modules/charset/ambiguous_gen.go
 //
-// Source data: https://github.com/hediet/vscode-unicode-data/blob/main/out/ambiguous.json
+// 원본 데이터: https://github.com/hediet/vscode-unicode-data/blob/main/out/ambiguous.json
 
 package charset
 
@@ -12,19 +12,17 @@ import (
 	"unicode"
 )
 
-// AmbiguousTable matches confusable runes with the ASCII characters they resemble
-// for a given locale.
+// AmbiguousTable 는 특정 로케일에서 ASCII 문자와 혼동될 수 있는 룬을 매핑합니다.
 type AmbiguousTable struct {
-	Confusable []rune           // sorted slice of confusable rune codepoints
-	With       []rune           // parallel slice: ASCII char each Confusable[i] looks like
+	Confusable []rune           // 혼동 가능한 룬 코드포인트의 정렬된 슬라이스
+	With       []rune           // 병렬 슬라이스: Confusable[i] 가 닮은 ASCII 문자
 	Locale     string
-	RangeTable *unicode.RangeTable // fast pre-filter before binary search
+	RangeTable *unicode.RangeTable // 이진 탐색 전 빠른 사전 필터
 }
 
-// TablesForLocale returns the ambiguous-character tables for the given locale.
-// locale should be a BCP 47 tag such as "ko", "ja", "zh-hans", "en", etc.
-// The returned slice always includes the locale-specific table (or the _default
-// fallback) followed by the _common table.
+// TablesForLocale 는 주어진 로케일의 모호한 문자 테이블을 반환합니다.
+// locale 은 "ko", "ja", "zh-hans", "en" 등 BCP 47 태그여야 합니다.
+// 반환 슬라이스는 항상 로케일별 테이블(또는 _default 폴백)과 _common 테이블을 포함합니다.
 func TablesForLocale(locale string) []*AmbiguousTable {
 	key := locale
 	var table *AmbiguousTable
@@ -40,7 +38,7 @@ func TablesForLocale(locale string) []*AmbiguousTable {
 			key = key[:idx]
 		}
 	}
-	// zh-CN → zh-hans fallback
+	// zh-CN → zh-hans 폴백
 	if table == nil && (locale == "zh-CN" || locale == "zh_CN") {
 		table = AmbiguousCharacters["zh-hans"]
 	}
@@ -53,8 +51,8 @@ func TablesForLocale(locale string) []*AmbiguousTable {
 	return []*AmbiguousTable{table, AmbiguousCharacters["_common"]}
 }
 
-// IsAmbiguous reports whether r is an ambiguous rune in the given tables.
-// If it is, *confusableTo is set to the ASCII character it visually resembles.
+// IsAmbiguous 는 r 이 주어진 테이블에서 모호한 룬인지 확인합니다.
+// 해당하면 *confusableTo 에 시각적으로 닮은 ASCII 문자를 설정합니다.
 func IsAmbiguous(r rune, confusableTo *rune, tables ...*AmbiguousTable) bool {
 	for _, table := range tables {
 		if table == nil {

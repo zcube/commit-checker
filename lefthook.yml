@@ -6,6 +6,11 @@ pre-commit:
       glob: "*.go"
       run: golangci-lint run --fix
       stage_fixed: true
+    testdata-golden:
+      # testdata 파일에 대해 파서·언어 검사 결과를 골든 파일과 비교하여 동작 변경을 감지합니다.
+      # 골든 파일 업데이트: go test ./internal/checker/... -run TestCommentCheckerGolden -update
+      glob: "{internal/comment/testdata/**,internal/checker/testdata/**,internal/comment/**_parser.go,internal/langdetect/**}"
+      run: go test ./internal/comment/... ./internal/checker/... -run "TestCommentCheckerGolden|TestGetParser"
 
 commit-msg:
   commands:
