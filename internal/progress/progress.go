@@ -1,6 +1,7 @@
 package progress
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -11,26 +12,42 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// stepResult: 단계 실행 결과.
-type stepResult struct {
-	name   string
-	errs   int
-	failed bool
-}
-
 // Step: 실행할 검사 단계 정보.
 type Step struct {
-	Name string
-	Fn   func() ([]string, error)
+	Name     string
+	Category string // 기계가 읽을 수 있는 카테고리 (JSON 출력 등)
+	Fn       func() ([]string, error)
 }
 
-// RunWithProgress: bubbletea 스피너와 함께 검사 단계를 순차 실행.
-// TTY가 아닌 경우 단순 텍스트 출력으로 폴백.
-func RunWithProgress(steps []Step) (allErrs []string, fatalErr error) {
+// StepResult: 단계 실행 결과.
+type StepResult struct {
+	Name     string
+	Category string
+	Errors   []string
+	Failed   bool // 치명적 오류 발생 여부
+}
+
+// RunResult: RunWithProgress 반환값.
+type RunResult struct {
+	AllErrors []string
+	Steps     []StepResult
+}
+
+// Options: RunWithProgress 옵션.
+type Options struct {
+	Quiet   bool
+	NoColor bool
+}
+
+// RunWithProgress: 검사 단계를 순차 실행하고 결과를 반환.
+func RunWithProgress(steps []Step, opts Options) (RunResult, error) {
+	if opts.Quiet {
+		return runPlainSilent(steps)
+	}
 	if !isTTY() {
 		return runPlain(steps, os.Stderr)
 	}
-	return runTUI(steps)
+	return runTUI(steps, opts)
 }
 
 func isTTY() bool {
@@ -41,26 +58,110 @@ func isTTY() bool {
 	return fi.Mode()&os.ModeCharDevice != 0
 }
 
-// runPlain: TTY가 아닐 때 단순 텍스트로 진행 표시.
-func runPlain(steps []Step, w io.Writer) ([]string, error) {
-	var allErrs []string
-	for _, s := range steps {
-		_, _ = fmt.Fprintf(w, "  %s ...\n", s.Name)
-		errs, err := s.Fn()
-		if err != nil {
-			return nil, err
-		}
-		allErrs = append(allErrs, errs...)
-	}
-	return allErrs, nil
+// runPlainSilent: 출력 없이 조용히 실행.
+func runPlainSilent(steps []Step) (RunResult, error) {
+	return runPlain(steps, io.Discard)
 }
 
-// --- bubbletea TUI 모델 ---
+// runPlain: TTY가 아닐 때 단순 텍스트로 진행 표시.
+func runPlain(steps []Step, w io.Writer) (RunResult, error) {
+	result := RunResult{
+		Steps: make([]StepResult, len(steps)),
+	}
+	for i, s := range steps {
+		_, _ = fmt.Fprintf(w, "  %s ...\n", s.Name)
+		errs, err := s.Fn()
+		result.Steps[i] = StepResult{
+			Name:     s.Name,
+			Category: s.Category,
+			Errors:   errs,
+		}
+		if err != nil {
+			result.Steps[i].Failed = true
+			return result, err
+		}
+		result.AllErrors = append(result.AllErrors, errs...)
+	}
+	return result, nil
+}
+
+// SummaryLine: 위반 건수 요약 줄 반환.
+func SummaryLine(steps []StepResult) string {
+	total := 0
+	var parts []string
+	for _, s := range steps {
+		n := len(s.Errors)
+		if n > 0 {
+			total += n
+			cat := s.Category
+			if cat == "" {
+				cat = s.Name
+			}
+			parts = append(parts, fmt.Sprintf("%s(%d)", cat, n))
+		}
+	}
+	if total == 0 {
+		return ""
+	}
+	return fmt.Sprintf("✗ %d건 위반: %s", total, strings.Join(parts, ", "))
+}
+
+// jsonViolation: JSON 출력 위반 항목.
+type jsonViolation struct {
+	File    string `json:"file"`
+	Line    int    `json:"line,omitempty"`
+	Message string `json:"message"`
+	Check   string `json:"check"`
+}
+
+// jsonSummary: JSON 출력 요약.
+type jsonSummary struct {
+	Total   int            `json:"total"`
+	ByCheck map[string]int `json:"by_check"`
+}
+
+// jsonOutput: JSON 출력 최상위 구조체.
+type jsonOutput struct {
+	Status     string          `json:"status"`
+	Violations []jsonViolation `json:"violations"`
+	Summary    jsonSummary     `json:"summary"`
+}
+
+// FormatJSON: 결과를 JSON으로 직렬화.
+func FormatJSON(result RunResult) ([]byte, error) {
+	out := jsonOutput{
+		Status:     "pass",
+		Violations: []jsonViolation{},
+		Summary:    jsonSummary{ByCheck: map[string]int{}},
+	}
+	for _, s := range result.Steps {
+		for _, msg := range s.Errors {
+			out.Violations = append(out.Violations, jsonViolation{
+				Message: msg,
+				Check:   s.Category,
+			})
+			out.Summary.ByCheck[s.Category]++
+			out.Summary.Total++
+		}
+	}
+	if out.Summary.Total > 0 {
+		out.Status = "fail"
+	}
+	return json.MarshalIndent(out, "", "  ")
+}
+
+// --- bubbletea TUI 구현 ---
 
 type stepDoneMsg struct {
 	idx  int
 	errs []string
 	err  error
+}
+
+type stepResult struct {
+	name   string
+	errs   int
+	failed bool
 }
 
 type model struct {
@@ -71,16 +172,20 @@ type model struct {
 	done     bool
 	allErrs  []string
 	fatalErr error
+	stepErrs [][]string // 단계별 오류 메시지
 }
 
-func newModel(steps []Step) model {
+func newModel(steps []Step, opts Options) model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	if !opts.NoColor {
+		s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	}
 	return model{
-		steps:   steps,
-		spinner: s,
-		results: make([]stepResult, len(steps)),
+		steps:    steps,
+		spinner:  s,
+		results:  make([]stepResult, len(steps)),
+		stepErrs: make([][]string, len(steps)),
 	}
 }
 
@@ -107,6 +212,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 	case stepDoneMsg:
+		m.stepErrs[msg.idx] = msg.errs
 		m.results[msg.idx] = stepResult{
 			name:   m.steps[msg.idx].Name,
 			errs:   len(msg.errs),
@@ -161,17 +267,27 @@ func (m model) View() string {
 	return b.String()
 }
 
-func runTUI(steps []Step) ([]string, error) {
-	m := newModel(steps)
+func runTUI(steps []Step, opts Options) (RunResult, error) {
+	m := newModel(steps, opts)
 	p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
-	result, err := p.Run()
+	finalModel, err := p.Run()
 	if err != nil {
 		// bubbletea 자체 에러 시 plain 으로 폴백
 		return runPlain(steps, os.Stderr)
 	}
-	final := result.(model)
+	final := finalModel.(model)
 	if final.fatalErr != nil {
-		return nil, final.fatalErr
+		return RunResult{}, final.fatalErr
 	}
-	return final.allErrs, nil
+	result := RunResult{AllErrors: final.allErrs}
+	result.Steps = make([]StepResult, len(steps))
+	for i := range steps {
+		result.Steps[i] = StepResult{
+			Name:     steps[i].Name,
+			Category: steps[i].Category,
+			Errors:   final.stepErrs[i],
+			Failed:   final.results[i].failed,
+		}
+	}
+	return result, nil
 }

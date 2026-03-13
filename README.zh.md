@@ -24,6 +24,7 @@
 | **约定式提交** | 强制执行提交消息格式（可选） |
 | **仓库分析** | 检测开发语言并警告缺失的lint配置 |
 | **自动修复（fix）** | 在git历史中批量修复unicode/编码违规 |
+| **配置迁移** | 自动检测旧版配置文件并迁移到最新架构 |
 | **进度指示器** | bubbletea TUI旋转器（TTY感知，非TTY时纯文本回退） |
 
 ## 安装
@@ -153,6 +154,7 @@ commit-checker diff          检查暂存的diff
 commit-checker run           检查所有已跟踪文件
 commit-checker msg <file>    检查提交消息
 commit-checker fix           自动修复git历史（支持 --dry-run）
+commit-checker migrate       将配置文件迁移到最新架构
 commit-checker analyze       仓库分析
 commit-checker version       版本信息
 ```

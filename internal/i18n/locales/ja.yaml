@@ -73,3 +73,33 @@ cmd.force_push_note:
   other: "注意: 既にプッシュ済みのコミットがある場合、強制プッシュ(force-push)が必要です。"
 cmd.no_staged_changes:
   other: "ステージされた変更がありません — スキップします。"
+
+# config エラーメッセージ
+config.syntax_error:
+  other: "設定ファイル構文エラー ({{.Path}}):\n  {{.Error}}"
+config.type_error_header:
+  other: "設定ファイルエラー ({{.Path}}):"
+config.type_error_object_required:
+  other: "  - {{.Line}}行目: '{{.Field}}' フィールドには {{.Type}}({{.Value}}) ではなくオブジェクト形式が必要です。"
+config.type_error_example_header:
+  other: "    正しい形式の例:"
+config.type_error_example_line:
+  other: "      {{.Line}}"
+config.type_error_generic:
+  other: "  - {{.Line}}行目: {{.GoType}} 型に {{.Type}} 値({{.Value}})は使用できません。"
+
+# migrate メッセージ
+migrate.file_not_found:
+  other: "設定ファイルが見つかりません: {{.Path}} — 'commit-checker init' で作成してください"
+migrate.failed:
+  other: "マイグレーション失敗: {{.Error}}"
+migrate.already_current:
+  other: "{{.Path}}: 既に最新スキーマです。"
+migrate.detected_version:
+  other: "検出されたスキーマバージョン: {{.Version}}"
+migrate.change:
+  other: "  → {{.Desc}}"
+migrate.dry_run_header:
+  other: "\n--- マイグレーション結果 (dry-run) ---"
+migrate.saved:
+  other: "\n{{.Path}} マイグレーション完了。"

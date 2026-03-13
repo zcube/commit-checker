@@ -73,3 +73,33 @@ cmd.force_push_note:
   other: "주의: 이미 푸시된 커밋이 있다면 강제 푸시(force-push)가 필요합니다."
 cmd.no_staged_changes:
   other: "스테이지된 변경 사항이 없습니다 — 건너뜁니다."
+
+# config 오류 메시지
+config.syntax_error:
+  other: "설정 파일 구문 오류 ({{.Path}}):\n  {{.Error}}"
+config.type_error_header:
+  other: "설정 파일 오류 ({{.Path}}):"
+config.type_error_object_required:
+  other: "  - {{.Line}}행: '{{.Field}}' 필드에 {{.Type}}({{.Value}}) 대신 객체 형식이 필요합니다."
+config.type_error_example_header:
+  other: "    올바른 형식 예시:"
+config.type_error_example_line:
+  other: "      {{.Line}}"
+config.type_error_generic:
+  other: "  - {{.Line}}행: {{.GoType}} 타입에 {{.Type}} 값({{.Value}})을 사용할 수 없습니다."
+
+# migrate 메시지
+migrate.file_not_found:
+  other: "설정 파일이 없습니다: {{.Path}} — 'commit-checker init'으로 생성하세요"
+migrate.failed:
+  other: "마이그레이션 실패: {{.Error}}"
+migrate.already_current:
+  other: "{{.Path}}: 이미 최신 스키마입니다."
+migrate.detected_version:
+  other: "감지된 스키마 버전: {{.Version}}"
+migrate.change:
+  other: "  → {{.Desc}}"
+migrate.dry_run_header:
+  other: "\n--- 마이그레이션 결과 (dry-run) ---"
+migrate.saved:
+  other: "\n{{.Path}} 마이그레이션 완료."

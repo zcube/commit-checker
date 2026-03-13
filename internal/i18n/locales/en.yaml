@@ -73,3 +73,33 @@ cmd.force_push_note:
   other: "Note: if you have already pushed these commits, you will need to force-push."
 cmd.no_staged_changes:
   other: "no staged changes found — skipping."
+
+# config error messages
+config.syntax_error:
+  other: "config file syntax error ({{.Path}}):\n  {{.Error}}"
+config.type_error_header:
+  other: "config file error ({{.Path}}):"
+config.type_error_object_required:
+  other: "  - line {{.Line}}: field '{{.Field}}' requires an object, not {{.Type}}({{.Value}})."
+config.type_error_example_header:
+  other: "    Example of correct format:"
+config.type_error_example_line:
+  other: "      {{.Line}}"
+config.type_error_generic:
+  other: "  - line {{.Line}}: cannot use {{.Type}} value({{.Value}}) for {{.GoType}} type."
+
+# migrate messages
+migrate.file_not_found:
+  other: "config file not found: {{.Path}} — run 'commit-checker init' to create one"
+migrate.failed:
+  other: "migration failed: {{.Error}}"
+migrate.already_current:
+  other: "{{.Path}}: already at the latest schema."
+migrate.detected_version:
+  other: "detected schema version: {{.Version}}"
+migrate.change:
+  other: "  → {{.Desc}}"
+migrate.dry_run_header:
+  other: "\n--- migration result (dry-run) ---"
+migrate.saved:
+  other: "\n{{.Path}} migration complete."

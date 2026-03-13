@@ -1,13 +1,19 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
+	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
 	"github.com/zcube/commit-checker/internal/i18n"
+	"github.com/zcube/commit-checker/internal/logger"
+	"github.com/zcube/commit-checker/internal/version"
 )
 
 var configFile string
+var globalQuiet bool
+var globalNoColor bool
 
 var rootCmd = &cobra.Command{
 	Use:          "commit-checker",
@@ -17,14 +23,25 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		// cobra 가 이미 stderr 에 에러를 출력하므로 중복 출력하지 않음
+	if err := fang.Execute(context.Background(), rootCmd,
+		fang.WithVersion(version.Version),
+		fang.WithCommit(version.Commit),
+	); err != nil {
 		os.Exit(1)
 	}
 }
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", ".commit-checker.yml", "config file path")
+	rootCmd.PersistentFlags().BoolVarP(&globalQuiet, "quiet", "q", false, "suppress progress and log output")
+	rootCmd.PersistentFlags().BoolVar(&globalNoColor, "no-color", false, "disable color output")
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		logger.SetQuiet(globalQuiet)
+		if globalNoColor {
+			logger.SetNoColor(true)
+		}
+		return nil
+	}
 	// 환경 변수에서 로케일을 감지하여 i18n 초기화
 	i18n.Init("")
 }

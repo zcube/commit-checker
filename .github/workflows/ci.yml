@@ -36,6 +36,12 @@ jobs:
       - name: 커버리지 리포트
         run: go tool cover -func=coverage.out | tail -1
 
+      - name: 커버리지 임계값 확인 (60%)
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep "^total:" | awk '{print $3}' | tr -d '%')
+          echo "Coverage: ${COVERAGE}%"
+          python3 -c "import sys; sys.exit(0 if float('${COVERAGE}') >= 60 else 1)" || (echo "Coverage ${COVERAGE}% is below 60% threshold" && exit 1)
+
   lint:
     name: 린트
     runs-on: ubuntu-latest
@@ -52,3 +58,17 @@ jobs:
         with:
           version: latest
           args: --timeout=5m
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: Run gosec
+        run: gosec -exclude=G304,G204,G306 ./...

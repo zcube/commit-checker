@@ -73,3 +73,33 @@ cmd.force_push_note:
   other: "注意: 如果这些提交已经推送过，您需要强制推送(force-push)。"
 cmd.no_staged_changes:
   other: "未找到暂存的更改 — 跳过。"
+
+# config 错误消息
+config.syntax_error:
+  other: "配置文件语法错误 ({{.Path}}):\n  {{.Error}}"
+config.type_error_header:
+  other: "配置文件错误 ({{.Path}}):"
+config.type_error_object_required:
+  other: "  - 第{{.Line}}行: '{{.Field}}' 字段需要对象格式，而非 {{.Type}}({{.Value}})。"
+config.type_error_example_header:
+  other: "    正确格式示例:"
+config.type_error_example_line:
+  other: "      {{.Line}}"
+config.type_error_generic:
+  other: "  - 第{{.Line}}行: {{.GoType}} 类型不能使用 {{.Type}} 值({{.Value}})。"
+
+# migrate 消息
+migrate.file_not_found:
+  other: "找不到配置文件: {{.Path}} — 请运行 'commit-checker init' 创建"
+migrate.failed:
+  other: "迁移失败: {{.Error}}"
+migrate.already_current:
+  other: "{{.Path}}: 已是最新架构。"
+migrate.detected_version:
+  other: "检测到的架构版本: {{.Version}}"
+migrate.change:
+  other: "  → {{.Desc}}"
+migrate.dry_run_header:
+  other: "\n--- 迁移结果 (dry-run) ---"
+migrate.saved:
+  other: "\n{{.Path}} 迁移完成。"

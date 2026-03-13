@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/zcube/commit-checker/internal/i18n"
 	"gopkg.in/yaml.v3"
 )
 
@@ -89,11 +90,14 @@ func formatConfigError(cfgPath string, err error) error {
 	te, ok := err.(*yaml.TypeError)
 	if !ok {
 		// 구문 오류 등 기타 yaml 오류
-		return fmt.Errorf("설정 파일 구문 오류 (%s):\n  %s", cfgPath, err)
+		return fmt.Errorf("%s", i18n.T("config.syntax_error", map[string]any{
+			"Path": cfgPath, "Error": err.Error(),
+		}))
 	}
 
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "설정 파일 오류 (%s):\n", cfgPath)
+	sb.WriteString(i18n.T("config.type_error_header", map[string]any{"Path": cfgPath}))
+	sb.WriteString("\n")
 
 	for _, e := range te.Errors {
 		m := reUnmarshalErr.FindStringSubmatch(e)
@@ -104,15 +108,21 @@ func formatConfigError(cfgPath string, err error) error {
 		line, yamlType, value, goType := m[1], m[2], m[3], m[4]
 
 		if hint, found := typeHints[goType]; found {
-			fmt.Fprintf(&sb, "  - %s행: '%s' 필드에 %s(%q) 대신 객체 형식이 필요합니다.\n",
-				line, hint.field, yamlType, value)
-			fmt.Fprintf(&sb, "    올바른 형식 예시:\n")
+			sb.WriteString(i18n.T("config.type_error_object_required", map[string]any{
+				"Line": line, "Field": hint.field, "Type": yamlType, "Value": value,
+			}))
+			sb.WriteString("\n")
+			sb.WriteString(i18n.T("config.type_error_example_header", nil))
+			sb.WriteString("\n")
 			for exLine := range strings.SplitSeq(hint.example, "\n") {
-				fmt.Fprintf(&sb, "      %s\n", exLine)
+				sb.WriteString(i18n.T("config.type_error_example_line", map[string]any{"Line": exLine}))
+				sb.WriteString("\n")
 			}
 		} else {
-			fmt.Fprintf(&sb, "  - %s행: %s 타입에 %s 값(%q)을 사용할 수 없습니다.\n",
-				line, goType, yamlType, value)
+			sb.WriteString(i18n.T("config.type_error_generic", map[string]any{
+				"Line": line, "GoType": goType, "Type": yamlType, "Value": value,
+			}))
+			sb.WriteString("\n")
 		}
 	}
 

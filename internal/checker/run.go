@@ -17,6 +17,7 @@ import (
 	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/langdetect"
 	"github.com/zcube/commit-checker/internal/lint"
+	"github.com/zcube/commit-checker/internal/logger"
 	"github.com/zcube/commit-checker/internal/pathutil"
 )
 
@@ -292,10 +293,7 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 
 		comments, err := parser.ParseFile(string(content))
 		if err != nil {
-			fmt.Println(i18n.T("diff.parse_warning", map[string]any{
-				"Path":  filePath,
-				"Error": err,
-			}))
+			logger.Warn("comment parse warning", "path", filePath, "error", err)
 		}
 
 		fileLang := resolveFileLang(filePath, cfg)

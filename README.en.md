@@ -24,6 +24,7 @@ Works with [lefthook](https://github.com/evilmartians/lefthook), husky, or any G
 | **Conventional Commits** | Enforce commit message format (optional) |
 | **Repository analysis** | Detect development languages and warn about missing lint configs |
 | **Auto-fix** | Batch-fix unicode/encoding violations across git history |
+| **Config migration** | Auto-detect old config versions and migrate to the latest schema |
 | **Progress indicator** | Bubbletea TUI spinner (TTY-aware, plain text fallback) |
 
 ## Installation
@@ -242,6 +243,7 @@ commit-checker diff          Check staged diff (comments/encoding/lint/binary/un
 commit-checker run           Check all tracked files for policy compliance
 commit-checker msg <file>    Check commit message file
 commit-checker fix           Auto-fix git history (supports --dry-run)
+commit-checker migrate       Migrate config file to the latest schema
 commit-checker analyze       Analyze repository (language detection, lint config check)
 commit-checker version       Print version info
 ```
@@ -269,6 +271,19 @@ commit-checker fix --dry-run              # Preview changes
 commit-checker fix --range HEAD~5..HEAD   # Fix last 5 commits
 commit-checker fix --mine --dry-run       # Fix only my commits
 ```
+
+### migrate command
+
+```bash
+# Detect schema version and migrate to latest
+commit-checker migrate
+
+# Preview changes without modifying the file
+commit-checker migrate --dry-run
+```
+
+Automatically migrates old config files (e.g., `no_coauthor` → `no_ai_coauthor`) to the latest schema.
+Comments and formatting are preserved.
 
 ### analyze command
 

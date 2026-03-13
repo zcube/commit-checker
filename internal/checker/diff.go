@@ -11,6 +11,7 @@ import (
 	"github.com/zcube/commit-checker/internal/gitdiff"
 	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/langdetect"
+	"github.com/zcube/commit-checker/internal/logger"
 	"github.com/zcube/commit-checker/internal/pathutil"
 )
 
@@ -51,6 +52,9 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 		if diff.IsDeleted {
 			continue
 		}
+		if diff.IsSubmodule || diff.IsSymlink {
+			continue
+		}
 		if !fullMode && len(diff.AddedLines) == 0 {
 			continue
 		}
@@ -74,10 +78,7 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 
 		comments, err := parser.ParseFile(stagedContent)
 		if err != nil {
-			fmt.Println(i18n.T("diff.parse_warning", map[string]any{
-				"Path":  diff.Path,
-				"Error": err,
-			}))
+			logger.Warn("comment parse warning", "path", diff.Path, "error", err)
 		}
 
 		// 파일별 기본 언어 결정:

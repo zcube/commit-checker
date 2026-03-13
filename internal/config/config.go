@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/zcube/commit-checker/internal/config/schema"
 	"github.com/zcube/commit-checker/internal/langdetect"
+	"github.com/zcube/commit-checker/internal/logger"
 	"gopkg.in/yaml.v3"
 )
 
@@ -457,8 +460,14 @@ func (c *CommitMessageConfig) CoauthorShouldRemove(email string) bool {
 	}
 	// 사용자 정의 추가 패턴 확인
 	for _, pattern := range c.CoauthorRemoveEmails {
-		matched, err := path.Match(strings.ToLower(strings.TrimSpace(pattern)), emailLower)
-		if err == nil && matched {
+		lowPattern := strings.ToLower(strings.TrimSpace(pattern))
+		matched, err := path.Match(lowPattern, emailLower)
+		if err != nil {
+			logger.Warn("invalid glob pattern in coauthor_remove_emails",
+				"pattern", pattern, "error", err)
+			continue
+		}
+		if matched {
 			return true
 		}
 	}
@@ -660,6 +669,18 @@ func Load(cfgPath string) (*Config, error) {
 		return nil, err
 	}
 
+	// 구 버전 스키마 감지: 현재 스키마로 파싱 실패 시 자동 마이그레이션 시도.
+	ver := schema.DetectVersion(data)
+	if ver != schema.VersionCurrent && ver != schema.VersionUnknown {
+		result, migErr := schema.Migrate(data)
+		if migErr == nil {
+			data = result.Data
+		} else {
+			logger.Warn("config auto-migration failed, proceeding with original",
+				"path", cfgPath, "error", migErr)
+		}
+	}
+
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, formatConfigError(cfgPath, err)
@@ -669,6 +690,9 @@ func Load(cfgPath string) (*Config, error) {
 	if err := resolveAllowedWords(&cfg); err != nil {
 		return nil, err
 	}
+	for _, w := range Validate(&cfg, cfgPath) {
+		logger.Warn(w)
+	}
 	return &cfg, nil
 }
 
@@ -676,7 +700,15 @@ func Load(cfgPath string) (*Config, error) {
 // allowed_words 목록에 병합합니다.
 func resolveAllowedWords(cfg *Config) error {
 	if cfg.CommentLanguage.AllowedWordsFile != "" {
-		words, err := loadWordsFromFile(cfg.CommentLanguage.AllowedWordsFile)
+		filePath := cfg.CommentLanguage.AllowedWordsFile
+		// ~ 경로 확장
+		if strings.HasPrefix(filePath, "~/") {
+			if home, err := os.UserHomeDir(); err == nil {
+				filePath = filepath.Join(home, filePath[2:])
+				cfg.CommentLanguage.AllowedWordsFile = filePath
+			}
+		}
+		words, err := loadWordsFromFile(filePath)
 		if err != nil {
 			return fmt.Errorf("allowed_words_file 읽기 실패: %w", err)
 		}
@@ -720,6 +752,9 @@ func loadWordsFromFile(filePath string) ([]string, error) {
 	return parseWordLines(string(data)), nil
 }
 
+// maxAllowedWordsSize: URL에서 가져오는 허용 단어 파일의 최대 크기 (10MB).
+const maxAllowedWordsSize = 10 * 1024 * 1024
+
 func loadWordsFromURLWithBody(rawURL string) ([]string, []byte, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(rawURL) //nolint:gosec
@@ -730,9 +765,13 @@ func loadWordsFromURLWithBody(rawURL string) ([]string, []byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, nil, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
-	body, err := io.ReadAll(resp.Body)
+	limited := io.LimitReader(resp.Body, maxAllowedWordsSize+1)
+	body, err := io.ReadAll(limited)
 	if err != nil {
 		return nil, nil, err
+	}
+	if int64(len(body)) > maxAllowedWordsSize {
+		return nil, nil, fmt.Errorf("allowed_words_url response exceeds 10MB limit")
 	}
 	return parseWordLines(string(body)), body, nil
 }

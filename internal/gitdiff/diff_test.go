@@ -79,6 +79,40 @@ func TestParseDiff_DeletedFile(t *testing.T) {
 	}
 }
 
+func TestParseDiff_Submodule(t *testing.T) {
+	raw := "diff --git a/vendor/mod b/vendor/mod\n" +
+		"new file mode 160000\n" +
+		"index 0000000..abc1234\n" +
+		"--- /dev/null\n" +
+		"+++ b/vendor/mod\n" +
+		"@@ -0,0 +1 @@\n" +
+		"+Subproject commit abc1234\n"
+	diffs := gitdiff.ParseDiff(raw)
+	if len(diffs) != 1 {
+		t.Fatalf("got %d diffs, want 1", len(diffs))
+	}
+	if !diffs[0].IsSubmodule {
+		t.Error("expected IsSubmodule=true")
+	}
+}
+
+func TestParseDiff_Symlink(t *testing.T) {
+	raw := "diff --git a/link b/link\n" +
+		"new file mode 120000\n" +
+		"index 0000000..abc1234\n" +
+		"--- /dev/null\n" +
+		"+++ b/link\n" +
+		"@@ -0,0 +1 @@\n" +
+		"+target/path\n"
+	diffs := gitdiff.ParseDiff(raw)
+	if len(diffs) != 1 {
+		t.Fatalf("got %d diffs, want 1", len(diffs))
+	}
+	if !diffs[0].IsSymlink {
+		t.Error("expected IsSymlink=true")
+	}
+}
+
 func TestHasExtension(t *testing.T) {
 	exts := []string{".go", ".ts", ".java"}
 	cases := []struct {

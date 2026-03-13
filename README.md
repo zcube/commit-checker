@@ -24,6 +24,7 @@ Git 커밋 메시지와 소스 코드의 정책을 자동으로 검사하는 CLI
 | **Conventional Commits** | 커밋 메시지 형식 강제 (선택적) |
 | **리포지터리 분석** | 개발 언어 감지 및 린트 설정 누락 경고 |
 | **자동 수정 (fix)** | 유니코드/인코딩 위반 사항을 git history에서 일괄 수정 |
+| **설정 마이그레이션** | 구 버전 설정 파일을 자동 감지하여 최신 스키마로 변환 |
 | **진행 표시기** | bubbletea 기반 TUI 스피너 (TTY 감지, 비TTY 시 텍스트 폴백) |
 
 ## 설치
@@ -290,6 +291,7 @@ commit-checker diff          staged diff의 주석/인코딩/린트/바이너리
 commit-checker run           추적된 전체 파일의 정책 준수 검사
 commit-checker msg <file>    커밋 메시지 파일 검사
 commit-checker fix           git history 자동 수정 (dry-run 지원)
+commit-checker migrate       설정 파일을 최신 스키마로 마이그레이션
 commit-checker analyze       리포지터리 분석 (언어 감지, 린트 설정 확인)
 commit-checker version       버전 정보 출력
 ```
@@ -328,6 +330,19 @@ commit-checker fix --range HEAD~5..HEAD
 # 내 커밋만 수정
 commit-checker fix --mine --dry-run
 ```
+
+### migrate 커맨드
+
+```bash
+# 설정 파일 스키마 버전 감지 및 최신으로 마이그레이션
+commit-checker migrate
+
+# 변경 사항 미리 보기 (파일 수정 없음)
+commit-checker migrate --dry-run
+```
+
+구 버전 설정 파일(예: `no_coauthor` → `no_ai_coauthor`)을 자동으로 최신 스키마로 변환합니다.
+주석과 서식이 보존됩니다.
 
 ### analyze 커맨드
 
