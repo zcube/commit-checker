@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/zcube/commit-checker/internal/i18n"
 )
 
 // langInfo: 감지된 프로그래밍 언어 정보.
@@ -78,16 +79,15 @@ var extensionToLanguage = map[string]string{
 }
 
 var analyzeCmd = &cobra.Command{
-	Use:   "analyze",
-	Short: "Analyze repository and detect languages and lint configurations",
-	Long: `Scans the current repository to detect programming languages used,
-checks for existing lint configurations, and reports recommendations.`,
+	Use: "analyze",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runAnalyze()
 	},
 }
 
 func init() {
+	analyzeCmd.Short = i18n.T("cmd.analyze.short", nil)
+	analyzeCmd.Long = i18n.T("cmd.analyze.long", nil)
 	rootCmd.AddCommand(analyzeCmd)
 }
 
@@ -115,37 +115,37 @@ func runAnalyze() error {
 	sort.Slice(langs, func(i, j int) bool { return langs[i].Count > langs[j].Count })
 
 	// 3. 출력
-	fmt.Println("=== Repository Analysis ===")
+	fmt.Println(i18n.T("analyze.header", nil))
 	fmt.Println()
 
 	// 감지된 언어 목록
-	fmt.Println("Detected languages:")
+	fmt.Println(i18n.T("analyze.detected_languages", nil))
 	if len(langs) == 0 {
-		fmt.Println("  (no recognized languages found)")
+		fmt.Println(i18n.T("analyze.no_languages", nil))
 	}
 	for _, l := range langs {
-		fmt.Printf("  - %s (%d files)\n", l.Name, l.Count)
+		fmt.Println(i18n.T("analyze.lang_entry", map[string]any{"Name": l.Name, "Count": l.Count}))
 	}
 	fmt.Println()
 
 	// 4. lint 설정 파일 존재 여부 확인
-	fmt.Println("Lint configuration status:")
+	fmt.Println(i18n.T("analyze.lint_config_status", nil))
 	programmingLangs := filterProgrammingLangs(langs)
 	if len(programmingLangs) == 0 {
-		fmt.Println("  (no programming languages detected)")
+		fmt.Println(i18n.T("analyze.no_programming_langs", nil))
 	}
 	for _, l := range programmingLangs {
 		found, configName := checkLintConfig(l.Name)
 		if found {
-			fmt.Printf("  ✓ %s: %s found\n", l.Name, configName)
+			fmt.Println(i18n.T("analyze.lint_found", map[string]any{"Language": l.Name, "Config": configName}))
 		} else {
-			fmt.Printf("  ✗ %s: no lint configuration found\n", l.Name)
+			fmt.Println(i18n.T("analyze.lint_not_found", map[string]any{"Language": l.Name}))
 		}
 	}
 	fmt.Println()
 
 	// 5. 일반 설정 파일 존재 여부 확인
-	fmt.Println("Project configuration:")
+	fmt.Println(i18n.T("analyze.project_config", nil))
 	checkAndReport(".editorconfig")
 	checkAndReport(".commit-checker.yml")
 	checkAndReport(".gitattributes")
@@ -155,9 +155,9 @@ func runAnalyze() error {
 	// 6. 데이터 파일 수 출력
 	dataLangs := filterDataLangs(langs)
 	if len(dataLangs) > 0 {
-		fmt.Println("Data files (lint checked by commit-checker):")
+		fmt.Println(i18n.T("analyze.data_files", nil))
 		for _, l := range dataLangs {
-			fmt.Printf("  - %s (%d files)\n", l.Name, l.Count)
+			fmt.Println(i18n.T("analyze.lang_entry", map[string]any{"Name": l.Name, "Count": l.Count}))
 		}
 		fmt.Println()
 	}
@@ -221,8 +221,8 @@ func checkLintConfig(language string) (bool, string) {
 
 func checkAndReport(filename string) {
 	if _, err := os.Stat(filename); err == nil {
-		fmt.Printf("  ✓ %s found\n", filename)
+		fmt.Println(i18n.T("analyze.file_found", map[string]any{"File": filename}))
 	} else {
-		fmt.Printf("  ✗ %s not found\n", filename)
+		fmt.Println(i18n.T("analyze.file_not_found", map[string]any{"File": filename}))
 	}
 }

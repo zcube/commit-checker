@@ -103,3 +103,180 @@ migrate.dry_run_header:
   other: "\n--- 迁移结果 (dry-run) ---"
 migrate.saved:
   other: "\n{{.Path}} 迁移完成。"
+migrate.save_failed:
+  other: "保存文件失败: {{.Error}}"
+
+# 命令描述
+cmd.root.short:
+  other: "用于代码质量和规范的Git提交检查器"
+cmd.root.long:
+  other: |-
+    用于在git仓库中强制执行提交消息和代码注释标准的工具。
+    与lefthook、husky等git钩子管理器集成。
+cmd.run.short:
+  other: "检查所有跟踪文件的策略合规性"
+cmd.run.long:
+  other: |-
+    读取git(git ls-files)跟踪的所有文件并检查:
+    - 二进制文件检测
+    - 文件编码 (UTF-8)
+    - 数据文件lint (YAML, JSON/JSON5, XML)
+    - .editorconfig合规性
+    - 注释语言合规性
+
+    与'diff'不同，此命令检查所有文件，无论是否已暂存。
+cmd.diff.short:
+  other: "检查暂存差异的策略合规性"
+cmd.diff.long:
+  other: |-
+    读取当前暂存的更改(git diff --staged)并检查:
+    - 二进制文件检测
+    - 文件编码 (UTF-8)
+    - 数据文件lint (YAML, JSON/JSON5, XML)
+    - .editorconfig合规性
+    - 注释语言合规性
+cmd.msg.short:
+  other: "检查提交消息是否存在违规"
+cmd.msg.long:
+  other: |-
+    读取提交消息文件并检查:
+      - Co-authored-by: 尾部标记 (AI工具，可配置)
+      - 不可见/非标准Unicode空格字符
+      - 看起来像ASCII的模糊Unicode字符
+      - 无效的UTF-8字节序列
+      - 约定式提交格式 (启用时)
+
+    使用--fix时，可自动修复的违规(除语言检查外)将在提交前就地修正。
+cmd.fix.short:
+  other: "重写Git历史以修复提交消息违规"
+cmd.fix.long:
+  other: |-
+    扫描提交消息策略违规并自动重写。
+
+    可自动修复的违规:
+      - Co-authored-by: 尾部标记 (删除)
+      - 不可见/非标准Unicode空格字符 (替换或删除)
+      - 看起来像ASCII的模糊Unicode字符 (替换为ASCII)
+      - 无效的UTF-8字节序列 (删除)
+
+    提交正文中的语言违规会被报告，但不会自动修复。
+
+    示例:
+      commit-checker fix --dry-run                   # 预览所有提交的修复
+      commit-checker fix --range HEAD~5..HEAD        # 修复最近5个提交
+      commit-checker fix --mine --dry-run            # 预览我的提交的修复
+      commit-checker fix --range main..HEAD          # 修复main中没有的提交
+cmd.validate.short:
+  other: "验证配置文件"
+cmd.validate.long:
+  other: "检查配置文件是否存在错误和潜在问题。"
+cmd.init.short:
+  other: "生成默认配置文件"
+cmd.init.long:
+  other: |-
+    在当前目录生成默认的.commit-checker.yml配置文件。
+
+    使用--lang设置语言环境 (ko, en, ja, zh)。如果未指定，系统语言环境将自动检测。
+    使用--force覆盖现有文件。
+cmd.migrate.short:
+  other: "将配置文件迁移到最新架构"
+cmd.migrate.long:
+  other: |-
+    检测配置文件的架构版本并迁移到最新格式。
+
+    旧字段名称会自动重命名，已弃用的字段会被删除。
+    迁移过程中保留注释和格式。
+
+    使用--dry-run可以在不修改文件的情况下预览更改。
+cmd.analyze.short:
+  other: "分析仓库并检测语言和Lint配置"
+cmd.analyze.long:
+  other: |-
+    扫描当前仓库以检测使用的编程语言，
+    检查现有lint配置，并报告建议。
+cmd.version.short:
+  other: "输出版本信息"
+
+# 标志描述
+flag.config:
+  other: "配置文件路径"
+flag.quiet:
+  other: "抑制进度和日志输出"
+flag.no_color:
+  other: "禁用颜色输出"
+flag.format:
+  other: "输出格式: text 或 json"
+flag.msg_fix:
+  other: "检查前自动修复违规"
+flag.fix_range:
+  other: "要扫描的git修订范围 (例如 HEAD~5..HEAD, main..HEAD)"
+flag.fix_mine:
+  other: "只扫描当前git用户编写的提交"
+flag.fix_dry_run:
+  other: "显示将要更改的内容而不修改历史"
+flag.init_force:
+  other: "覆盖现有文件"
+flag.init_lang:
+  other: "默认配置的语言环境 (ko, en, ja, zh); 省略时自动检测"
+flag.migrate_dry_run:
+  other: "预览更改而不修改文件"
+
+# 步骤名称
+step.binary_detection:
+  other: "二进制文件检测"
+step.encoding_check:
+  other: "编码检查 (UTF-8)"
+step.unicode_check:
+  other: "Unicode字符检查"
+step.lint_check:
+  other: "数据文件lint (YAML, JSON, XML)"
+step.editorconfig_check:
+  other: "EditorConfig合规性"
+step.comment_language_check:
+  other: "注释语言检查"
+
+# validate 消息
+validate.config_valid:
+  other: "配置文件有效。"
+validate.warnings_found:
+  other: "发现{{.Count}}个警告。"
+
+# analyze 消息
+analyze.header:
+  other: "=== 仓库分析 ==="
+analyze.detected_languages:
+  other: "检测到的语言:"
+analyze.no_languages:
+  other: "  (未找到已识别的语言)"
+analyze.lint_config_status:
+  other: "Lint配置状态:"
+analyze.no_programming_langs:
+  other: "  (未检测到编程语言)"
+analyze.lint_found:
+  other: "  \u2713 {{.Language}}: 找到 {{.Config}}"
+analyze.lint_not_found:
+  other: "  \u2717 {{.Language}}: 未找到lint配置"
+analyze.project_config:
+  other: "项目配置:"
+analyze.file_found:
+  other: "  \u2713 {{.File}} 存在"
+analyze.file_not_found:
+  other: "  \u2717 {{.File}} 不存在"
+analyze.data_files:
+  other: "数据文件 (由commit-checker进行lint检查):"
+analyze.lang_entry:
+  other: "  - {{.Name}} ({{.Count}}个文件)"
+
+# version 消息
+version.commit:
+  other: "  提交:     {{.Value}}"
+version.build_time:
+  other: "  构建时间: {{.Value}}"
+
+# init 消息
+init.already_exists:
+  other: "{{.Path}} 已存在。使用 --force 覆盖。"
+init.created:
+  other: "{{.Path}} 已创建。"
+init.fail_write:
+  other: "创建配置文件失败: {{.Error}}"

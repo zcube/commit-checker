@@ -17,8 +17,6 @@ var globalNoColor bool
 
 var rootCmd = &cobra.Command{
 	Use:          "commit-checker",
-	Short:        "Git commit checker for code quality and standards",
-	Long:         "A tool to enforce commit message and code comment standards in git repositories.\nIntegrates with lefthook, husky, and other git hook managers.",
 	SilenceUsage: true, // 에러 발생 시 Usage 출력 억제 (RunE 에러는 에러 메시지만 출력)
 }
 
@@ -32,9 +30,15 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", ".commit-checker.yml", "config file path")
-	rootCmd.PersistentFlags().BoolVarP(&globalQuiet, "quiet", "q", false, "suppress progress and log output")
-	rootCmd.PersistentFlags().BoolVar(&globalNoColor, "no-color", false, "disable color output")
+	// 환경 변수에서 로케일을 감지하여 i18n 초기화
+	i18n.Init("")
+
+	rootCmd.Short = i18n.T("cmd.root.short", nil)
+	rootCmd.Long = i18n.T("cmd.root.long", nil)
+
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", ".commit-checker.yml", i18n.T("flag.config", nil))
+	rootCmd.PersistentFlags().BoolVarP(&globalQuiet, "quiet", "q", false, i18n.T("flag.quiet", nil))
+	rootCmd.PersistentFlags().BoolVar(&globalNoColor, "no-color", false, i18n.T("flag.no_color", nil))
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		logger.SetQuiet(globalQuiet)
 		if globalNoColor {
@@ -42,6 +46,4 @@ func init() {
 		}
 		return nil
 	}
-	// 환경 변수에서 로케일을 감지하여 i18n 초기화
-	i18n.Init("")
 }

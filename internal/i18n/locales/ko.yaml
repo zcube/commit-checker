@@ -103,3 +103,181 @@ migrate.dry_run_header:
   other: "\n--- 마이그레이션 결과 (dry-run) ---"
 migrate.saved:
   other: "\n{{.Path}} 마이그레이션 완료."
+migrate.save_failed:
+  other: "파일 저장 실패: {{.Error}}"
+
+# 명령어 설명
+cmd.root.short:
+  other: "코드 품질 및 기준을 위한 Git 커밋 검사기"
+cmd.root.long:
+  other: |-
+    git 저장소에서 커밋 메시지와 코드 주석 기준을 강제하는 도구입니다.
+    lefthook, husky 등 git hook 관리자와 통합됩니다.
+cmd.run.short:
+  other: "추적된 모든 파일의 정책 준수 여부를 검사합니다"
+cmd.run.long:
+  other: |-
+    git(git ls-files)이 추적하는 모든 파일을 읽어 다음을 검사합니다:
+    - 바이너리 파일 감지
+    - 파일 인코딩 (UTF-8)
+    - 데이터 파일 lint (YAML, JSON/JSON5, XML)
+    - .editorconfig 준수
+    - 주석 언어 준수
+
+    'diff'와 달리, 스테이징 여부와 관계없이 모든 파일을 검사합니다.
+cmd.diff.short:
+  other: "스테이징된 변경 사항의 정책 준수 여부를 검사합니다"
+cmd.diff.long:
+  other: |-
+    현재 스테이징된 변경 사항(git diff --staged)을 읽어 다음을 검사합니다:
+    - 바이너리 파일 감지
+    - 파일 인코딩 (UTF-8)
+    - 데이터 파일 lint (YAML, JSON/JSON5, XML)
+    - .editorconfig 준수
+    - 주석 언어 준수
+cmd.msg.short:
+  other: "커밋 메시지 위반 사항을 검사합니다"
+cmd.msg.long:
+  other: |-
+    커밋 메시지 파일을 읽어 다음을 검사합니다:
+      - Co-authored-by: 트레일러 (AI 도구, 설정 가능)
+      - 비표준 유니코드 공백 문자
+      - ASCII와 유사한 모호한 유니코드 문자
+      - 잘못된 UTF-8 바이트 시퀀스
+      - 컨벤셔널 커밋 형식 (활성화 시)
+
+    --fix 옵션 사용 시, 자동 수정 가능한 위반 사항(언어 검사 제외)이
+    커밋 전에 파일 내에서 수정됩니다.
+cmd.fix.short:
+  other: "커밋 메시지 위반 사항을 수정하기 위해 Git 히스토리를 재작성합니다"
+cmd.fix.long:
+  other: |-
+    커밋 메시지 정책 위반 사항을 스캔하고 자동으로 재작성합니다.
+
+    자동 수정 가능한 위반 사항:
+      - Co-authored-by: 트레일러 (제거)
+      - 비표준 유니코드 공백 문자 (교체 또는 제거)
+      - ASCII와 유사한 모호한 유니코드 문자 (ASCII로 교체)
+      - 잘못된 UTF-8 바이트 시퀀스 (제거)
+
+    커밋 본문의 언어 위반은 보고되지만 자동 수정되지 않습니다.
+
+    예시:
+      commit-checker fix --dry-run                   # 모든 커밋 수정 미리 보기
+      commit-checker fix --range HEAD~5..HEAD        # 최근 5개 커밋 수정
+      commit-checker fix --mine --dry-run            # 내 커밋 수정 미리 보기
+      commit-checker fix --range main..HEAD          # main에 없는 커밋 수정
+cmd.validate.short:
+  other: "설정 파일을 검증합니다"
+cmd.validate.long:
+  other: "설정 파일의 오류 및 잠재적 문제를 확인합니다."
+cmd.init.short:
+  other: "기본 설정 파일을 생성합니다"
+cmd.init.long:
+  other: |-
+    현재 디렉터리에 기본 .commit-checker.yml 설정 파일을 생성합니다.
+
+    --lang으로 로케일을 설정할 수 있습니다 (ko, en, ja, zh). 지정하지 않으면 시스템 로케일이 자동으로 감지됩니다.
+    --force를 사용하면 기존 파일을 덮어씁니다.
+cmd.migrate.short:
+  other: "설정 파일을 최신 스키마로 마이그레이션합니다"
+cmd.migrate.long:
+  other: |-
+    설정 파일의 스키마 버전을 감지하고 최신 형식으로 마이그레이션합니다.
+
+    이전 필드 이름이 자동으로 이름 변경되고 더 이상 사용되지 않는 필드가 제거됩니다.
+    마이그레이션 중에 주석과 형식이 유지됩니다.
+
+    --dry-run을 사용하면 파일을 수정하지 않고 변경 사항을 미리 볼 수 있습니다.
+cmd.analyze.short:
+  other: "저장소를 분석하여 언어와 Lint 설정을 감지합니다"
+cmd.analyze.long:
+  other: |-
+    현재 저장소를 스캔하여 사용된 프로그래밍 언어를 감지하고,
+    기존 lint 설정을 확인하며, 권장 사항을 보고합니다.
+cmd.version.short:
+  other: "버전 정보 출력"
+
+# 플래그 설명
+flag.config:
+  other: "설정 파일 경로"
+flag.quiet:
+  other: "진행 상황 및 로그 출력 억제"
+flag.no_color:
+  other: "색상 출력 비활성화"
+flag.format:
+  other: "출력 형식: text 또는 json"
+flag.msg_fix:
+  other: "검사 전 위반 사항 자동 수정"
+flag.fix_range:
+  other: "스캔할 git 리비전 범위 (예: HEAD~5..HEAD, main..HEAD)"
+flag.fix_mine:
+  other: "현재 git 사용자가 작성한 커밋만 스캔"
+flag.fix_dry_run:
+  other: "히스토리를 수정하지 않고 변경될 내용 표시"
+flag.init_force:
+  other: "기존 파일 덮어쓰기"
+flag.init_lang:
+  other: "기본 설정의 로케일 (ko, en, ja, zh); 생략 시 자동 감지"
+flag.migrate_dry_run:
+  other: "파일을 수정하지 않고 변경 사항 미리 보기"
+
+# 단계 이름
+step.binary_detection:
+  other: "바이너리 파일 감지"
+step.encoding_check:
+  other: "인코딩 검사 (UTF-8)"
+step.unicode_check:
+  other: "유니코드 문자 검사"
+step.lint_check:
+  other: "데이터 파일 lint (YAML, JSON, XML)"
+step.editorconfig_check:
+  other: "EditorConfig 준수 검사"
+step.comment_language_check:
+  other: "주석 언어 검사"
+
+# validate 메시지
+validate.config_valid:
+  other: "설정 파일이 유효합니다."
+validate.warnings_found:
+  other: "{{.Count}}개의 경고가 발견되었습니다."
+
+# analyze 메시지
+analyze.header:
+  other: "=== 저장소 분석 ==="
+analyze.detected_languages:
+  other: "감지된 언어:"
+analyze.no_languages:
+  other: "  (인식된 언어 없음)"
+analyze.lint_config_status:
+  other: "Lint 설정 상태:"
+analyze.no_programming_langs:
+  other: "  (프로그래밍 언어 감지 안 됨)"
+analyze.lint_found:
+  other: "  \u2713 {{.Language}}: {{.Config}} 발견"
+analyze.lint_not_found:
+  other: "  \u2717 {{.Language}}: lint 설정 파일 없음"
+analyze.project_config:
+  other: "프로젝트 설정:"
+analyze.file_found:
+  other: "  \u2713 {{.File}} 발견"
+analyze.file_not_found:
+  other: "  \u2717 {{.File}} 없음"
+analyze.data_files:
+  other: "데이터 파일 (commit-checker에서 lint 검사):"
+analyze.lang_entry:
+  other: "  - {{.Name}} ({{.Count}}개 파일)"
+
+# version 메시지
+version.commit:
+  other: "  커밋:      {{.Value}}"
+version.build_time:
+  other: "  빌드 시각: {{.Value}}"
+
+# init 메시지
+init.already_exists:
+  other: "{{.Path}} 이(가) 이미 존재합니다. 덮어쓰려면 --force를 사용하세요."
+init.created:
+  other: "{{.Path}} 생성 완료."
+init.fail_write:
+  other: "설정 파일 생성 실패: {{.Error}}"

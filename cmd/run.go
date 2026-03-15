@@ -7,22 +7,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zcube/commit-checker/internal/checker"
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/progress"
 )
 
 var runFormat string
 
 var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Check all tracked files for policy compliance",
-	Long: `Reads all files tracked by git (git ls-files) and checks:
-- binary file detection
-- file encoding (UTF-8)
-- data file lint (YAML, JSON/JSON5, XML)
-- .editorconfig compliance
-- comment language compliance
-
-Unlike 'diff', this command checks all files regardless of staged state.`,
+	Use: "run",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load(configFile)
 		if err != nil {
@@ -30,12 +22,12 @@ Unlike 'diff', this command checks all files regardless of staged state.`,
 		}
 
 		steps := []progress.Step{
-			{Name: "Binary file detection", Category: "binary", Fn: func() ([]string, error) { return checker.RunBinaryFiles(cfg) }},
-			{Name: "Encoding check (UTF-8)", Category: "encoding", Fn: func() ([]string, error) { return checker.RunEncoding(cfg) }},
-			{Name: "Unicode character check", Category: "unicode", Fn: func() ([]string, error) { return checker.RunUnicode(cfg) }},
-			{Name: "Data file lint (YAML, JSON, XML)", Category: "lint", Fn: func() ([]string, error) { return checker.RunLint(cfg) }},
-			{Name: "EditorConfig compliance", Category: "editorconfig", Fn: func() ([]string, error) { return checker.RunEditorConfig(cfg) }},
-			{Name: "Comment language check", Category: "comment_language", Fn: func() ([]string, error) { return checker.RunCommentLanguage(cfg) }},
+			{Name: i18n.T("step.binary_detection", nil), Category: "binary", Fn: func() ([]string, error) { return checker.RunBinaryFiles(cfg) }},
+			{Name: i18n.T("step.encoding_check", nil), Category: "encoding", Fn: func() ([]string, error) { return checker.RunEncoding(cfg) }},
+			{Name: i18n.T("step.unicode_check", nil), Category: "unicode", Fn: func() ([]string, error) { return checker.RunUnicode(cfg) }},
+			{Name: i18n.T("step.lint_check", nil), Category: "lint", Fn: func() ([]string, error) { return checker.RunLint(cfg) }},
+			{Name: i18n.T("step.editorconfig_check", nil), Category: "editorconfig", Fn: func() ([]string, error) { return checker.RunEditorConfig(cfg) }},
+			{Name: i18n.T("step.comment_language_check", nil), Category: "comment_language", Fn: func() ([]string, error) { return checker.RunCommentLanguage(cfg) }},
 		}
 
 		result, err := progress.RunWithProgress(steps, progress.Options{
@@ -74,6 +66,8 @@ Unlike 'diff', this command checks all files regardless of staged state.`,
 }
 
 func init() {
-	runCmd.Flags().StringVar(&runFormat, "format", "text", "output format: text or json")
+	runCmd.Short = i18n.T("cmd.run.short", nil)
+	runCmd.Long = i18n.T("cmd.run.long", nil)
+	runCmd.Flags().StringVar(&runFormat, "format", "text", i18n.T("flag.format", nil))
 	rootCmd.AddCommand(runCmd)
 }

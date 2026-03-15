@@ -20,30 +20,16 @@ var (
 )
 
 var fixCmd = &cobra.Command{
-	Use:   "fix",
-	Short: "Rewrite git history to fix commit message violations",
-	Long: `Scans commits for message policy violations and rewrites them automatically.
-
-Auto-fixable violations:
-  - Co-authored-by: trailers (removed)
-  - Invisible / non-standard Unicode space characters (replaced or removed)
-  - Ambiguous Unicode characters that look like ASCII (replaced with ASCII)
-  - Invalid UTF-8 byte sequences (removed)
-
-Language violations in commit bodies are reported but NOT auto-fixed.
-
-Examples:
-  commit-checker fix --dry-run                   # preview fixes for all commits
-  commit-checker fix --range HEAD~5..HEAD        # fix last 5 commits
-  commit-checker fix --mine --dry-run            # preview fixes for your commits
-  commit-checker fix --range main..HEAD          # fix commits not yet in main`,
+	Use:  "fix",
 	RunE: runFix,
 }
 
 func init() {
-	fixCmd.Flags().StringVar(&fixRange, "range", "", "git revision range to scan (e.g. HEAD~5..HEAD, main..HEAD)")
-	fixCmd.Flags().BoolVar(&fixMine, "mine", false, "only scan commits authored by the current git user")
-	fixCmd.Flags().BoolVar(&fixDryRun, "dry-run", false, "show what would be changed without modifying history")
+	fixCmd.Short = i18n.T("cmd.fix.short", nil)
+	fixCmd.Long = i18n.T("cmd.fix.long", nil)
+	fixCmd.Flags().StringVar(&fixRange, "range", "", i18n.T("flag.fix_range", nil))
+	fixCmd.Flags().BoolVar(&fixMine, "mine", false, i18n.T("flag.fix_mine", nil))
+	fixCmd.Flags().BoolVar(&fixDryRun, "dry-run", false, i18n.T("flag.fix_dry_run", nil))
 	rootCmd.AddCommand(fixCmd)
 }
 

@@ -103,3 +103,181 @@ migrate.dry_run_header:
   other: "\n--- migration result (dry-run) ---"
 migrate.saved:
   other: "\n{{.Path}} migration complete."
+migrate.save_failed:
+  other: "failed to save file: {{.Error}}"
+
+# command descriptions
+cmd.root.short:
+  other: "Git commit checker for code quality and standards"
+cmd.root.long:
+  other: |-
+    A tool to enforce commit message and code comment standards in git repositories.
+    Integrates with lefthook, husky, and other git hook managers.
+cmd.run.short:
+  other: "Check all tracked files for policy compliance"
+cmd.run.long:
+  other: |-
+    Reads all files tracked by git (git ls-files) and checks:
+    - binary file detection
+    - file encoding (UTF-8)
+    - data file lint (YAML, JSON/JSON5, XML)
+    - .editorconfig compliance
+    - comment language compliance
+
+    Unlike 'diff', this command checks all files regardless of staged state.
+cmd.diff.short:
+  other: "Check staged diff for policy compliance"
+cmd.diff.long:
+  other: |-
+    Reads the current staged changes (git diff --staged) and checks:
+    - binary file detection
+    - file encoding (UTF-8)
+    - data file lint (YAML, JSON/JSON5, XML)
+    - .editorconfig compliance
+    - comment language compliance
+cmd.msg.short:
+  other: "Check commit message for violations"
+cmd.msg.long:
+  other: |-
+    Reads the commit message file and checks for:
+      - Co-authored-by: trailers (AI tools, configurable)
+      - Invisible / non-standard Unicode space characters
+      - Ambiguous Unicode characters that look like ASCII
+      - Invalid UTF-8 byte sequences
+      - Conventional commit format (when enabled)
+
+    With --fix, auto-fixable violations (all except language checks) are
+    corrected in place before the commit proceeds.
+cmd.fix.short:
+  other: "Rewrite git history to fix commit message violations"
+cmd.fix.long:
+  other: |-
+    Scans commits for message policy violations and rewrites them automatically.
+
+    Auto-fixable violations:
+      - Co-authored-by: trailers (removed)
+      - Invisible / non-standard Unicode space characters (replaced or removed)
+      - Ambiguous Unicode characters that look like ASCII (replaced with ASCII)
+      - Invalid UTF-8 byte sequences (removed)
+
+    Language violations in commit bodies are reported but NOT auto-fixed.
+
+    Examples:
+      commit-checker fix --dry-run                   # preview fixes for all commits
+      commit-checker fix --range HEAD~5..HEAD        # fix last 5 commits
+      commit-checker fix --mine --dry-run            # preview fixes for your commits
+      commit-checker fix --range main..HEAD          # fix commits not yet in main
+cmd.validate.short:
+  other: "Validate the configuration file"
+cmd.validate.long:
+  other: "Check the configuration file for errors and potential issues."
+cmd.init.short:
+  other: "Generate default configuration file"
+cmd.init.long:
+  other: |-
+    Generate a default .commit-checker.yml configuration file in the current directory.
+
+    Use --lang to set the locale (ko, en, ja, zh). If not specified, the system locale is detected automatically.
+    Use --force to overwrite an existing file.
+cmd.migrate.short:
+  other: "Migrate config file to the latest schema"
+cmd.migrate.long:
+  other: |-
+    Detect the schema version of the config file and migrate it to the latest format.
+
+    Old field names are automatically renamed and deprecated fields are removed.
+    Comments and formatting are preserved during migration.
+
+    Use --dry-run to preview changes without modifying the file.
+cmd.analyze.short:
+  other: "Analyze repository and detect languages and lint configurations"
+cmd.analyze.long:
+  other: |-
+    Scans the current repository to detect programming languages used,
+    checks for existing lint configurations, and reports recommendations.
+cmd.version.short:
+  other: "Print version information"
+
+# flag descriptions
+flag.config:
+  other: "config file path"
+flag.quiet:
+  other: "suppress progress and log output"
+flag.no_color:
+  other: "disable color output"
+flag.format:
+  other: "output format: text or json"
+flag.msg_fix:
+  other: "auto-fix violations in place before checking"
+flag.fix_range:
+  other: "git revision range to scan (e.g. HEAD~5..HEAD, main..HEAD)"
+flag.fix_mine:
+  other: "only scan commits authored by the current git user"
+flag.fix_dry_run:
+  other: "show what would be changed without modifying history"
+flag.init_force:
+  other: "overwrite existing file"
+flag.init_lang:
+  other: "locale for default config (ko, en, ja, zh); auto-detected if omitted"
+flag.migrate_dry_run:
+  other: "preview changes without modifying the file"
+
+# step names
+step.binary_detection:
+  other: "Binary file detection"
+step.encoding_check:
+  other: "Encoding check (UTF-8)"
+step.unicode_check:
+  other: "Unicode character check"
+step.lint_check:
+  other: "Data file lint (YAML, JSON, XML)"
+step.editorconfig_check:
+  other: "EditorConfig compliance"
+step.comment_language_check:
+  other: "Comment language check"
+
+# validate messages
+validate.config_valid:
+  other: "Configuration file is valid."
+validate.warnings_found:
+  other: "{{.Count}} warning(s) found."
+
+# analyze messages
+analyze.header:
+  other: "=== Repository Analysis ==="
+analyze.detected_languages:
+  other: "Detected languages:"
+analyze.no_languages:
+  other: "  (no recognized languages found)"
+analyze.lint_config_status:
+  other: "Lint configuration status:"
+analyze.no_programming_langs:
+  other: "  (no programming languages detected)"
+analyze.lint_found:
+  other: "  \u2713 {{.Language}}: {{.Config}} found"
+analyze.lint_not_found:
+  other: "  \u2717 {{.Language}}: no lint configuration found"
+analyze.project_config:
+  other: "Project configuration:"
+analyze.file_found:
+  other: "  \u2713 {{.File}} found"
+analyze.file_not_found:
+  other: "  \u2717 {{.File}} not found"
+analyze.data_files:
+  other: "Data files (lint checked by commit-checker):"
+analyze.lang_entry:
+  other: "  - {{.Name}} ({{.Count}} files)"
+
+# version messages
+version.commit:
+  other: "  commit:     {{.Value}}"
+version.build_time:
+  other: "  build time: {{.Value}}"
+
+# init messages
+init.already_exists:
+  other: "{{.Path}} already exists. Use --force to overwrite."
+init.created:
+  other: "{{.Path}} created."
+init.fail_write:
+  other: "failed to create config file: {{.Error}}"

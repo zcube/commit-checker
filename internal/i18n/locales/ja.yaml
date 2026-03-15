@@ -103,3 +103,181 @@ migrate.dry_run_header:
   other: "\n--- マイグレーション結果 (dry-run) ---"
 migrate.saved:
   other: "\n{{.Path}} マイグレーション完了。"
+migrate.save_failed:
+  other: "ファイルの保存に失敗しました: {{.Error}}"
+
+# コマンド説明
+cmd.root.short:
+  other: "コード品質と標準のためのGitコミットチェッカー"
+cmd.root.long:
+  other: |-
+    gitリポジトリでコミットメッセージとコードコメントの基準を強制するツールです。
+    lefthook、huskyなどのgitフック管理ツールと統合されます。
+cmd.run.short:
+  other: "追跡されたすべてのファイルのポリシー準拠をチェックします"
+cmd.run.long:
+  other: |-
+    git(git ls-files)が追跡するすべてのファイルを読み込み、以下を検査します:
+    - バイナリファイル検出
+    - ファイルエンコーディング (UTF-8)
+    - データファイルlint (YAML, JSON/JSON5, XML)
+    - .editorconfig準拠
+    - コメント言語準拠
+
+    'diff'と異なり、ステージング状態に関わらずすべてのファイルをチェックします。
+cmd.diff.short:
+  other: "ステージングされた差分のポリシー準拠をチェックします"
+cmd.diff.long:
+  other: |-
+    現在のステージングされた変更(git diff --staged)を読み込み、以下を検査します:
+    - バイナリファイル検出
+    - ファイルエンコーディング (UTF-8)
+    - データファイルlint (YAML, JSON/JSON5, XML)
+    - .editorconfig準拠
+    - コメント言語準拠
+cmd.msg.short:
+  other: "コミットメッセージの違反をチェックします"
+cmd.msg.long:
+  other: |-
+    コミットメッセージファイルを読み込み、以下を検査します:
+      - Co-authored-by: トレーラー (AIツール、設定可能)
+      - 不可視/非標準Unicodeスペース文字
+      - ASCIIに似た紛らわしいUnicode文字
+      - 不正なUTF-8バイトシーケンス
+      - Conventional commitフォーマット (有効時)
+
+    --fixを使用すると、自動修正可能な違反(言語チェック以外)が
+    コミット前にファイル内で修正されます。
+cmd.fix.short:
+  other: "コミットメッセージ違反を修正するためにGit履歴を書き換えます"
+cmd.fix.long:
+  other: |-
+    コミットメッセージのポリシー違反をスキャンし、自動的に書き換えます。
+
+    自動修正可能な違反:
+      - Co-authored-by: トレーラー (削除)
+      - 不可視/非標準Unicodeスペース文字 (置換または削除)
+      - ASCIIに似た紛らわしいUnicode文字 (ASCIIに置換)
+      - 不正なUTF-8バイトシーケンス (削除)
+
+    コミット本文の言語違反は報告されますが、自動修正されません。
+
+    例:
+      commit-checker fix --dry-run                   # すべてのコミットの修正プレビュー
+      commit-checker fix --range HEAD~5..HEAD        # 最新5件のコミットを修正
+      commit-checker fix --mine --dry-run            # 自分のコミットの修正プレビュー
+      commit-checker fix --range main..HEAD          # mainにないコミットを修正
+cmd.validate.short:
+  other: "設定ファイルを検証します"
+cmd.validate.long:
+  other: "設定ファイルのエラーと潜在的な問題を確認します。"
+cmd.init.short:
+  other: "デフォルト設定ファイルを生成します"
+cmd.init.long:
+  other: |-
+    現在のディレクトリにデフォルトの.commit-checker.yml設定ファイルを生成します。
+
+    --langでロケールを設定できます (ko, en, ja, zh)。指定しない場合、システムロケールが自動的に検出されます。
+    --forceで既存のファイルを上書きできます。
+cmd.migrate.short:
+  other: "設定ファイルを最新スキーマに移行します"
+cmd.migrate.long:
+  other: |-
+    設定ファイルのスキーマバージョンを検出し、最新フォーマットに移行します。
+
+    古いフィールド名は自動的に変更され、廃止されたフィールドは削除されます。
+    移行中にコメントとフォーマットが保持されます。
+
+    --dry-runでファイルを変更せずに変更内容をプレビューできます。
+cmd.analyze.short:
+  other: "リポジトリを分析して言語とLint設定を検出します"
+cmd.analyze.long:
+  other: |-
+    現在のリポジトリをスキャンして使用されているプログラミング言語を検出し、
+    既存のlint設定を確認して、推奨事項を報告します。
+cmd.version.short:
+  other: "バージョン情報を表示"
+
+# フラグ説明
+flag.config:
+  other: "設定ファイルのパス"
+flag.quiet:
+  other: "進捗とログ出力を抑制"
+flag.no_color:
+  other: "カラー出力を無効化"
+flag.format:
+  other: "出力形式: text または json"
+flag.msg_fix:
+  other: "チェック前に違反を自動修正"
+flag.fix_range:
+  other: "スキャンするgitリビジョン範囲 (例: HEAD~5..HEAD, main..HEAD)"
+flag.fix_mine:
+  other: "現在のgitユーザーが作成したコミットのみスキャン"
+flag.fix_dry_run:
+  other: "履歴を変更せずに変更内容を表示"
+flag.init_force:
+  other: "既存ファイルを上書き"
+flag.init_lang:
+  other: "デフォルト設定のロケール (ko, en, ja, zh); 省略時は自動検出"
+flag.migrate_dry_run:
+  other: "ファイルを変更せずに変更内容をプレビュー"
+
+# ステップ名
+step.binary_detection:
+  other: "バイナリファイル検出"
+step.encoding_check:
+  other: "エンコーディング検査 (UTF-8)"
+step.unicode_check:
+  other: "Unicode文字検査"
+step.lint_check:
+  other: "データファイルlint (YAML, JSON, XML)"
+step.editorconfig_check:
+  other: "EditorConfig準拠確認"
+step.comment_language_check:
+  other: "コメント言語検査"
+
+# validate メッセージ
+validate.config_valid:
+  other: "設定ファイルは有効です。"
+validate.warnings_found:
+  other: "{{.Count}}件の警告が見つかりました。"
+
+# analyze メッセージ
+analyze.header:
+  other: "=== リポジトリ分析 ==="
+analyze.detected_languages:
+  other: "検出された言語:"
+analyze.no_languages:
+  other: "  (認識された言語なし)"
+analyze.lint_config_status:
+  other: "Lint設定の状態:"
+analyze.no_programming_langs:
+  other: "  (プログラミング言語が検出されませんでした)"
+analyze.lint_found:
+  other: "  \u2713 {{.Language}}: {{.Config}} 発見"
+analyze.lint_not_found:
+  other: "  \u2717 {{.Language}}: lint設定ファイルなし"
+analyze.project_config:
+  other: "プロジェクト設定:"
+analyze.file_found:
+  other: "  \u2713 {{.File}} 発見"
+analyze.file_not_found:
+  other: "  \u2717 {{.File}} なし"
+analyze.data_files:
+  other: "データファイル (commit-checkerでlintチェック):"
+analyze.lang_entry:
+  other: "  - {{.Name}} ({{.Count}}ファイル)"
+
+# version メッセージ
+version.commit:
+  other: "  コミット:   {{.Value}}"
+version.build_time:
+  other: "  ビルド時刻: {{.Value}}"
+
+# init メッセージ
+init.already_exists:
+  other: "{{.Path}} は既に存在します。上書きするには --force を使用してください。"
+init.created:
+  other: "{{.Path}} を作成しました。"
+init.fail_write:
+  other: "設定ファイルの作成に失敗しました: {{.Error}}"

@@ -12,14 +12,7 @@ import (
 var migrateDryRun bool
 
 var migrateCmd = &cobra.Command{
-	Use:   "migrate",
-	Short: "Migrate config file to the latest schema",
-	Long: `Detect the schema version of the config file and migrate it to the latest format.
-
-Old field names are automatically renamed and deprecated fields are removed.
-Comments and formatting are preserved during migration.
-
-Use --dry-run to preview changes without modifying the file.`,
+	Use: "migrate",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		data, err := os.ReadFile(configFile)
 		if err != nil {
@@ -61,7 +54,7 @@ Use --dry-run to preview changes without modifying the file.`,
 		}
 
 		if err := os.WriteFile(configFile, result.Data, 0644); err != nil { //nolint:gosec
-			return fmt.Errorf("파일 저장 실패: %w", err)
+			return fmt.Errorf("%s", i18n.T("migrate.save_failed", map[string]any{"Error": err.Error()}))
 		}
 		fmt.Println(i18n.T("migrate.saved", map[string]any{
 			"Path": configFile,
@@ -71,6 +64,8 @@ Use --dry-run to preview changes without modifying the file.`,
 }
 
 func init() {
-	migrateCmd.Flags().BoolVar(&migrateDryRun, "dry-run", false, "preview changes without modifying the file")
+	migrateCmd.Short = i18n.T("cmd.migrate.short", nil)
+	migrateCmd.Long = i18n.T("cmd.migrate.long", nil)
+	migrateCmd.Flags().BoolVar(&migrateDryRun, "dry-run", false, i18n.T("flag.migrate_dry_run", nil))
 	rootCmd.AddCommand(migrateCmd)
 }

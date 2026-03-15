@@ -177,30 +177,27 @@ func localizedExample(locale string) string {
 }
 
 var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Generate default configuration file",
-	Long: `Generate a default .commit-checker.yml configuration file in the current directory.
-
-Use --lang to set the locale (ko, en, ja, zh). If not specified, the system locale is detected automatically.
-Use --force to overwrite an existing file.`,
+	Use: "init",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		target := configFile
 		if !initForce {
 			if _, err := os.Stat(target); err == nil {
-				return fmt.Errorf("%s already exists. Use --force to overwrite", target)
+				return fmt.Errorf("%s", i18n.T("init.already_exists", map[string]any{"Path": target}))
 			}
 		}
 		content := getDefaultConfig(initLang)
 		if err := os.WriteFile(target, []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to create config file: %w", err)
+			return fmt.Errorf("%s", i18n.T("init.fail_write", map[string]any{"Error": err.Error()}))
 		}
-		fmt.Printf("%s created.\n", target)
+		fmt.Println(i18n.T("init.created", map[string]any{"Path": target}))
 		return nil
 	},
 }
 
 func init() {
-	initCmd.Flags().BoolVar(&initForce, "force", false, "overwrite existing file")
-	initCmd.Flags().StringVar(&initLang, "lang", "", "locale for default config (ko, en, ja, zh); auto-detected if omitted")
+	initCmd.Short = i18n.T("cmd.init.short", nil)
+	initCmd.Long = i18n.T("cmd.init.long", nil)
+	initCmd.Flags().BoolVar(&initForce, "force", false, i18n.T("flag.init_force", nil))
+	initCmd.Flags().StringVar(&initLang, "lang", "", i18n.T("flag.init_lang", nil))
 	rootCmd.AddCommand(initCmd)
 }

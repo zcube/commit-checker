@@ -7,20 +7,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zcube/commit-checker/internal/checker"
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/progress"
 )
 
 var diffFormat string
 
 var diffCmd = &cobra.Command{
-	Use:   "diff",
-	Short: "Check staged diff for policy compliance",
-	Long: `Reads the current staged changes (git diff --staged) and checks:
-- binary file detection
-- file encoding (UTF-8)
-- data file lint (YAML, JSON/JSON5, XML)
-- .editorconfig compliance
-- comment language compliance`,
+	Use: "diff",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load(configFile)
 		if err != nil {
@@ -28,12 +22,12 @@ var diffCmd = &cobra.Command{
 		}
 
 		steps := []progress.Step{
-			{Name: "Binary file detection", Category: "binary", Fn: func() ([]string, error) { return checker.CheckBinaryFiles(cfg) }},
-			{Name: "Encoding check (UTF-8)", Category: "encoding", Fn: func() ([]string, error) { return checker.CheckEncoding(cfg) }},
-			{Name: "Unicode character check", Category: "unicode", Fn: func() ([]string, error) { return checker.CheckUnicode(cfg) }},
-			{Name: "Data file lint (YAML, JSON, XML)", Category: "lint", Fn: func() ([]string, error) { return checker.CheckLint(cfg) }},
-			{Name: "EditorConfig compliance", Category: "editorconfig", Fn: func() ([]string, error) { return checker.CheckEditorConfig(cfg) }},
-			{Name: "Comment language check", Category: "comment_language", Fn: func() ([]string, error) { return checker.CheckDiff(cfg) }},
+			{Name: i18n.T("step.binary_detection", nil), Category: "binary", Fn: func() ([]string, error) { return checker.CheckBinaryFiles(cfg) }},
+			{Name: i18n.T("step.encoding_check", nil), Category: "encoding", Fn: func() ([]string, error) { return checker.CheckEncoding(cfg) }},
+			{Name: i18n.T("step.unicode_check", nil), Category: "unicode", Fn: func() ([]string, error) { return checker.CheckUnicode(cfg) }},
+			{Name: i18n.T("step.lint_check", nil), Category: "lint", Fn: func() ([]string, error) { return checker.CheckLint(cfg) }},
+			{Name: i18n.T("step.editorconfig_check", nil), Category: "editorconfig", Fn: func() ([]string, error) { return checker.CheckEditorConfig(cfg) }},
+			{Name: i18n.T("step.comment_language_check", nil), Category: "comment_language", Fn: func() ([]string, error) { return checker.CheckDiff(cfg) }},
 		}
 
 		result, err := progress.RunWithProgress(steps, progress.Options{
@@ -72,6 +66,8 @@ var diffCmd = &cobra.Command{
 }
 
 func init() {
-	diffCmd.Flags().StringVar(&diffFormat, "format", "text", "output format: text or json")
+	diffCmd.Short = i18n.T("cmd.diff.short", nil)
+	diffCmd.Long = i18n.T("cmd.diff.long", nil)
+	diffCmd.Flags().StringVar(&diffFormat, "format", "text", i18n.T("flag.format", nil))
 	rootCmd.AddCommand(diffCmd)
 }
