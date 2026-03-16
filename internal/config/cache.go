@@ -86,7 +86,7 @@ func saveCachedWords(cache *AllowedWordsCacheConfig, rawURL string, body []byte)
 		return
 	}
 	dir := cache.GetDir()
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return
 	}
 	path := filepath.Join(dir, cacheKey(rawURL))

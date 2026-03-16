@@ -274,3 +274,239 @@ comment_language:
 		t.Errorf("expected 2 ignore_files, got %v", cfg.CommentLanguage.IgnoreFiles)
 	}
 }
+
+func TestCommentLanguageConfig_IsNoEmoji(t *testing.T) {
+	path := writeConfig(t, `
+comment_language:
+  no_emoji: true
+`)
+	cfg, _ := config.Load(path)
+	if !cfg.CommentLanguage.IsNoEmoji() {
+		t.Error("expected no_emoji=true")
+	}
+
+	path2 := writeConfig(t, `comment_language: {}`)
+	cfg2, _ := config.Load(path2)
+	if cfg2.CommentLanguage.IsNoEmoji() {
+		t.Error("default no_emoji should be false")
+	}
+}
+
+func TestCommentLanguageConfig_IsCheckStrings(t *testing.T) {
+	path := writeConfig(t, `
+comment_language:
+  check_strings: true
+`)
+	cfg, _ := config.Load(path)
+	if !cfg.CommentLanguage.IsCheckStrings() {
+		t.Error("expected check_strings=true")
+	}
+
+	path2 := writeConfig(t, `comment_language: {}`)
+	cfg2, _ := config.Load(path2)
+	if cfg2.CommentLanguage.IsCheckStrings() {
+		t.Error("default check_strings should be false")
+	}
+}
+
+func TestCommentLanguageConfig_IsSkipTechnicalStrings(t *testing.T) {
+	path := writeConfig(t, `
+comment_language:
+  skip_technical_strings: false
+`)
+	cfg, _ := config.Load(path)
+	if cfg.CommentLanguage.IsSkipTechnicalStrings() {
+		t.Error("expected skip_technical_strings=false")
+	}
+
+	path2 := writeConfig(t, `comment_language: {}`)
+	cfg2, _ := config.Load(path2)
+	if !cfg2.CommentLanguage.IsSkipTechnicalStrings() {
+		t.Error("default skip_technical_strings should be true")
+	}
+}
+
+func TestConventionalCommitConfig_Defaults(t *testing.T) {
+	path := writeConfig(t, `
+commit_message:
+  conventional_commit:
+    enabled: true
+`)
+	cfg, _ := config.Load(path)
+	cc := cfg.CommitMessage.ConventionalCommit
+	if !cc.IsEnabled() {
+		t.Error("expected enabled=true")
+	}
+	if cc.IsRequireScope() {
+		t.Error("default require_scope should be false")
+	}
+	if !cc.IsAllowMergeCommits() {
+		t.Error("default allow_merge_commits should be true")
+	}
+	if !cc.IsAllowRevertCommits() {
+		t.Error("default allow_revert_commits should be true")
+	}
+	types := cc.GetTypes()
+	if len(types) == 0 {
+		t.Error("default types should not be empty")
+	}
+}
+
+func TestConventionalCommitConfig_Overrides(t *testing.T) {
+	path := writeConfig(t, `
+commit_message:
+  conventional_commit:
+    enabled: true
+    require_scope: true
+    allow_merge_commits: false
+    allow_revert_commits: false
+    types:
+      - feat
+      - fix
+`)
+	cfg, _ := config.Load(path)
+	cc := cfg.CommitMessage.ConventionalCommit
+	if !cc.IsRequireScope() {
+		t.Error("expected require_scope=true")
+	}
+	if cc.IsAllowMergeCommits() {
+		t.Error("expected allow_merge_commits=false")
+	}
+	if cc.IsAllowRevertCommits() {
+		t.Error("expected allow_revert_commits=false")
+	}
+	if len(cc.GetTypes()) != 2 {
+		t.Errorf("expected 2 types, got %v", cc.GetTypes())
+	}
+}
+
+func TestConventionalCommitConfig_GetTypeAliases(t *testing.T) {
+	path := writeConfig(t, `
+commit_message:
+  conventional_commit:
+    locale: ko
+`)
+	cfg, _ := config.Load(path)
+	cc := cfg.CommitMessage.ConventionalCommit
+	aliases := cc.GetTypeAliases()
+	if len(aliases) == 0 {
+		t.Error("locale=ko should have built-in aliases")
+	}
+
+	// 사용자 정의 aliases
+	path2 := writeConfig(t, `
+commit_message:
+  conventional_commit:
+    type_aliases:
+      "기능": feat
+`)
+	cfg2, _ := config.Load(path2)
+	cc2 := cfg2.CommitMessage.ConventionalCommit
+	if cc2.GetTypeAliases()["기능"] != "feat" {
+		t.Error("expected custom alias 기능=feat")
+	}
+}
+
+func TestConventionalCommitConfig_GetAllAllowedTypes(t *testing.T) {
+	path := writeConfig(t, `
+commit_message:
+  conventional_commit:
+    locale: ko
+`)
+	cfg, _ := config.Load(path)
+	cc := cfg.CommitMessage.ConventionalCommit
+	all := cc.GetAllAllowedTypes()
+	if len(all) <= len(config.DefaultConventionalTypes) {
+		t.Error("expected more types when locale aliases are included")
+	}
+}
+
+func TestConventionalCommitConfig_ResolveType(t *testing.T) {
+	path := writeConfig(t, `
+commit_message:
+  conventional_commit:
+    locale: ko
+`)
+	cfg, _ := config.Load(path)
+	cc := cfg.CommitMessage.ConventionalCommit
+	if cc.ResolveType("기능") != "feat" {
+		t.Errorf("expected feat, got %q", cc.ResolveType("기능"))
+	}
+	if cc.ResolveType("feat") != "feat" {
+		t.Errorf("standard type should pass through, got %q", cc.ResolveType("feat"))
+	}
+}
+
+func TestCommitMessageConfig_IsEnabled(t *testing.T) {
+	path := writeConfig(t, `
+commit_message:
+  enabled: false
+`)
+	cfg, _ := config.Load(path)
+	if cfg.CommitMessage.IsEnabled() {
+		t.Error("expected enabled=false")
+	}
+}
+
+func TestCommitMessageConfig_IsNoEmoji(t *testing.T) {
+	path := writeConfig(t, `
+commit_message:
+  no_emoji: true
+`)
+	cfg, _ := config.Load(path)
+	if !cfg.CommitMessage.IsNoEmoji() {
+		t.Error("expected no_emoji=true")
+	}
+}
+
+func TestCommitMessageConfig_CoauthorShouldRemove(t *testing.T) {
+	path := writeConfig(t, `
+commit_message:
+  coauthor_remove_emails:
+    - "*@myai.com"
+`)
+	cfg, _ := config.Load(path)
+	cm := cfg.CommitMessage
+
+	// 내장 AI 패턴
+	if !cm.CoauthorShouldRemove("noreply@anthropic.com") {
+		t.Error("anthropic should be removed")
+	}
+	// 사용자 정의 패턴
+	if !cm.CoauthorShouldRemove("bot@myai.com") {
+		t.Error("custom pattern should match")
+	}
+	// 일반 사람
+	if cm.CoauthorShouldRemove("developer@example.com") {
+		t.Error("regular developer should not be removed")
+	}
+}
+
+func TestExtractCoauthorEmail(t *testing.T) {
+	cases := []struct {
+		line  string
+		email string
+	}{
+		{"Co-authored-by: Bot <bot@example.com>", "bot@example.com"},
+		{"Co-authored-by: No Email", ""},
+		{"", ""},
+		{"<only-email@test.com>", "only-email@test.com"},
+	}
+	for _, tc := range cases {
+		got := config.ExtractCoauthorEmail(tc.line)
+		if got != tc.email {
+			t.Errorf("ExtractCoauthorEmail(%q) = %q, want %q", tc.line, got, tc.email)
+		}
+	}
+}
+
+func TestBinaryFileConfig_IsEnabled(t *testing.T) {
+	path := writeConfig(t, `
+binary_file:
+  enabled: false
+`)
+	cfg, _ := config.Load(path)
+	if cfg.BinaryFile.IsEnabled() {
+		t.Error("expected binary_file.enabled=false")
+	}
+}
