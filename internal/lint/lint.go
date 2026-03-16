@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v3"
 )
 
@@ -205,6 +206,24 @@ func stripTrailingCommas(s string) string {
 		out = append(out, runes[i])
 	}
 	return string(out)
+}
+
+// ValidateTOML: 콘텐츠가 유효한 TOML인지 검사.
+func ValidateTOML(filename, content string) []ValidationError {
+	var v any
+	_, err := toml.Decode(content, &v)
+	if err == nil {
+		return nil
+	}
+	line := 1
+	if pe, ok := err.(toml.ParseError); ok {
+		line = pe.Position.Line
+	}
+	return []ValidationError{{
+		File:    filename,
+		Line:    line,
+		Message: fmt.Sprintf("TOML syntax error: %s", err),
+	}}
 }
 
 // countLines: 주어진 바이트 오프셋에서 1-based 줄 번호를 반환.

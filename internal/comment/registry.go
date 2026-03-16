@@ -13,11 +13,16 @@ func init() {
 		&GoParser{},
 		// JS/TS: hasTemplate=true 로 백틱 템플릿 리터럴을 처리합니다.
 		NewCStyleParser([]string{".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}, true),
-		// C 계열 및 JVM 언어
-		NewCStyleParser([]string{".java", ".kt", ".kts", ".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".cs", ".swift", ".rs"}, false),
+		// C 계열 및 JVM 언어, PHP
+		NewCStyleParser([]string{".java", ".kt", ".kts", ".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".cs", ".swift", ".rs", ".php", ".phtml"}, false),
 		&PythonParser{},
 		&DockerfileParser{},
 		&MarkdownParser{},
+		// Ruby: =begin/=end 블록 주석 포함
+		NewHashStyleParser([]string{".rb", ".rake", ".gemspec"}, true),
+		// Shell: # 줄 주석만
+		NewHashStyleParser([]string{".sh", ".bash", ".zsh", ".fish", ".ksh"}, false),
+		&HTMLParser{},
 	}
 }
 
@@ -45,6 +50,10 @@ var languageExtensions = map[string][]string{
 	"rust":       {".rs"},
 	"dockerfile": {"dockerfile"},
 	"markdown":   {".md", ".markdown"},
+	"ruby":       {".rb", ".rake", ".gemspec"},
+	"shell":      {".sh", ".bash", ".zsh", ".fish", ".ksh"},
+	"php":        {".php", ".phtml"},
+	"html":       {".html", ".htm", ".svg"},
 }
 
 // ExtensionsForLanguages 는 주어진 언어 이름들의 파일 확장자 합집합을 반환합니다.

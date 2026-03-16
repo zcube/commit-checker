@@ -82,6 +82,19 @@ func CheckLint(cfg *config.Config) ([]string, error) {
 				continue
 			}
 			validationErrs = lint.ValidateXML(path, content)
+
+		case ".toml":
+			if !cfg.Lint.TOML.IsEnabled() {
+				continue
+			}
+			if pathutil.MatchesAny(path, cfg.Lint.TOML.IgnoreFiles) {
+				continue
+			}
+			content, err := gitdiff.GetStagedContent(path)
+			if err != nil {
+				continue
+			}
+			validationErrs = lint.ValidateTOML(path, content)
 		}
 
 		for _, ve := range validationErrs {

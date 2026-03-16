@@ -41,6 +41,10 @@ msg.conventional_type_error:
   other: "커밋 메시지 타입 '{{.Type}}'은(는) 허용되지 않습니다; 허용된 타입: {{.Types}}"
 msg.conventional_scope_required:
   other: "커밋 메시지에 스코프가 필요합니다: {{.Subject}}"
+msg.subject_too_long:
+  other: "커밋 메시지 제목이 너무 깁니다 ({{.Length}}자 > 최대 {{.Max}}자)"
+msg.body_line_too_long:
+  other: "커밋 메시지 본문 {{.Line}}번 줄이 너무 깁니다 ({{.Length}}자 > 최대 {{.Max}}자)"
 
 # fix 변경 사항 설명
 fix.removed_ai_coauthor:
@@ -55,22 +59,14 @@ fix.removed_bad_rune:
   other: "{{.Line}}번 줄, {{.Col}}열: 잘못된 UTF-8 바이트 0x{{.Byte}} 제거"
 
 # cmd 출력 메시지
-cmd.no_commits_found:
-  other: "범위 내 커밋이 없습니다."
-cmd.checked_no_fixes:
-  other: "{{.Count}}개 커밋 검사 완료 — 자동 수정 가능한 위반 사항 없음."
-cmd.found_fixable:
-  other: "자동 수정 가능한 위반이 있는 커밋 {{.Count}}개 발견:"
-cmd.language_violations_header:
-  other: "언어 위반 (수동 수정 필요):"
-cmd.dry_run_no_changes:
-  other: "(dry-run: 변경 사항이 저장되지 않음)"
-cmd.rewriting_commits:
-  other: "git filter-branch로 {{.Count}}개 커밋 재작성 중..."
-cmd.rewrite_done:
-  other: "완료. 히스토리가 성공적으로 재작성되었습니다."
-cmd.force_push_note:
-  other: "주의: 이미 푸시된 커밋이 있다면 강제 푸시(force-push)가 필요합니다."
+cmd.fix.no_staged_files:
+  other: "수정할 스테이지된 파일이 없습니다."
+cmd.fix.no_issues:
+  other: "이슈가 없습니다 — 모든 파일이 정상입니다."
+cmd.fix.dry_run_summary:
+  other: "{{.Count}}개 파일에서 이슈 발견 (dry-run: 변경 사항 저장 안 됨)"
+cmd.fix.fixed_summary:
+  other: "{{.Count}}개 파일 수정 완료"
 cmd.no_staged_changes:
   other: "스테이지된 변경 사항이 없습니다 — 건너뜁니다."
 
@@ -149,16 +145,17 @@ cmd.msg.long:
     --fix 옵션 사용 시, 자동 수정 가능한 위반 사항(언어 검사 제외)이
     커밋 전에 파일 내에서 수정됩니다.
 cmd.fix.short:
-  other: "커밋 메시지 위반 사항을 수정하기 위해 Git 히스토리를 재작성합니다"
+  other: "스테이지된 파일의 유니코드 이슈를 자동 수정합니다"
 cmd.fix.long:
   other: |-
-    커밋 메시지 정책 위반 사항을 스캔하고 자동으로 재작성합니다.
+    스테이지된 파일에서 자동 수정 가능한 유니코드 이슈를 수정합니다.
 
-    자동 수정 가능한 위반 사항:
-      - Co-authored-by: 트레일러 (제거)
+    자동 수정 가능한 이슈:
       - 비표준 유니코드 공백 문자 (교체 또는 제거)
       - ASCII와 유사한 모호한 유니코드 문자 (ASCII로 교체)
       - 잘못된 UTF-8 바이트 시퀀스 (제거)
+
+    수정된 파일은 자동으로 다시 스테이지됩니다.
 
     커밋 본문의 언어 위반은 보고되지만 자동 수정되지 않습니다.
 
@@ -209,12 +206,8 @@ flag.format:
   other: "출력 형식: text 또는 json"
 flag.msg_fix:
   other: "검사 전 위반 사항 자동 수정"
-flag.fix_range:
-  other: "스캔할 git 리비전 범위 (예: HEAD~5..HEAD, main..HEAD)"
-flag.fix_mine:
-  other: "현재 git 사용자가 작성한 커밋만 스캔"
 flag.fix_dry_run:
-  other: "히스토리를 수정하지 않고 변경될 내용 표시"
+  other: "변경하지 않고 수정될 내용 표시"
 flag.init_force:
   other: "기존 파일 덮어쓰기"
 flag.init_lang:

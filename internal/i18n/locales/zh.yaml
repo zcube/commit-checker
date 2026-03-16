@@ -41,6 +41,10 @@ msg.conventional_type_error:
   other: "提交消息类型 '{{.Type}}' 不被允许; 允许的类型: {{.Types}}"
 msg.conventional_scope_required:
   other: "提交消息需要作用域: {{.Subject}}"
+msg.subject_too_long:
+  other: "提交标题过长 ({{.Length}}字 > 最大{{.Max}}字)"
+msg.body_line_too_long:
+  other: "提交正文第{{.Line}}行过长 ({{.Length}}字 > 最大{{.Max}}字)"
 
 # fix 变更说明
 fix.removed_ai_coauthor:
@@ -55,22 +59,14 @@ fix.removed_bad_rune:
   other: "第{{.Line}}行, 第{{.Col}}列: 删除无效的UTF-8字节 0x{{.Byte}}"
 
 # cmd 输出消息
-cmd.no_commits_found:
-  other: "范围内未找到提交。"
-cmd.checked_no_fixes:
-  other: "已检查{{.Count}}个提交 — 未发现可自动修复的违规。"
-cmd.found_fixable:
-  other: "发现{{.Count}}个包含可自动修复违规的提交:"
-cmd.language_violations_header:
-  other: "语言违规 (需要手动修复):"
-cmd.dry_run_no_changes:
-  other: "(dry-run: 未保存任何更改)"
-cmd.rewriting_commits:
-  other: "正在使用git filter-branch重写{{.Count}}个提交..."
-cmd.rewrite_done:
-  other: "完成。历史记录已成功重写。"
-cmd.force_push_note:
-  other: "注意: 如果这些提交已经推送过，您需要强制推送(force-push)。"
+cmd.fix.no_staged_files:
+  other: "没有需要修复的已暂存文件。"
+cmd.fix.no_issues:
+  other: "未发现问题 — 所有文件均正常。"
+cmd.fix.dry_run_summary:
+  other: "在{{.Count}}个文件中发现问题 (dry-run: 未保存更改)"
+cmd.fix.fixed_summary:
+  other: "已修复{{.Count}}个文件"
 cmd.no_staged_changes:
   other: "未找到暂存的更改 — 跳过。"
 
@@ -148,24 +144,21 @@ cmd.msg.long:
 
     使用--fix时，可自动修复的违规(除语言检查外)将在提交前就地修正。
 cmd.fix.short:
-  other: "重写Git历史以修复提交消息违规"
+  other: "自动修复已暂存文件中的Unicode问题"
 cmd.fix.long:
   other: |-
-    扫描提交消息策略违规并自动重写。
+    扫描已暂存文件中可自动修复的Unicode问题并就地修正。
 
-    可自动修复的违规:
-      - Co-authored-by: 尾部标记 (删除)
+    可自动修复的问题:
       - 不可见/非标准Unicode空格字符 (替换或删除)
       - 看起来像ASCII的模糊Unicode字符 (替换为ASCII)
       - 无效的UTF-8字节序列 (删除)
 
-    提交正文中的语言违规会被报告，但不会自动修复。
+    修复的文件将自动重新暂存。
 
     示例:
-      commit-checker fix --dry-run                   # 预览所有提交的修复
-      commit-checker fix --range HEAD~5..HEAD        # 修复最近5个提交
-      commit-checker fix --mine --dry-run            # 预览我的提交的修复
-      commit-checker fix --range main..HEAD          # 修复main中没有的提交
+      commit-checker fix             # 修复已暂存文件
+      commit-checker fix --dry-run   # 预览修复内容而不保存更改
 cmd.validate.short:
   other: "验证配置文件"
 cmd.validate.long:
@@ -208,12 +201,8 @@ flag.format:
   other: "输出格式: text 或 json"
 flag.msg_fix:
   other: "检查前自动修复违规"
-flag.fix_range:
-  other: "要扫描的git修订范围 (例如 HEAD~5..HEAD, main..HEAD)"
-flag.fix_mine:
-  other: "只扫描当前git用户编写的提交"
 flag.fix_dry_run:
-  other: "显示将要更改的内容而不修改历史"
+  other: "显示将要修复的内容而不写入文件"
 flag.init_force:
   other: "覆盖现有文件"
 flag.init_lang:

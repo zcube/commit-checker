@@ -5,7 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/zcube/commit-checker/internal/comment"
 	"github.com/zcube/commit-checker/internal/config"
@@ -51,20 +55,39 @@ func RunBinaryFiles(cfg *config.Config) ([]string, error) {
 
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore, cfg.BinaryFile.IgnoreFiles...)
 
-	var errs []string
+	var (
+		mu   sync.Mutex
+		errs []string
+	)
+	g := new(errgroup.Group)
+	sem := make(chan struct{}, runtime.NumCPU()*2)
+
 	for _, path := range files {
+		path := path
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			continue
 		}
-		content, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		if encoding.IsBinary(content) {
-			errs = append(errs, i18n.T("diff.binary_file_error", map[string]any{
-				"Path": path,
-			}))
-		}
+		g.Go(func() error {
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return nil
+			}
+			if encoding.IsBinary(content) {
+				msg := i18n.T("diff.binary_file_error", map[string]any{
+					"Path": path,
+				})
+				mu.Lock()
+				errs = append(errs, msg)
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return errs, nil
 }
@@ -82,35 +105,53 @@ func RunEncoding(cfg *config.Config) ([]string, error) {
 
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore, cfg.Encoding.IgnoreFiles...)
 
-	var errs []string
+	var (
+		mu   sync.Mutex
+		errs []string
+	)
+	g := new(errgroup.Group)
+	sem := make(chan struct{}, runtime.NumCPU()*2)
+
 	for _, path := range files {
+		path := path
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			continue
 		}
+		g.Go(func() error {
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		// editorconfig에서 charset이 utf-8이 아닌 경우 건너뜀
-		def, defErr := ecmod.GetDefinition(path)
-		if defErr == nil && def != nil && def.Charset != "" &&
-			def.Charset != "utf-8" && def.Charset != "utf-8-bom" {
-			continue
-		}
+			// editorconfig에서 charset이 utf-8이 아닌 경우 건너뜀
+			def, defErr := ecmod.GetDefinition(path)
+			if defErr == nil && def != nil && def.Charset != "" &&
+				def.Charset != "utf-8" && def.Charset != "utf-8-bom" {
+				return nil
+			}
 
-		content, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return nil
+			}
 
-		if encoding.IsBinary(content) {
-			continue
-		}
+			if encoding.IsBinary(content) {
+				return nil
+			}
 
-		result := encoding.CheckUTF8(content)
-		if !result.Valid {
-			errs = append(errs, i18n.T("diff.encoding_error", map[string]any{
-				"Path":    path,
-				"Charset": result.DetectedCharset,
-			}))
-		}
+			result := encoding.CheckUTF8(content)
+			if !result.Valid {
+				msg := i18n.T("diff.encoding_error", map[string]any{
+					"Path":    path,
+					"Charset": result.DetectedCharset,
+				})
+				mu.Lock()
+				errs = append(errs, msg)
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return errs, nil
 }
@@ -127,72 +168,115 @@ func RunLint(cfg *config.Config) ([]string, error) {
 	}
 
 	globalIgnore := cfg.Exceptions.GlobalIgnore
-	var errs []string
+
+	var (
+		mu   sync.Mutex
+		errs []string
+	)
+	g := new(errgroup.Group)
+	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for _, path := range files {
+		path := path
 		if pathutil.MatchesAny(path, globalIgnore) {
 			continue
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		var validationErrs []lint.ValidationError
-
 		switch ext {
-		case ".yaml", ".yml":
-			if !cfg.Lint.YAML.IsEnabled() {
-				continue
-			}
-			if pathutil.MatchesAny(path, cfg.Lint.YAML.IgnoreFiles) {
-				continue
-			}
-			content, err := os.ReadFile(path)
-			if err != nil {
-				continue
-			}
-			validationErrs = lint.ValidateYAML(path, string(content))
-
-		case ".json":
-			if !cfg.Lint.JSON.IsEnabled() {
-				continue
-			}
-			ignoreFiles := cfg.Lint.JSON.IgnoreFiles
-			if len(ignoreFiles) == 0 {
-				ignoreFiles = lint.DefaultJSONIgnoreFiles
-			}
-			if pathutil.MatchesAny(path, ignoreFiles) {
-				continue
-			}
-			content, err := os.ReadFile(path)
-			if err != nil {
-				continue
-			}
-			if cfg.Lint.JSON.IsAllowJSON5() {
-				validationErrs = lint.ValidateJSON5(path, string(content))
-			} else {
-				validationErrs = lint.ValidateJSON(path, string(content))
-			}
-
-		case ".xml":
-			if !cfg.Lint.XML.IsEnabled() {
-				continue
-			}
-			if pathutil.MatchesAny(path, cfg.Lint.XML.IgnoreFiles) {
-				continue
-			}
-			content, err := os.ReadFile(path)
-			if err != nil {
-				continue
-			}
-			validationErrs = lint.ValidateXML(path, string(content))
+		case ".yaml", ".yml", ".json", ".xml", ".toml":
+			// 처리 대상
+		default:
+			continue
 		}
 
-		for _, ve := range validationErrs {
-			errs = append(errs, i18n.T("diff.lint_error", map[string]any{
-				"Path":    ve.File,
-				"Line":    ve.Line,
-				"Message": ve.Message,
-			}))
-		}
+		g.Go(func() error {
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			ext := strings.ToLower(filepath.Ext(path))
+			var validationErrs []lint.ValidationError
+
+			switch ext {
+			case ".yaml", ".yml":
+				if !cfg.Lint.YAML.IsEnabled() {
+					return nil
+				}
+				if pathutil.MatchesAny(path, cfg.Lint.YAML.IgnoreFiles) {
+					return nil
+				}
+				content, err := os.ReadFile(path)
+				if err != nil {
+					return nil
+				}
+				validationErrs = lint.ValidateYAML(path, string(content))
+
+			case ".json":
+				if !cfg.Lint.JSON.IsEnabled() {
+					return nil
+				}
+				ignoreFiles := cfg.Lint.JSON.IgnoreFiles
+				if len(ignoreFiles) == 0 {
+					ignoreFiles = lint.DefaultJSONIgnoreFiles
+				}
+				if pathutil.MatchesAny(path, ignoreFiles) {
+					return nil
+				}
+				content, err := os.ReadFile(path)
+				if err != nil {
+					return nil
+				}
+				if cfg.Lint.JSON.IsAllowJSON5() {
+					validationErrs = lint.ValidateJSON5(path, string(content))
+				} else {
+					validationErrs = lint.ValidateJSON(path, string(content))
+				}
+
+			case ".xml":
+				if !cfg.Lint.XML.IsEnabled() {
+					return nil
+				}
+				if pathutil.MatchesAny(path, cfg.Lint.XML.IgnoreFiles) {
+					return nil
+				}
+				content, err := os.ReadFile(path)
+				if err != nil {
+					return nil
+				}
+				validationErrs = lint.ValidateXML(path, string(content))
+
+			case ".toml":
+				if !cfg.Lint.TOML.IsEnabled() {
+					return nil
+				}
+				if pathutil.MatchesAny(path, cfg.Lint.TOML.IgnoreFiles) {
+					return nil
+				}
+				content, err := os.ReadFile(path)
+				if err != nil {
+					return nil
+				}
+				validationErrs = lint.ValidateTOML(path, string(content))
+			}
+
+			if len(validationErrs) > 0 {
+				msgs := make([]string, 0, len(validationErrs))
+				for _, ve := range validationErrs {
+					msgs = append(msgs, i18n.T("diff.lint_error", map[string]any{
+						"Path":    ve.File,
+						"Line":    ve.Line,
+						"Message": ve.Message,
+					}))
+				}
+				mu.Lock()
+				errs = append(errs, msgs...)
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return errs, nil
 }
@@ -212,33 +296,54 @@ func RunEditorConfig(cfg *config.Config) ([]string, error) {
 		return nil, err
 	}
 
-	var errs []string
+	var (
+		mu   sync.Mutex
+		errs []string
+	)
+	g := new(errgroup.Group)
+	sem := make(chan struct{}, runtime.NumCPU()*2)
+
 	for _, path := range files {
+		path := path
 		if pathutil.MatchesAny(path, cfg.Exceptions.GlobalIgnore) {
 			continue
 		}
 		if pathutil.MatchesAny(path, cfg.EditorConfig.IgnoreFiles) {
 			continue
 		}
+		g.Go(func() error {
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		def, err := ecmod.GetDefinition(path)
-		if err != nil || def == nil {
-			continue
-		}
+			def, err := ecmod.GetDefinition(path)
+			if err != nil || def == nil {
+				return nil
+			}
 
-		content, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return nil
+			}
 
-		violations := ecmod.Check(path, content, def)
-		for _, v := range violations {
-			errs = append(errs, i18n.T("diff.editorconfig_error", map[string]any{
-				"Path":    v.File,
-				"Line":    v.Line,
-				"Message": v.Message,
-			}))
-		}
+			violations := ecmod.Check(path, content, def)
+			if len(violations) > 0 {
+				msgs := make([]string, 0, len(violations))
+				for _, v := range violations {
+					msgs = append(msgs, i18n.T("diff.editorconfig_error", map[string]any{
+						"Path":    v.File,
+						"Line":    v.Line,
+						"Message": v.Message,
+					}))
+				}
+				mu.Lock()
+				errs = append(errs, msgs...)
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return errs, nil
 }
@@ -271,9 +376,15 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 		cfg.Exceptions.CommentLanguageIgnore...)
 	ignorePatterns = append(ignorePatterns, cfg.CommentLanguage.IgnoreFiles...)
 
-	var errs []string
+	var (
+		mu   sync.Mutex
+		errs []string
+	)
+	g := new(errgroup.Group)
+	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for _, filePath := range files {
+		filePath := filePath
 		if !gitdiff.HasExtension(filePath, extensions) {
 			continue
 		}
@@ -281,67 +392,83 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 			continue
 		}
 
-		parser := comment.GetParser(filePath)
-		if parser == nil {
-			continue
-		}
+		g.Go(func() error {
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			continue
-		}
-
-		comments, err := parser.ParseFile(string(content))
-		if err != nil {
-			logger.Warn("comment parse warning", "path", filePath, "error", err)
-		}
-
-		fileLang := resolveFileLang(filePath, cfg)
-		states := directive.Analyze(comments, fileLang)
-
-		for _, u := range buildCommentUnits(comments, states, checkStrings) {
-			text := langdetect.StripAllowedWords(u.text, allowedWords)
-			if u.kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
-				continue
+			parser := comment.GetParser(filePath)
+			if parser == nil {
+				return nil
 			}
 
-			ok, hasContent := langdetect.IsRequiredLanguage(text, u.lang, minLength, skipDirectives)
-			if !hasContent {
-				continue
+			content, err := os.ReadFile(filePath)
+			if err != nil {
+				return nil
 			}
-			if !ok {
-				detected := langdetect.Dominant(text)
-				kindID := "diff.kind_comment"
-				if u.kind == comment.KindString {
-					kindID = "diff.kind_string_literal"
+
+			comments, err := parser.ParseFile(string(content))
+			if err != nil {
+				logger.Warn("comment parse warning", "path", filePath, "error", err)
+			}
+
+			fileLang := resolveFileLang(filePath, cfg)
+			states := directive.Analyze(comments, fileLang)
+
+			var msgs []string
+			for _, u := range buildCommentUnits(comments, states, checkStrings) {
+				text := langdetect.StripAllowedWords(u.text, allowedWords)
+				if u.kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
+					continue
 				}
-				errs = append(errs, i18n.T("diff.comment_language_error", map[string]any{
-					"Path":     filePath,
-					"Line":     u.line,
-					"Kind":     i18n.T(kindID, nil),
-					"Language": u.lang,
-					"Detected": detected,
-					"Text":     truncate(text, 80),
-				}))
-			}
 
-			if noEmoji {
-				emojis := emoji.FindEmojis(text)
-				for _, e := range emojis {
+				ok, hasContent := langdetect.IsRequiredLanguage(text, u.lang, minLength, skipDirectives)
+				if !hasContent {
+					continue
+				}
+				if !ok {
+					detected := langdetect.Dominant(text)
 					kindID := "diff.kind_comment"
 					if u.kind == comment.KindString {
 						kindID = "diff.kind_string_literal"
 					}
-					errs = append(errs, i18n.T("diff.emoji_error", map[string]any{
+					msgs = append(msgs, i18n.T("diff.comment_language_error", map[string]any{
 						"Path":     filePath,
-						"Line":     u.line + e.Line - 1,
+						"Line":     u.line,
 						"Kind":     i18n.T(kindID, nil),
-						"Char":     e.Char,
-						"CharCode": fmt.Sprintf("%04X", e.Code),
+						"Language": u.lang,
+						"Detected": detected,
+						"Text":     truncate(text, 80),
 					}))
 				}
+
+				if noEmoji {
+					emojis := emoji.FindEmojis(text)
+					for _, e := range emojis {
+						kindID := "diff.kind_comment"
+						if u.kind == comment.KindString {
+							kindID = "diff.kind_string_literal"
+						}
+						msgs = append(msgs, i18n.T("diff.emoji_error", map[string]any{
+							"Path":     filePath,
+							"Line":     u.line + e.Line - 1,
+							"Kind":     i18n.T(kindID, nil),
+							"Char":     e.Char,
+							"CharCode": fmt.Sprintf("%04X", e.Code),
+						}))
+					}
+				}
 			}
-		}
+
+			if len(msgs) > 0 {
+				mu.Lock()
+				errs = append(errs, msgs...)
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return errs, nil
 }

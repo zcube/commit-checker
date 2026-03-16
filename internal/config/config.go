@@ -195,6 +195,12 @@ type CommitMessageConfig struct {
 
 	// ConventionalCommit: Conventional Commits 형식 강제 설정.
 	ConventionalCommit ConventionalCommitConfig `yaml:"conventional_commit"`
+
+	// SubjectLimit: 커밋 메시지 제목(첫 번째 줄) 글자 수 제한.
+	SubjectLimit SubjectLimitConfig `yaml:"subject_limit"`
+
+	// BodyLineLimit: 커밋 메시지 본문 각 줄의 글자 수 제한.
+	BodyLineLimit BodyLineLimitConfig `yaml:"body_line_limit"`
 }
 
 // CommitMessageLanguageConfig: 커밋 메시지 본문의 자연어 검사 설정.
@@ -386,6 +392,56 @@ func (c *ConventionalCommitConfig) ResolveType(commitType string) string {
 	return commitType
 }
 
+// SubjectLimitConfig: 커밋 메시지 제목 글자 수 제한 설정.
+type SubjectLimitConfig struct {
+	// Enabled: 제목 길이 검사 활성화 여부 (기본값: false).
+	Enabled *bool `yaml:"enabled"`
+
+	// MaxLength: 제목 최대 글자 수 (기본값: 72).
+	MaxLength int `yaml:"max_length"`
+}
+
+// IsEnabled: 제목 길이 검사 활성화 여부 반환 (기본값: false).
+func (c *SubjectLimitConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return false
+	}
+	return *c.Enabled
+}
+
+// GetMaxLength: 제목 최대 글자 수 반환 (기본값: 72).
+func (c *SubjectLimitConfig) GetMaxLength() int {
+	if c.MaxLength <= 0 {
+		return 72
+	}
+	return c.MaxLength
+}
+
+// BodyLineLimitConfig: 커밋 메시지 본문 줄 길이 제한 설정.
+type BodyLineLimitConfig struct {
+	// Enabled: 본문 줄 길이 검사 활성화 여부 (기본값: false).
+	Enabled *bool `yaml:"enabled"`
+
+	// MaxLength: 본문 각 줄 최대 글자 수 (기본값: 100).
+	MaxLength int `yaml:"max_length"`
+}
+
+// IsEnabled: 본문 줄 길이 검사 활성화 여부 반환 (기본값: false).
+func (c *BodyLineLimitConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return false
+	}
+	return *c.Enabled
+}
+
+// GetMaxLength: 본문 각 줄 최대 글자 수 반환 (기본값: 100).
+func (c *BodyLineLimitConfig) GetMaxLength() int {
+	if c.MaxLength <= 0 {
+		return 100
+	}
+	return c.MaxLength
+}
+
 // BuiltinAICoauthorPatterns: 내장 AI 도구 이메일 glob 패턴 목록.
 // GitHub Copilot, Claude, Cursor, Codeium, Tabnine, Amazon Q 등 주요 AI 도구를 대상으로 함.
 var BuiltinAICoauthorPatterns = []string{
@@ -517,6 +573,9 @@ type LintConfig struct {
 
 	// XML lint 설정
 	XML LintRuleConfig `yaml:"xml"`
+
+	// TOML lint 설정
+	TOML LintRuleConfig `yaml:"toml"`
 }
 
 // IsEnabled: lint 검사 활성화 여부 반환 (기본값: true).

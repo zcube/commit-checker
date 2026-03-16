@@ -41,6 +41,10 @@ msg.conventional_type_error:
   other: "commit message type '{{.Type}}' is not allowed; allowed types: {{.Types}}"
 msg.conventional_scope_required:
   other: "commit message scope is required: {{.Subject}}"
+msg.subject_too_long:
+  other: "commit subject is too long ({{.Length}} chars > max {{.Max}})"
+msg.body_line_too_long:
+  other: "commit body line {{.Line}} is too long ({{.Length}} chars > max {{.Max}})"
 
 # fix change descriptions
 fix.removed_ai_coauthor:
@@ -55,22 +59,14 @@ fix.removed_bad_rune:
   other: "line {{.Line}}, col {{.Col}}: removed invalid UTF-8 byte 0x{{.Byte}}"
 
 # cmd output messages
-cmd.no_commits_found:
-  other: "No commits found in range."
-cmd.checked_no_fixes:
-  other: "Checked {{.Count}} commits — no auto-fixable violations found."
-cmd.found_fixable:
-  other: "Found {{.Count}} commit(s) with auto-fixable violations:"
-cmd.language_violations_header:
-  other: "Language violations (manual fix required):"
-cmd.dry_run_no_changes:
-  other: "(dry-run: no changes written)"
-cmd.rewriting_commits:
-  other: "Rewriting {{.Count}} commit(s) with git filter-branch..."
-cmd.rewrite_done:
-  other: "Done. History rewritten successfully."
-cmd.force_push_note:
-  other: "Note: if you have already pushed these commits, you will need to force-push."
+cmd.fix.no_staged_files:
+  other: "No staged files to fix."
+cmd.fix.no_issues:
+  other: "No issues found — all files look good."
+cmd.fix.dry_run_summary:
+  other: "Found issues in {{.Count}} file(s) (dry-run: no changes written)"
+cmd.fix.fixed_summary:
+  other: "Fixed {{.Count}} file(s)"
 cmd.no_staged_changes:
   other: "no staged changes found — skipping."
 
@@ -149,24 +145,21 @@ cmd.msg.long:
     With --fix, auto-fixable violations (all except language checks) are
     corrected in place before the commit proceeds.
 cmd.fix.short:
-  other: "Rewrite git history to fix commit message violations"
+  other: "Auto-fix Unicode issues in staged files"
 cmd.fix.long:
   other: |-
-    Scans commits for message policy violations and rewrites them automatically.
+    Scans staged files for auto-fixable Unicode issues and corrects them in place.
 
-    Auto-fixable violations:
-      - Co-authored-by: trailers (removed)
+    Auto-fixable issues:
       - Invisible / non-standard Unicode space characters (replaced or removed)
       - Ambiguous Unicode characters that look like ASCII (replaced with ASCII)
       - Invalid UTF-8 byte sequences (removed)
 
-    Language violations in commit bodies are reported but NOT auto-fixed.
+    Fixed files are automatically re-staged with git add.
 
     Examples:
-      commit-checker fix --dry-run                   # preview fixes for all commits
-      commit-checker fix --range HEAD~5..HEAD        # fix last 5 commits
-      commit-checker fix --mine --dry-run            # preview fixes for your commits
-      commit-checker fix --range main..HEAD          # fix commits not yet in main
+      commit-checker fix             # fix staged files
+      commit-checker fix --dry-run   # preview fixes without writing changes
 cmd.validate.short:
   other: "Validate the configuration file"
 cmd.validate.long:
@@ -209,12 +202,8 @@ flag.format:
   other: "output format: text or json"
 flag.msg_fix:
   other: "auto-fix violations in place before checking"
-flag.fix_range:
-  other: "git revision range to scan (e.g. HEAD~5..HEAD, main..HEAD)"
-flag.fix_mine:
-  other: "only scan commits authored by the current git user"
 flag.fix_dry_run:
-  other: "show what would be changed without modifying history"
+  other: "show what would be changed without writing files"
 flag.init_force:
   other: "overwrite existing file"
 flag.init_lang:

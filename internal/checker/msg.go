@@ -44,6 +44,12 @@ func CheckMsg(cfg *config.Config, content string) []string {
 	if cfg.CommitMessage.ConventionalCommit.IsEnabled() {
 		errs = append(errs, checkConventional(content, &cfg.CommitMessage.ConventionalCommit)...)
 	}
+	if cfg.CommitMessage.SubjectLimit.IsEnabled() {
+		errs = append(errs, checkSubjectLimit(content, &cfg.CommitMessage.SubjectLimit)...)
+	}
+	if cfg.CommitMessage.BodyLineLimit.IsEnabled() {
+		errs = append(errs, checkBodyLineLimit(content, &cfg.CommitMessage.BodyLineLimit)...)
+	}
 
 	return errs
 }
@@ -192,6 +198,45 @@ func checkMsgLanguage(content string, cfg *config.CommitMessageLanguageConfig) [
 		checkLine(i+1, lines[i])
 	}
 
+	return errs
+}
+
+// checkSubjectLimit: 커밋 메시지 제목(첫 번째 줄)의 글자 수 제한을 검사.
+func checkSubjectLimit(content string, cfg *config.SubjectLimitConfig) []string {
+	subject := strings.SplitN(strings.TrimRight(content, "\n"), "\n", 2)[0]
+	subject = strings.TrimSpace(subject)
+	maxLen := cfg.GetMaxLength()
+	runeLen := utf8.RuneCountInString(subject)
+	if runeLen > maxLen {
+		return []string{i18n.T("msg.subject_too_long", map[string]interface{}{
+			"Length": runeLen,
+			"Max":    maxLen,
+		})}
+	}
+	return nil
+}
+
+// checkBodyLineLimit: 커밋 메시지 본문 각 줄의 글자 수 제한을 검사.
+func checkBodyLineLimit(content string, cfg *config.BodyLineLimitConfig) []string {
+	lines := strings.Split(strings.TrimRight(content, "\n"), "\n")
+	maxLen := cfg.GetMaxLength()
+	var errs []string
+	// 제목(첫 줄) + 빈 구분자(두 번째 줄)는 건너뜁니다.
+	start := 1
+	if len(lines) > 1 && strings.TrimSpace(lines[1]) == "" {
+		start = 2
+	}
+	for i := start; i < len(lines); i++ {
+		line := lines[i]
+		runeLen := utf8.RuneCountInString(line)
+		if runeLen > maxLen {
+			errs = append(errs, i18n.T("msg.body_line_too_long", map[string]interface{}{
+				"Line":   i + 1,
+				"Length": runeLen,
+				"Max":    maxLen,
+			}))
+		}
+	}
 	return errs
 }
 

@@ -20,6 +20,22 @@ type FixResult struct {
 // NeedsFixing 는 커밋 메시지에 자동 수정 가능한 위반이 있는지 확인합니다.
 func (r FixResult) NeedsFixing() bool { return len(r.Changes) > 0 }
 
+// FixFileContent 는 소스 파일 내용에서 자동 수정 가능한 유니코드 이슈를 수정합니다.
+// EncodingConfig 설정에 따라 비가시 문자, 모호한 문자, 잘못된 UTF-8 바이트를 수정합니다.
+func FixFileContent(cfg *config.Config, content string) FixResult {
+	result := FixResult{Original: content, Fixed: content}
+	// 잘못된 룬을 먼저 처리해야 합니다.
+	result.Fixed, result.Changes = fixBadRunes(result.Fixed, result.Changes)
+	if cfg.Encoding.IsNoInvisibleChars() {
+		result.Fixed, result.Changes = fixInvisibleChars(result.Fixed, result.Changes)
+	}
+	if cfg.Encoding.IsNoAmbiguousChars() {
+		tables := charset.TablesForLocale(cfg.CommitMessage.Locale)
+		result.Fixed, result.Changes = fixAmbiguousChars(result.Fixed, result.Changes, tables)
+	}
+	return result
+}
+
 // FixMsg 는 커밋 메시지에 자동 수정 가능한 모든 교정을 적용합니다.
 // 구조적 위반(공동 작성자, 비가시 문자, 모호한 문자, 잘못된 룬)만 수정합니다.
 // 본문의 언어 위반은 자동 수정되지 않습니다.

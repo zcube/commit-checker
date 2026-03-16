@@ -41,6 +41,10 @@ msg.conventional_type_error:
   other: "コミットメッセージのタイプ '{{.Type}}' は許可されていません。許可されたタイプ: {{.Types}}"
 msg.conventional_scope_required:
   other: "コミットメッセージにスコープが必要です: {{.Subject}}"
+msg.subject_too_long:
+  other: "コミットのサブジェクトが長すぎます ({{.Length}}文字 > 最大{{.Max}}文字)"
+msg.body_line_too_long:
+  other: "コミット本文の{{.Line}}行目が長すぎます ({{.Length}}文字 > 最大{{.Max}}文字)"
 
 # fix 変更の説明
 fix.removed_ai_coauthor:
@@ -55,22 +59,14 @@ fix.removed_bad_rune:
   other: "{{.Line}}行目, {{.Col}}列: 不正なUTF-8バイト 0x{{.Byte}} を削除"
 
 # cmd 出力メッセージ
-cmd.no_commits_found:
-  other: "範囲内にコミットが見つかりません。"
-cmd.checked_no_fixes:
-  other: "{{.Count}}件のコミットを検査完了 — 自動修正可能な違反はありません。"
-cmd.found_fixable:
-  other: "自動修正可能な違反がある{{.Count}}件のコミットが見つかりました:"
-cmd.language_violations_header:
-  other: "言語違反 (手動修正が必要):"
-cmd.dry_run_no_changes:
-  other: "(dry-run: 変更は保存されません)"
-cmd.rewriting_commits:
-  other: "git filter-branchで{{.Count}}件のコミットを書き換え中..."
-cmd.rewrite_done:
-  other: "完了。履歴が正常に書き換えられました。"
-cmd.force_push_note:
-  other: "注意: 既にプッシュ済みのコミットがある場合、強制プッシュ(force-push)が必要です。"
+cmd.fix.no_staged_files:
+  other: "修正するステージ済みファイルがありません。"
+cmd.fix.no_issues:
+  other: "問題は見つかりませんでした — すべてのファイルは正常です。"
+cmd.fix.dry_run_summary:
+  other: "{{.Count}}個のファイルで問題を検出しました (dry-run: 変更は保存されません)"
+cmd.fix.fixed_summary:
+  other: "{{.Count}}個のファイルを修正しました"
 cmd.no_staged_changes:
   other: "ステージされた変更がありません — スキップします。"
 
@@ -149,24 +145,21 @@ cmd.msg.long:
     --fixを使用すると、自動修正可能な違反(言語チェック以外)が
     コミット前にファイル内で修正されます。
 cmd.fix.short:
-  other: "コミットメッセージ違反を修正するためにGit履歴を書き換えます"
+  other: "ステージ済みファイルのUnicode問題を自動修正します"
 cmd.fix.long:
   other: |-
-    コミットメッセージのポリシー違反をスキャンし、自動的に書き換えます。
+    ステージ済みファイルの自動修正可能なUnicode問題をスキャンして修正します。
 
-    自動修正可能な違反:
-      - Co-authored-by: トレーラー (削除)
+    自動修正可能な問題:
       - 不可視/非標準Unicodeスペース文字 (置換または削除)
       - ASCIIに似た紛らわしいUnicode文字 (ASCIIに置換)
       - 不正なUTF-8バイトシーケンス (削除)
 
-    コミット本文の言語違反は報告されますが、自動修正されません。
+    修正されたファイルは自動的に再ステージされます。
 
     例:
-      commit-checker fix --dry-run                   # すべてのコミットの修正プレビュー
-      commit-checker fix --range HEAD~5..HEAD        # 最新5件のコミットを修正
-      commit-checker fix --mine --dry-run            # 自分のコミットの修正プレビュー
-      commit-checker fix --range main..HEAD          # mainにないコミットを修正
+      commit-checker fix             # ステージ済みファイルを修正
+      commit-checker fix --dry-run   # 変更を保存せずにプレビュー
 cmd.validate.short:
   other: "設定ファイルを検証します"
 cmd.validate.long:
@@ -209,12 +202,8 @@ flag.format:
   other: "出力形式: text または json"
 flag.msg_fix:
   other: "チェック前に違反を自動修正"
-flag.fix_range:
-  other: "スキャンするgitリビジョン範囲 (例: HEAD~5..HEAD, main..HEAD)"
-flag.fix_mine:
-  other: "現在のgitユーザーが作成したコミットのみスキャン"
 flag.fix_dry_run:
-  other: "履歴を変更せずに変更内容を表示"
+  other: "ファイルを変更せずに修正内容を表示"
 flag.init_force:
   other: "既存ファイルを上書き"
 flag.init_lang:
