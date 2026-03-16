@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -27,7 +28,7 @@ var pushCmd = &cobra.Command{
 		if pushRange != "" {
 			commitRanges = []string{pushRange}
 		} else {
-			commitRanges = parsePushRangesFromStdin()
+			commitRanges = parsePushRanges(os.Stdin)
 		}
 
 		if len(commitRanges) == 0 {
@@ -63,11 +64,11 @@ var pushCmd = &cobra.Command{
 	},
 }
 
-// parsePushRangesFromStdin: git pre-push 훅 stdin 형식을 파싱하여 커밋 범위 목록을 반환합니다.
+// parsePushRanges: git pre-push 훅 stdin 형식을 파싱하여 커밋 범위 목록을 반환합니다.
 // 각 줄 형식: <local ref> <local sha1> <remote ref> <remote sha1>
-func parsePushRangesFromStdin() []string {
+func parsePushRanges(r io.Reader) []string {
 	var ranges []string
-	scanner := bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {

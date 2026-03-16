@@ -225,3 +225,26 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+func TestValidateTOML_Valid(t *testing.T) {
+	content := "[section]\nkey = \"value\"\nnumber = 42\n"
+	errs := ValidateTOML("test.toml", content)
+	if len(errs) != 0 {
+		t.Errorf("expected no errors for valid TOML, got: %v", errs)
+	}
+}
+
+func TestValidateTOML_Invalid(t *testing.T) {
+	content := "invalid = [unclosed\n"
+	errs := ValidateTOML("test.toml", content)
+	if len(errs) == 0 {
+		t.Error("expected error for invalid TOML, got none")
+	}
+}
+
+func TestValidateTOML_Empty(t *testing.T) {
+	errs := ValidateTOML("test.toml", "")
+	if len(errs) != 0 {
+		t.Errorf("expected no errors for empty TOML, got: %v", errs)
+	}
+}
