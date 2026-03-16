@@ -157,13 +157,9 @@ cmd.fix.long:
 
     수정된 파일은 자동으로 다시 스테이지됩니다.
 
-    커밋 본문의 언어 위반은 보고되지만 자동 수정되지 않습니다.
-
     예시:
-      commit-checker fix --dry-run                   # 모든 커밋 수정 미리 보기
-      commit-checker fix --range HEAD~5..HEAD        # 최근 5개 커밋 수정
-      commit-checker fix --mine --dry-run            # 내 커밋 수정 미리 보기
-      commit-checker fix --range main..HEAD          # main에 없는 커밋 수정
+      commit-checker fix             # 스테이지된 파일 수정
+      commit-checker fix --dry-run   # 변경하지 않고 수정 내용 미리 보기
 cmd.validate.short:
   other: "설정 파일을 검증합니다"
 cmd.validate.long:
