@@ -20,3 +20,10 @@ commit-msg:
     message-policy:
       # {1} 은 lefthook 이 커밋 메시지 파일 경로로 치환
       run: commit-checker msg {1}
+
+# pre-push 훅 예시: 푸쉬 전 커밋 메시지 정책 검사
+# 활성화하려면 아래 주석을 해제하세요
+# pre-push:
+#   commands:
+#     check-commits:
+#       run: commit-checker push

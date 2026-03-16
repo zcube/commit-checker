@@ -166,6 +166,21 @@ cmd.fix.long:
     Examples:
       commit-checker fix             # fix staged files
       commit-checker fix --dry-run   # preview fixes without writing changes
+cmd.push.short:
+  other: "Check commit messages for commits about to be pushed"
+cmd.push.long:
+  other: |-
+    Reads commit information from stdin (git pre-push hook format) and checks
+    each commit message against configured policies.
+
+    Use as a git pre-push hook via lefthook, husky, or similar tools:
+      pre-push:
+        commands:
+          check-commits:
+            run: commit-checker push
+
+    Or check a specific range manually:
+      commit-checker push --range origin/main..HEAD
 cmd.validate.short:
   other: "Validate the configuration file"
 cmd.validate.long:
@@ -214,6 +229,8 @@ flag.init_force:
   other: "overwrite existing file"
 flag.init_lang:
   other: "locale for default config (ko, en, ja, zh); auto-detected if omitted"
+flag.push_range:
+  other: "check commits in this range instead of reading from stdin (e.g. origin/main..HEAD)"
 flag.migrate_dry_run:
   other: "preview changes without modifying the file"
 

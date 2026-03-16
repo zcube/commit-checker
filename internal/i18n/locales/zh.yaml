@@ -165,6 +165,20 @@ cmd.fix.long:
     示例:
       commit-checker fix             # 修复已暂存文件
       commit-checker fix --dry-run   # 预览修复内容而不保存更改
+cmd.push.short:
+  other: "检查即将推送的提交消息"
+cmd.push.long:
+  other: |-
+    读取git pre-push钩子格式的stdin，并根据配置策略检查每个提交消息。
+
+    通过lefthook、husky等工具作为git pre-push钩子使用:
+      pre-push:
+        commands:
+          check-commits:
+            run: commit-checker push
+
+    或直接指定特定范围:
+      commit-checker push --range origin/main..HEAD
 cmd.validate.short:
   other: "验证配置文件"
 cmd.validate.long:
@@ -213,6 +227,8 @@ flag.init_force:
   other: "覆盖现有文件"
 flag.init_lang:
   other: "默认配置的语言环境 (ko, en, ja, zh); 省略时自动检测"
+flag.push_range:
+  other: "检查此范围的提交而不读取stdin (例如: origin/main..HEAD)"
 flag.migrate_dry_run:
   other: "预览更改而不修改文件"
 

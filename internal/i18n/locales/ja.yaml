@@ -166,6 +166,21 @@ cmd.fix.long:
     例:
       commit-checker fix             # ステージ済みファイルを修正
       commit-checker fix --dry-run   # 変更を保存せずにプレビュー
+cmd.push.short:
+  other: "プッシュされるコミットのメッセージを検査します"
+cmd.push.long:
+  other: |-
+    git pre-pushフック形式のstdinを読み込み、各コミットメッセージを
+    設定されたポリシーに従って検査します。
+
+    lefthook、huskyなどでgit pre-pushフックとして使用してください:
+      pre-push:
+        commands:
+          check-commits:
+            run: commit-checker push
+
+    または特定の範囲を直接指定できます:
+      commit-checker push --range origin/main..HEAD
 cmd.validate.short:
   other: "設定ファイルを検証します"
 cmd.validate.long:
@@ -214,6 +229,8 @@ flag.init_force:
   other: "既存ファイルを上書き"
 flag.init_lang:
   other: "デフォルト設定のロケール (ko, en, ja, zh); 省略時は自動検出"
+flag.push_range:
+  other: "stdinの代わりにこの範囲のコミットを検査します (例: origin/main..HEAD)"
 flag.migrate_dry_run:
   other: "ファイルを変更せずに変更内容をプレビュー"
 
