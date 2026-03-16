@@ -15,6 +15,8 @@ diff.encoding_error:
   other: "{{.Path}}: UTF-8이 아닌 인코딩 감지 (감지됨: {{.Charset}}) — 잘못된 인코딩의 파일은 커밋하면 안 됩니다"
 diff.emoji_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}에 이모지 {{.Char}} (U+{{.CharCode}})가 포함되어 있습니다 — 이모지는 허용되지 않습니다"
+diff.custom_rule_forbidden:
+  other: "{{.Path}}:{{.Line}}: {{.Name}}: {{.Message}}"
 diff.editorconfig_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.file_invisible_char:
@@ -35,6 +37,10 @@ msg.language_error:
   other: "커밋 메시지 {{.Line}}번 줄: {{.Language}}(으)로 작성되어야 합니다 (감지됨: {{.Detected}}): {{.Text}}"
 msg.emoji_error:
   other: "커밋 메시지 {{.Line}}번 줄, {{.Col}}열: 이모지 {{.Char}} (U+{{.CharCode}})는 허용되지 않습니다"
+msg.custom_rule_forbidden:
+  other: "커밋 메시지 {{.Line}}번 줄: {{.Name}}: {{.Message}}"
+msg.custom_rule_required:
+  other: "커밋 메시지: 필수 패턴을 찾을 수 없습니다 — {{.Name}}: {{.Message}}"
 msg.conventional_format_error:
   other: "커밋 메시지 제목이 컨벤셔널 커밋 형식을 따르지 않습니다 (<type>[(<scope>)][!]: <description>): {{.Subject}}"
 msg.conventional_type_error:
@@ -224,6 +230,8 @@ step.editorconfig_check:
   other: "EditorConfig 준수 검사"
 step.comment_language_check:
   other: "주석 언어 검사"
+step.custom_rules_check:
+  other: "커스텀 규칙 검사"
 
 # validate 메시지
 validate.config_valid:

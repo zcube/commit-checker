@@ -15,6 +15,8 @@ diff.encoding_error:
   other: "{{.Path}}: UTF-8以外のエンコーディングが検出されました (検出: {{.Charset}}) — 不正なエンコーディングのファイルはコミットすべきではありません"
 diff.emoji_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}に絵文字 {{.Char}} (U+{{.CharCode}}) が含まれています — 絵文字は許可されていません"
+diff.custom_rule_forbidden:
+  other: "{{.Path}}:{{.Line}}: {{.Name}}: {{.Message}}"
 diff.editorconfig_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.file_invisible_char:
@@ -35,6 +37,10 @@ msg.language_error:
   other: "コミットメッセージ {{.Line}}行目: {{.Language}}で記述する必要があります (検出: {{.Detected}}): {{.Text}}"
 msg.emoji_error:
   other: "コミットメッセージ {{.Line}}行目, {{.Col}}列: 絵文字 {{.Char}} (U+{{.CharCode}}) は許可されていません"
+msg.custom_rule_forbidden:
+  other: "コミットメッセージ {{.Line}}行目: {{.Name}}: {{.Message}}"
+msg.custom_rule_required:
+  other: "コミットメッセージ: 必須パターンが見つかりません — {{.Name}}: {{.Message}}"
 msg.conventional_format_error:
   other: "コミットメッセージの件名がConventional Commit形式に従っていません (<type>[(<scope>)][!]: <description>): {{.Subject}}"
 msg.conventional_type_error:
@@ -224,6 +230,8 @@ step.editorconfig_check:
   other: "EditorConfig準拠確認"
 step.comment_language_check:
   other: "コメント言語検査"
+step.custom_rules_check:
+  other: "カスタムルール検査"
 
 # validate メッセージ
 validate.config_valid:

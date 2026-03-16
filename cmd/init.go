@@ -117,6 +117,8 @@ lint:
     # allow_json5: false     # JSON5 형식 허용 (주석, trailing comma)
   xml:
     enabled: true
+  toml:
+    enabled: true
 
 encoding:
   enabled: true
@@ -159,6 +161,21 @@ commit_message:
 #     - "third_party/**"
 #   comment_language_ignore:
 #     - "legacy/**"
+
+# custom_rules: 정규식 기반 커스텀 검사 규칙.
+# custom_rules:
+#   commit_message:
+#     - name: no-wip
+#       pattern: "(?i)^WIP"
+#       message: "WIP 접두사를 제거하고 커밋하세요"
+#     - name: need-ticket
+#       pattern: "\\[PROJ-\\d+\\]"
+#       message: "커밋 제목에 티켓 ID를 포함하세요 (예: [PROJ-123])"
+#       required: true
+#   diff:
+#     - name: no-api-key
+#       pattern: "(?i)(api_key|secret_key)\\s*=\\s*['\"][^'\"]{10,}"
+#       message: "API 키가 감지되었습니다 — 커밋에 포함하지 마세요"
 `, requiredLang, locale, locale, localizedExample(locale), requiredLang)
 }
 

@@ -15,6 +15,8 @@ diff.encoding_error:
   other: "{{.Path}}: 检测到非UTF-8编码 (检测到: {{.Charset}}) — 编码错误的文件不应被提交"
 diff.emoji_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}包含表情符号 {{.Char}} (U+{{.CharCode}}) — 不允许使用表情符号"
+diff.custom_rule_forbidden:
+  other: "{{.Path}}:{{.Line}}: {{.Name}}: {{.Message}}"
 diff.editorconfig_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.file_invisible_char:
@@ -35,6 +37,10 @@ msg.language_error:
   other: "提交消息第{{.Line}}行: 必须使用{{.Language}}编写 (检测到: {{.Detected}}): {{.Text}}"
 msg.emoji_error:
   other: "提交消息第{{.Line}}行, 第{{.Col}}列: 表情符号 {{.Char}} (U+{{.CharCode}}) 不被允许"
+msg.custom_rule_forbidden:
+  other: "提交消息第{{.Line}}行: {{.Name}}: {{.Message}}"
+msg.custom_rule_required:
+  other: "提交消息: 未找到必须的模式 — {{.Name}}: {{.Message}}"
 msg.conventional_format_error:
   other: "提交消息标题不符合约定式提交格式 (<type>[(<scope>)][!]: <description>): {{.Subject}}"
 msg.conventional_type_error:
@@ -223,6 +229,8 @@ step.editorconfig_check:
   other: "EditorConfig合规性"
 step.comment_language_check:
   other: "注释语言检查"
+step.custom_rules_check:
+  other: "自定义规则检查"
 
 # validate 消息
 validate.config_valid:

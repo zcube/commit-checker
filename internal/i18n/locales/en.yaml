@@ -15,6 +15,8 @@ diff.encoding_error:
   other: "{{.Path}}: file is not valid UTF-8 (detected: {{.Charset}}) — non-UTF-8 encoded files should not be committed"
 diff.emoji_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}} contains emoji {{.Char}} (U+{{.CharCode}}) — emojis are not allowed"
+diff.custom_rule_forbidden:
+  other: "{{.Path}}:{{.Line}}: {{.Name}}: {{.Message}}"
 diff.editorconfig_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.file_invisible_char:
@@ -35,6 +37,10 @@ msg.language_error:
   other: "commit message line {{.Line}}: must be written in {{.Language}} (detected: {{.Detected}}): {{.Text}}"
 msg.emoji_error:
   other: "commit message line {{.Line}}, col {{.Col}}: emoji {{.Char}} (U+{{.CharCode}}) is not allowed"
+msg.custom_rule_forbidden:
+  other: "commit message line {{.Line}}: {{.Name}}: {{.Message}}"
+msg.custom_rule_required:
+  other: "commit message: required pattern not found — {{.Name}}: {{.Message}}"
 msg.conventional_format_error:
   other: "commit message subject does not follow conventional commit format (<type>[(<scope>)][!]: <description>): {{.Subject}}"
 msg.conventional_type_error:
@@ -224,6 +230,8 @@ step.editorconfig_check:
   other: "EditorConfig compliance"
 step.comment_language_check:
   other: "Comment language check"
+step.custom_rules_check:
+  other: "Custom rules check"
 
 # validate messages
 validate.config_valid:

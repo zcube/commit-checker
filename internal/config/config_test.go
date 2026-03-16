@@ -510,3 +510,128 @@ binary_file:
 		t.Error("expected binary_file.enabled=false")
 	}
 }
+
+func TestCustomRules_CommitMessage(t *testing.T) {
+	path := writeConfig(t, `
+custom_rules:
+  commit_message:
+    - name: no-wip
+      pattern: "(?i)^WIP"
+      message: "WIP 접두사를 제거하세요"
+    - name: need-ticket
+      pattern: "\\[PROJ-\\d+\\]"
+      message: "티켓 ID가 필요합니다"
+      required: true
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.CustomRules.CommitMessage) != 2 {
+		t.Fatalf("expected 2 custom rules, got %d", len(cfg.CustomRules.CommitMessage))
+	}
+	if cfg.CustomRules.CommitMessage[0].Name != "no-wip" {
+		t.Errorf("rule[0].Name = %q, want no-wip", cfg.CustomRules.CommitMessage[0].Name)
+	}
+	if cfg.CustomRules.CommitMessage[0].Required {
+		t.Error("rule[0].Required should be false (default)")
+	}
+	if !cfg.CustomRules.CommitMessage[1].Required {
+		t.Error("rule[1].Required should be true")
+	}
+}
+
+func TestCustomRules_Diff(t *testing.T) {
+	path := writeConfig(t, `
+custom_rules:
+  diff:
+    - name: no-api-key
+      pattern: "(?i)api_key\\s*=\\s*['\"][^'\"]{10,}"
+      message: "API 키가 감지되었습니다"
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.CustomRules.Diff) != 1 {
+		t.Fatalf("expected 1 diff rule, got %d", len(cfg.CustomRules.Diff))
+	}
+	if cfg.CustomRules.Diff[0].Name != "no-api-key" {
+		t.Errorf("rule.Name = %q, want no-api-key", cfg.CustomRules.Diff[0].Name)
+	}
+}
+
+func TestMergeConfigs_GlobalAllowedWords(t *testing.T) {
+	// Project config: some words
+	path := writeConfig(t, `
+comment_language:
+  allowed_words:
+    - ProjectWord
+`)
+	// Temporarily override HOME to inject a global config
+	tmpHome := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(tmpHome, ".commit-checker.yml"),
+		[]byte("comment_language:\n  allowed_words:\n    - GlobalWord\n"),
+		0644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", tmpHome)
+
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := cfg.CommentLanguage.AllowedWords
+	hasGlobal := false
+	hasProject := false
+	for _, w := range words {
+		if w == "GlobalWord" {
+			hasGlobal = true
+		}
+		if w == "ProjectWord" {
+			hasProject = true
+		}
+	}
+	if !hasGlobal {
+		t.Errorf("expected GlobalWord from global config in AllowedWords, got %v", words)
+	}
+	if !hasProject {
+		t.Errorf("expected ProjectWord from project config in AllowedWords, got %v", words)
+	}
+}
+
+func TestMergeConfigs_GlobalCustomRules(t *testing.T) {
+	// Project config: project rule
+	path := writeConfig(t, `
+custom_rules:
+  commit_message:
+    - name: project-rule
+      pattern: "FORBIDDEN"
+`)
+	tmpHome := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(tmpHome, ".commit-checker.yml"),
+		[]byte("custom_rules:\n  commit_message:\n    - name: global-rule\n      pattern: \"SECRET\"\n"),
+		0644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", tmpHome)
+
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.CustomRules.CommitMessage) != 2 {
+		t.Fatalf("expected 2 rules (global + project), got %d: %v", len(cfg.CustomRules.CommitMessage), cfg.CustomRules.CommitMessage)
+	}
+	// Global rule should come first
+	if cfg.CustomRules.CommitMessage[0].Name != "global-rule" {
+		t.Errorf("first rule should be global-rule, got %s", cfg.CustomRules.CommitMessage[0].Name)
+	}
+	if cfg.CustomRules.CommitMessage[1].Name != "project-rule" {
+		t.Errorf("second rule should be project-rule, got %s", cfg.CustomRules.CommitMessage[1].Name)
+	}
+}

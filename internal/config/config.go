@@ -25,6 +25,7 @@ type Config struct {
 	Encoding        EncodingConfig        `yaml:"encoding"`
 	EditorConfig    EditorConfigConfig    `yaml:"editorconfig"`
 	Exceptions      ExceptionsConfig      `yaml:"exceptions"`
+	CustomRules     CustomRulesConfig     `yaml:"custom_rules"`
 }
 
 // CommentLanguageConfig: 스테이지된 diff의 주석 언어 검사 설정.
@@ -715,12 +716,44 @@ type ExceptionsConfig struct {
 	CommentLanguageIgnore []string `yaml:"comment_language_ignore"`
 }
 
+// CustomRulesConfig: 정규식 기반 커스텀 규칙 설정.
+type CustomRulesConfig struct {
+	// CommitMessage: 커밋 메시지에 적용할 커스텀 규칙 목록.
+	CommitMessage []CustomRule `yaml:"commit_message"`
+
+	// Diff: 스테이지된 diff의 추가된 줄에 적용할 커스텀 규칙 목록.
+	Diff []CustomRule `yaml:"diff"`
+}
+
+// CustomRule: 정규식 기반 커스텀 검사 규칙.
+type CustomRule struct {
+	// Name: 규칙 이름 (오류 메시지에 표시됨).
+	Name string `yaml:"name"`
+
+	// Pattern: Go 정규식 패턴 (regexp.Compile 호환).
+	Pattern string `yaml:"pattern"`
+
+	// Message: 규칙 위반 시 표시할 사람이 읽기 쉬운 메시지.
+	Message string `yaml:"message"`
+
+	// Required: true이면 패턴이 반드시 일치해야 함 (불일치 시 오류).
+	// false(기본값)이면 패턴이 일치하면 안 됨 (일치 시 오류, forbidden 규칙).
+	Required bool `yaml:"required"`
+}
+
 // Load: 주어진 YAML 파일에서 설정을 읽음.
+// 전역 설정(~/.commit-checker.yml)이 있으면 먼저 로드하고 프로젝트 설정과 병합합니다.
 // 파일이 없으면 기본 설정을 반환.
 func Load(cfgPath string) (*Config, error) {
+	globalCfg := loadGlobalConfig()
+
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			if globalCfg != nil {
+				applyDefaults(globalCfg)
+				return globalCfg, nil
+			}
 			cfg := &Config{}
 			applyDefaults(cfg)
 			return cfg, nil
@@ -745,6 +778,10 @@ func Load(cfgPath string) (*Config, error) {
 		return nil, formatConfigError(cfgPath, err)
 	}
 
+	if globalCfg != nil {
+		cfg = mergeConfigs(globalCfg, &cfg)
+	}
+
 	applyDefaults(&cfg)
 	if err := resolveAllowedWords(&cfg); err != nil {
 		return nil, err
@@ -753,6 +790,114 @@ func Load(cfgPath string) (*Config, error) {
 		logger.Warn(w)
 	}
 	return &cfg, nil
+}
+
+// loadGlobalConfig: ~/.commit-checker.yml 전역 설정을 로드합니다.
+// 파일이 없거나 오류가 발생하면 nil을 반환합니다.
+func loadGlobalConfig() *Config {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	globalPath := filepath.Join(home, ".commit-checker.yml")
+	data, err := os.ReadFile(globalPath)
+	if err != nil {
+		return nil // 파일 없음 — 정상
+	}
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		logger.Warn("global config parse error, ignoring", "path", globalPath, "error", err)
+		return nil
+	}
+	return &cfg
+}
+
+// mergeConfigs: global을 기반으로 project 설정을 덮어씌워 병합된 Config를 반환합니다.
+// project에서 명시적으로 설정된 값이 우선합니다.
+// 목록 필드(allowed_words, global_ignore, custom_rules 등)는 global + project를 합칩니다.
+func mergeConfigs(global, project *Config) Config {
+	result := *project
+
+	// 주석 언어 검사 설정 병합
+	mergeBoolPtr(&result.CommentLanguage.Enabled, global.CommentLanguage.Enabled)
+	mergeBoolPtr(&result.CommentLanguage.NoEmoji, global.CommentLanguage.NoEmoji)
+	mergeBoolPtr(&result.CommentLanguage.CheckStrings, global.CommentLanguage.CheckStrings)
+	mergeBoolPtr(&result.CommentLanguage.SkipTechnicalStrings, global.CommentLanguage.SkipTechnicalStrings)
+	mergeString(&result.CommentLanguage.RequiredLanguage, global.CommentLanguage.RequiredLanguage)
+	mergeString(&result.CommentLanguage.CheckMode, global.CommentLanguage.CheckMode)
+	mergeString(&result.CommentLanguage.Locale, global.CommentLanguage.Locale)
+	mergeString(&result.CommentLanguage.AllowedWordsFile, global.CommentLanguage.AllowedWordsFile)
+	mergeString(&result.CommentLanguage.AllowedWordsURL, global.CommentLanguage.AllowedWordsURL)
+	mergeInt(&result.CommentLanguage.MinLength, global.CommentLanguage.MinLength)
+	result.CommentLanguage.AllowedWords = append(global.CommentLanguage.AllowedWords, result.CommentLanguage.AllowedWords...)
+	result.CommentLanguage.SkipDirectives = append(global.CommentLanguage.SkipDirectives, result.CommentLanguage.SkipDirectives...)
+	result.CommentLanguage.IgnoreFiles = append(global.CommentLanguage.IgnoreFiles, result.CommentLanguage.IgnoreFiles...)
+	if len(result.CommentLanguage.Languages) == 0 {
+		result.CommentLanguage.Languages = global.CommentLanguage.Languages
+	}
+	if len(result.CommentLanguage.Extensions) == 0 {
+		result.CommentLanguage.Extensions = global.CommentLanguage.Extensions
+	}
+	if len(result.CommentLanguage.FileLanguages) == 0 {
+		result.CommentLanguage.FileLanguages = global.CommentLanguage.FileLanguages
+	}
+
+	// 커밋 메시지 설정 병합
+	mergeBoolPtr(&result.CommitMessage.Enabled, global.CommitMessage.Enabled)
+	mergeBoolPtr(&result.CommitMessage.NoAICoauthor, global.CommitMessage.NoAICoauthor)
+	mergeBoolPtr(&result.CommitMessage.NoUnicodeSpaces, global.CommitMessage.NoUnicodeSpaces)
+	mergeBoolPtr(&result.CommitMessage.NoAmbiguousChars, global.CommitMessage.NoAmbiguousChars)
+	mergeBoolPtr(&result.CommitMessage.NoBadRunes, global.CommitMessage.NoBadRunes)
+	mergeBoolPtr(&result.CommitMessage.NoEmoji, global.CommitMessage.NoEmoji)
+	mergeString(&result.CommitMessage.Locale, global.CommitMessage.Locale)
+	result.CommitMessage.CoauthorRemoveEmails = append(global.CommitMessage.CoauthorRemoveEmails, result.CommitMessage.CoauthorRemoveEmails...)
+
+	// 바이너리 파일 설정 병합
+	mergeBoolPtr(&result.BinaryFile.Enabled, global.BinaryFile.Enabled)
+	result.BinaryFile.IgnoreFiles = append(global.BinaryFile.IgnoreFiles, result.BinaryFile.IgnoreFiles...)
+
+	// 인코딩 설정 병합
+	mergeBoolPtr(&result.Encoding.Enabled, global.Encoding.Enabled)
+	mergeBoolPtr(&result.Encoding.RequireUTF8, global.Encoding.RequireUTF8)
+	mergeBoolPtr(&result.Encoding.NoInvisibleChars, global.Encoding.NoInvisibleChars)
+	mergeBoolPtr(&result.Encoding.NoAmbiguousChars, global.Encoding.NoAmbiguousChars)
+	mergeString(&result.Encoding.Locale, global.Encoding.Locale)
+	result.Encoding.IgnoreFiles = append(global.Encoding.IgnoreFiles, result.Encoding.IgnoreFiles...)
+
+	// EditorConfig 설정 병합
+	mergeBoolPtr(&result.EditorConfig.Enabled, global.EditorConfig.Enabled)
+	result.EditorConfig.IgnoreFiles = append(global.EditorConfig.IgnoreFiles, result.EditorConfig.IgnoreFiles...)
+
+	// Exceptions: 항상 합치기
+	result.Exceptions.GlobalIgnore = append(global.Exceptions.GlobalIgnore, result.Exceptions.GlobalIgnore...)
+	result.Exceptions.CommentLanguageIgnore = append(global.Exceptions.CommentLanguageIgnore, result.Exceptions.CommentLanguageIgnore...)
+
+	// CustomRules: 항상 합치기 (global 규칙 먼저)
+	result.CustomRules.CommitMessage = append(global.CustomRules.CommitMessage, result.CustomRules.CommitMessage...)
+	result.CustomRules.Diff = append(global.CustomRules.Diff, result.CustomRules.Diff...)
+
+	return result
+}
+
+// mergeBoolPtr: dst가 nil이면 src 값을 사용합니다.
+func mergeBoolPtr(dst **bool, src *bool) {
+	if *dst == nil && src != nil {
+		*dst = src
+	}
+}
+
+// mergeString: dst가 빈 문자열이면 src 값을 사용합니다.
+func mergeString(dst *string, src string) {
+	if *dst == "" && src != "" {
+		*dst = src
+	}
+}
+
+// mergeInt: dst가 0이면 src 값을 사용합니다.
+func mergeInt(dst *int, src int) {
+	if *dst == 0 && src != 0 {
+		*dst = src
+	}
 }
 
 // resolveAllowedWords 는 allowed_words_file, allowed_words_url 에서 단어를 읽어

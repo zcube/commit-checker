@@ -28,6 +28,7 @@ var diffCmd = &cobra.Command{
 			{Name: i18n.T("step.lint_check", nil), Category: "lint", Fn: func() ([]string, error) { return checker.CheckLint(cfg) }},
 			{Name: i18n.T("step.editorconfig_check", nil), Category: "editorconfig", Fn: func() ([]string, error) { return checker.CheckEditorConfig(cfg) }},
 			{Name: i18n.T("step.comment_language_check", nil), Category: "comment_language", Fn: func() ([]string, error) { return checker.CheckDiff(cfg) }},
+			{Name: i18n.T("step.custom_rules_check", nil), Category: "custom_rules", Fn: func() ([]string, error) { return checker.CheckDiffCustomRules(cfg) }},
 		}
 
 		result, err := progress.RunWithProgress(steps, progress.Options{

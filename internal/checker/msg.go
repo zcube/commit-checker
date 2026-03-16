@@ -50,6 +50,9 @@ func CheckMsg(cfg *config.Config, content string) []string {
 	if cfg.CommitMessage.BodyLineLimit.IsEnabled() {
 		errs = append(errs, checkBodyLineLimit(content, &cfg.CommitMessage.BodyLineLimit)...)
 	}
+	if len(cfg.CustomRules.CommitMessage) > 0 {
+		errs = append(errs, CheckMsgCustomRules(content, cfg.CustomRules.CommitMessage)...)
+	}
 
 	return errs
 }
