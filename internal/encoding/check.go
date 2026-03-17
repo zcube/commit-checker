@@ -5,7 +5,6 @@ import (
 	"debug/elf"
 	"debug/macho"
 	"debug/pe"
-	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/saintfish/chardet"
@@ -19,8 +18,8 @@ type Result struct {
 	Confidence      int
 }
 
-// CheckUTF8: chardet을 사용하여 콘텐츠가 유효한 UTF-8인지 검증.
-// 유효 여부와 감지된 charset을 반환.
+// CheckUTF8: 콘텐츠가 유효한 UTF-8인지 검증.
+// 유효성은 바이트 시퀀스로 직접 판단하고, chardet은 에러 메시지용 charset 이름 제공에만 사용.
 func CheckUTF8(content []byte) Result {
 	hasBOM := len(content) >= 3 && content[0] == 0xEF && content[1] == 0xBB && content[2] == 0xBF
 
@@ -28,21 +27,18 @@ func CheckUTF8(content []byte) Result {
 		return Result{Valid: true, HasBOM: false, DetectedCharset: "UTF-8", Confidence: 100}
 	}
 
-	det := chardet.NewTextDetector()
-	best, err := det.DetectBest(content)
-	if err != nil {
-		// chardet 실패 시 fallback: 모든 바이트가 유효한 UTF-8인지 확인
-		return Result{Valid: isValidUTF8(content), HasBOM: hasBOM, DetectedCharset: "unknown"}
+	valid := isValidUTF8(content)
+
+	// 유효하지 않은 경우에만 chardet으로 감지된 charset을 에러 메시지에 제공
+	if !valid {
+		det := chardet.NewTextDetector()
+		if best, err := det.DetectBest(content); err == nil {
+			return Result{Valid: false, HasBOM: hasBOM, DetectedCharset: best.Charset, Confidence: best.Confidence}
+		}
+		return Result{Valid: false, HasBOM: hasBOM, DetectedCharset: "unknown"}
 	}
 
-	isUTF8 := best.Charset == "UTF-8" || strings.HasPrefix(best.Charset, "ISO-8859-") && isValidUTF8(content)
-
-	return Result{
-		Valid:           isUTF8,
-		HasBOM:          hasBOM,
-		DetectedCharset: best.Charset,
-		Confidence:      best.Confidence,
-	}
+	return Result{Valid: true, HasBOM: hasBOM, DetectedCharset: "UTF-8", Confidence: 100}
 }
 
 // isValidUTF8: 모든 바이트가 유효한 UTF-8 시퀀스를 구성하는지 확인.
