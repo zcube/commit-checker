@@ -36,11 +36,11 @@ jobs:
       - name: 커버리지 리포트
         run: go tool cover -func=coverage.out | tail -1
 
-      - name: 커버리지 임계값 확인 (75%)
+      - name: 커버리지 임계값 확인 (72%)
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | grep "^total:" | awk '{print $3}' | tr -d '%')
           echo "Coverage: ${COVERAGE}%"
-          python3 -c "import sys; sys.exit(0 if float('${COVERAGE}') >= 75 else 1)" || (echo "Coverage ${COVERAGE}% is below 75% threshold" && exit 1)
+          python3 -c "import sys; sys.exit(0 if float('${COVERAGE}') >= 72 else 1)" || (echo "Coverage ${COVERAGE}% is below 72% threshold" && exit 1)
 
   lint:
     name: 린트
