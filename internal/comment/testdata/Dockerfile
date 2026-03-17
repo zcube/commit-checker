@@ -1,5 +1,5 @@
 # 빌드 스테이지: Go 소스를 컴파일합니다
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
