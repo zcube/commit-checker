@@ -5,6 +5,7 @@ import (
 	"debug/elf"
 	"debug/macho"
 	"debug/pe"
+	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/saintfish/chardet"
@@ -34,7 +35,7 @@ func CheckUTF8(content []byte) Result {
 		return Result{Valid: isValidUTF8(content), HasBOM: hasBOM, DetectedCharset: "unknown"}
 	}
 
-	isUTF8 := best.Charset == "UTF-8" || best.Charset == "ISO-8859-1" && isValidUTF8(content)
+	isUTF8 := best.Charset == "UTF-8" || strings.HasPrefix(best.Charset, "ISO-8859-") && isValidUTF8(content)
 
 	return Result{
 		Valid:           isUTF8,

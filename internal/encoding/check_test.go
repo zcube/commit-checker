@@ -50,6 +50,16 @@ func TestCheckUTF8_Latin1(t *testing.T) {
 	}
 }
 
+func TestCheckUTF8_ISO8859_9_ASCII(t *testing.T) {
+	// .gitattributes 같은 순수 ASCII 파일을 chardet이 ISO-8859-9로 오감지하는 케이스
+	// 실제 바이트는 유효한 UTF-8이므로 Valid여야 함
+	content := []byte("* text=auto\n*.go text eol=lf\n")
+	result := CheckUTF8(content)
+	if !result.Valid {
+		t.Errorf("expected valid UTF-8 for ASCII content (detected: %s)", result.DetectedCharset)
+	}
+}
+
 func TestCheckUTF8_Empty(t *testing.T) {
 	result := CheckUTF8([]byte{})
 	if !result.Valid {
