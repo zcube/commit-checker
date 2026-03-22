@@ -92,3 +92,43 @@ func saveCachedWords(cache *AllowedWordsCacheConfig, rawURL string, body []byte)
 	path := filepath.Join(dir, cacheKey(rawURL))
 	_ = os.WriteFile(path, body, 0644)
 }
+
+// presetCacheKey: URL에서 프리셋 캐시 파일명 생성.
+func presetCacheKey(rawURL string) string {
+	h := sha256.Sum256([]byte(rawURL))
+	return fmt.Sprintf("preset_%x.yml", h[:8])
+}
+
+// loadCachedBytes: URL에서 캐시된 raw 바이트를 로드.
+// 캐시가 없거나 만료되면 nil, false 반환.
+func loadCachedBytes(cache *AllowedWordsCacheConfig, rawURL string) ([]byte, bool) {
+	if !cache.IsEnabled() {
+		return nil, false
+	}
+	p := filepath.Join(cache.GetDir(), presetCacheKey(rawURL))
+	info, err := os.Stat(p)
+	if err != nil {
+		return nil, false
+	}
+	if time.Since(info.ModTime()) > cache.GetTTL() {
+		return nil, false
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return nil, false
+	}
+	return data, true
+}
+
+// saveCachedBytes: raw 바이트를 프리셋 캐시 파일에 저장.
+func saveCachedBytes(cache *AllowedWordsCacheConfig, rawURL string, body []byte) {
+	if !cache.IsEnabled() {
+		return
+	}
+	dir := cache.GetDir()
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return
+	}
+	p := filepath.Join(dir, presetCacheKey(rawURL))
+	_ = os.WriteFile(p, body, 0644)
+}

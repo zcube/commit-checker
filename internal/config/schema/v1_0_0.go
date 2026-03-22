@@ -3,6 +3,7 @@ package schema
 // ConfigV100: v1.0.0 설정 스키마.
 // commit_message.no_coauthor 사용, binary_file/lint/encoding/editorconfig 미지원.
 type ConfigV100 struct {
+	Preset          PresetConfig              `yaml:"preset"`
 	CommentLanguage CommentLanguageConfigV100 `yaml:"comment_language"`
 	CommitMessage   CommitMessageConfigV100   `yaml:"commit_message"`
 	Exceptions      ExceptionsConfig          `yaml:"exceptions"`

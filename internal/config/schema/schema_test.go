@@ -133,6 +133,110 @@ func TestMigrate_Unknown(t *testing.T) {
 	}
 }
 
+// TestDetectVersion_WithPreset: preset 필드가 있어도 기존 버전이 올바르게 감지되는지 확인.
+func TestDetectVersion_WithPreset(t *testing.T) {
+	tests := []struct {
+		name    string
+		yaml    string
+		version Version
+	}{
+		{
+			name: "v1.0.0 + preset",
+			yaml: `
+preset:
+  url: https://example.com/preset.yml
+comment_language:
+  required_language: korean
+commit_message:
+  no_coauthor: true
+exceptions:
+  global_ignore: []
+`,
+			version: VersionV100,
+		},
+		{
+			name: "v1.0.1 + preset",
+			yaml: `
+preset:
+  url: https://example.com/preset.yml
+comment_language:
+  required_language: korean
+  no_emoji: false
+commit_message:
+  enabled: true
+  no_coauthor: true
+binary_file:
+  enabled: true
+`,
+			version: VersionV101,
+		},
+		{
+			name: "v1.0.2 + preset",
+			yaml: `
+preset:
+  url: https://example.com/preset.yml
+comment_language:
+  required_language: korean
+commit_message:
+  no_ai_coauthor: true
+binary_file:
+  enabled: true
+`,
+			version: VersionV102,
+		},
+		{
+			name: "current + preset",
+			yaml: `
+preset:
+  url: https://example.com/preset.yml
+comment_language:
+  allowed_words: []
+commit_message:
+  no_ai_coauthor: true
+`,
+			version: VersionCurrent,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DetectVersion([]byte(tt.yaml))
+			if got != tt.version {
+				t.Errorf("DetectVersion = %q, want %q", got, tt.version)
+			}
+		})
+	}
+}
+
+// TestMigrate_WithPreset_V100: preset 필드가 포함된 v1.0.0 설정이 마이그레이션되는지 확인.
+func TestMigrate_WithPreset_V100(t *testing.T) {
+	data := []byte(`
+preset:
+  url: https://example.com/preset.yml
+commit_message:
+  no_coauthor: true
+`)
+	result, err := Migrate(data)
+	if err != nil {
+		t.Fatalf("Migrate 실패: %v", err)
+	}
+	if result.DetectedVersion != VersionV100 {
+		t.Errorf("DetectedVersion = %q, want %q", result.DetectedVersion, VersionV100)
+	}
+	if len(result.Applied) == 0 {
+		t.Error("마이그레이션 규칙이 적용되어야 함")
+	}
+	if !strings.Contains(string(result.Data), "no_ai_coauthor") {
+		t.Error("no_coauthor가 no_ai_coauthor로 마이그레이션되어야 함")
+	}
+	if strings.Contains(string(result.Data), "no_coauthor:") {
+		t.Error("no_coauthor가 여전히 존재함")
+	}
+	if !strings.Contains(string(result.Data), "https://example.com/preset.yml") {
+		t.Error("preset.url이 보존되어야 함")
+	}
+}
+
 func TestMigrate_PreservesComments(t *testing.T) {
 	data := []byte(`# 설정 파일 주석
 commit_message:

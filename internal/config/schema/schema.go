@@ -19,8 +19,15 @@ const (
 	VersionUnknown Version = "unknown"
 )
 
+// PresetConfig: 원격 URL에서 불러올 기본 설정 프리셋 (v1.1.0+).
+type PresetConfig struct {
+	URL   string                 `yaml:"url"`
+	Cache AllowedWordsCacheConfig `yaml:"cache"`
+}
+
 // ConfigCurrent: v1.1.0+ 설정 스키마.
 type ConfigCurrent struct {
+	Preset          PresetConfig                 `yaml:"preset"`
 	CommentLanguage CommentLanguageConfigCurrent `yaml:"comment_language"`
 	CommitMessage   CommitMessageConfigCurrent   `yaml:"commit_message"`
 	BinaryFile      BinaryFileConfig             `yaml:"binary_file"`
@@ -85,6 +92,7 @@ type EncodingConfigCurrent struct {
 // ConfigV102: v1.0.2~v1.0.4 설정 스키마.
 // no_ai_coauthor 사용, allowed_words/encoding unicode 미지원.
 type ConfigV102 struct {
+	Preset          PresetConfig              `yaml:"preset"`
 	CommentLanguage CommentLanguageConfigV102 `yaml:"comment_language"`
 	CommitMessage   CommitMessageConfigCurrent `yaml:"commit_message"`
 	BinaryFile      BinaryFileConfig          `yaml:"binary_file"`

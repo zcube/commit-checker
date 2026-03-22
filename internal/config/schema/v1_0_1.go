@@ -4,6 +4,7 @@ package schema
 // commit_message.no_coauthor 사용, binary_file/lint/encoding/editorconfig 지원 추가.
 // no_emoji 추가, type_aliases/locale 추가.
 type ConfigV101 struct {
+	Preset          PresetConfig              `yaml:"preset"`
 	CommentLanguage CommentLanguageConfigV101 `yaml:"comment_language"`
 	CommitMessage   CommitMessageConfigV101   `yaml:"commit_message"`
 	BinaryFile      BinaryFileConfig          `yaml:"binary_file"`

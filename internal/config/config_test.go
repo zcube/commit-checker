@@ -1,6 +1,8 @@
 package config_test
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -633,5 +635,263 @@ custom_rules:
 	}
 	if cfg.CustomRules.CommitMessage[1].Name != "project-rule" {
 		t.Errorf("second rule should be project-rule, got %s", cfg.CustomRules.CommitMessage[1].Name)
+	}
+}
+
+func TestLoad_Preset_OverridesDefault(t *testing.T) {
+	// 프리셋: required_language=english 설정
+	presetYAML := `
+comment_language:
+  required_language: english
+`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(presetYAML))
+	}))
+	defer srv.Close()
+
+	path := writeConfig(t, `
+preset:
+  url: `+srv.URL+`
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.CommentLanguage.RequiredLanguage != "english" {
+		t.Errorf("preset required_language should be english, got %q", cfg.CommentLanguage.RequiredLanguage)
+	}
+}
+
+func TestLoad_Preset_ProjectOverridesPreset(t *testing.T) {
+	// 프리셋: required_language=english, 프로젝트: required_language=korean
+	presetYAML := `
+comment_language:
+  required_language: english
+`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(presetYAML))
+	}))
+	defer srv.Close()
+
+	path := writeConfig(t, `
+preset:
+  url: `+srv.URL+`
+comment_language:
+  required_language: korean
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.CommentLanguage.RequiredLanguage != "korean" {
+		t.Errorf("project should override preset: want korean, got %q", cfg.CommentLanguage.RequiredLanguage)
+	}
+}
+
+func TestLoad_Preset_MigratesOldSchema(t *testing.T) {
+	// 프리셋이 구 버전(no_coauthor) 스키마인 경우 마이그레이션 후 로드
+	presetYAML := `
+commit_message:
+  no_coauthor: true
+`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(presetYAML))
+	}))
+	defer srv.Close()
+
+	path := writeConfig(t, `
+preset:
+  url: `+srv.URL+`
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// 마이그레이션 후 no_ai_coauthor가 true여야 함
+	if !cfg.CommitMessage.IsNoAICoauthor() {
+		t.Error("preset no_coauthor should be migrated to no_ai_coauthor=true")
+	}
+}
+
+func TestLoad_Preset_NoNestedPreset(t *testing.T) {
+	// 프리셋 안에 preset.url이 있으면 에러 (중첩/무한루프 방지)
+	innerCalled := false
+	inner := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		innerCalled = true
+		_, _ = w.Write([]byte("comment_language:\n  required_language: japanese\n"))
+	}))
+	defer inner.Close()
+
+	presetYAML := `
+preset:
+  url: ` + inner.URL + `
+comment_language:
+  required_language: english
+`
+	outer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(presetYAML))
+	}))
+	defer outer.Close()
+
+	path := writeConfig(t, `
+preset:
+  url: `+outer.URL+`
+`)
+	_, err := config.Load(path)
+	if err == nil {
+		t.Error("nested preset should return error")
+	}
+	if innerCalled {
+		t.Error("inner preset URL must not be fetched")
+	}
+}
+
+func TestLoad_Preset_Cache(t *testing.T) {
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		_, _ = w.Write([]byte("comment_language:\n  required_language: english\n"))
+	}))
+	defer srv.Close()
+
+	cacheDir := t.TempDir()
+	projectYAML := `
+preset:
+  url: ` + srv.URL + `
+  cache:
+    enabled: true
+    ttl: 1h
+    dir: ` + cacheDir + `
+`
+	path := writeConfig(t, projectYAML)
+
+	// 첫 번째 로드: 서버 호출
+	_, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("first Load: %v", err)
+	}
+	if callCount != 1 {
+		t.Fatalf("expected 1 server call, got %d", callCount)
+	}
+
+	// 두 번째 로드: 캐시에서 읽어야 함
+	_, err = config.Load(path)
+	if err != nil {
+		t.Fatalf("second Load: %v", err)
+	}
+	if callCount != 1 {
+		t.Errorf("expected no additional server call (cached), got %d total", callCount)
+	}
+}
+
+func TestLoad_Preset_ErrorOnFetch(t *testing.T) {
+	path := writeConfig(t, `
+preset:
+  url: http://127.0.0.1:1
+`)
+	_, err := config.Load(path)
+	if err == nil {
+		t.Error("expected error when preset URL is unreachable")
+	}
+}
+
+func TestLoad_Preset_OverridesGlobal(t *testing.T) {
+	// 전역: required_language=japanese, 프리셋: required_language=english
+	// 프리셋이 전역보다 우선해야 함
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("comment_language:\n  required_language: english\n"))
+	}))
+	defer srv.Close()
+
+	tmpHome := t.TempDir()
+	globalCfg := filepath.Join(tmpHome, ".commit-checker.yml")
+	if err := os.WriteFile(globalCfg, []byte("comment_language:\n  required_language: japanese\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", tmpHome)
+
+	path := writeConfig(t, `
+preset:
+  url: `+srv.URL+`
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// preset(english)이 global(japanese)보다 우선해야 함
+	if cfg.CommentLanguage.RequiredLanguage != "english" {
+		t.Errorf("preset should override global: want english, got %q", cfg.CommentLanguage.RequiredLanguage)
+	}
+}
+
+func TestLoad_Preset_ThreeWayPriority(t *testing.T) {
+	// 전역: min_length=1, 프리셋: min_length=2, 프로젝트: min_length=3
+	// 우선순위: 프로젝트 > 프리셋 > 전역
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("comment_language:\n  min_length: 2\n"))
+	}))
+	defer srv.Close()
+
+	tmpHome := t.TempDir()
+	globalCfg := filepath.Join(tmpHome, ".commit-checker.yml")
+	if err := os.WriteFile(globalCfg, []byte("comment_language:\n  min_length: 1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", tmpHome)
+
+	path := writeConfig(t, `
+preset:
+  url: `+srv.URL+`
+comment_language:
+  min_length: 3
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.CommentLanguage.MinLength != 3 {
+		t.Errorf("project should win: want min_length=3, got %d", cfg.CommentLanguage.MinLength)
+	}
+
+	// 프로젝트가 min_length를 설정하지 않은 경우 프리셋(2)이 사용되어야 함
+	path2 := writeConfig(t, `
+preset:
+  url: `+srv.URL+`
+`)
+	cfg2, err := config.Load(path2)
+	if err != nil {
+		t.Fatalf("Load2: %v", err)
+	}
+	if cfg2.CommentLanguage.MinLength != 2 {
+		t.Errorf("preset should override global: want min_length=2, got %d", cfg2.CommentLanguage.MinLength)
+	}
+}
+
+func TestLoad_Preset_OldSchemaWithPreset_MigratesAndLoads(t *testing.T) {
+	// preset + 구형 필드(no_coauthor) 조합: 마이그레이션 후 정상 로드 확인
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("comment_language:\n  required_language: english\n"))
+	}))
+	defer srv.Close()
+
+	// 구형 no_coauthor + preset.url 혼합 설정
+	path := writeConfig(t, `
+preset:
+  url: `+srv.URL+`
+commit_message:
+  no_coauthor: true
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// no_coauthor → no_ai_coauthor 마이그레이션 동작 확인
+	if !cfg.CommitMessage.IsNoAICoauthor() {
+		t.Error("no_coauthor should be migrated to no_ai_coauthor=true")
+	}
+	// preset의 required_language=english가 적용되어야 함
+	if cfg.CommentLanguage.RequiredLanguage != "english" {
+		t.Errorf("preset required_language should be english, got %q", cfg.CommentLanguage.RequiredLanguage)
 	}
 }
