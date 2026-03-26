@@ -94,7 +94,8 @@ func parsePushRanges(r io.Reader) []string {
 			// 새 브랜치: 리모트 기본 브랜치에서 분기된 커밋을 검사합니다
 			base := findPushRemoteBase()
 			if base == "" {
-				continue // 기준점을 찾을 수 없으면 건너뜁니다
+				fmt.Fprintf(os.Stderr, "warning: could not find remote base branch for %s, skipping commit check\n", parts[0])
+				continue
 			}
 			ranges = append(ranges, base+".."+localSHA)
 		} else {
@@ -124,7 +125,16 @@ func findPushRemoteBase() string {
 	if err == nil {
 		return strings.TrimSpace(string(out))
 	}
-	// 리모트 기본 브랜치 시도
+	// origin HEAD로 기본 브랜치 탐지 (git remote set-head origin -a 필요)
+	out, err = exec.Command("git", "symbolic-ref", "refs/remotes/origin/HEAD").Output()
+	if err == nil {
+		// 예: refs/remotes/origin/main 에서 origin/main 추출
+		ref := strings.TrimSpace(string(out))
+		if after, ok := strings.CutPrefix(ref, "refs/remotes/"); ok {
+			return after
+		}
+	}
+	// 폴백: main, master 순으로 확인
 	for _, branch := range []string{"origin/main", "origin/master"} {
 		if _, err := exec.Command("git", "rev-parse", "--verify", branch).Output(); err == nil {
 			return branch
