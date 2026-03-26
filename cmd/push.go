@@ -28,7 +28,11 @@ var pushCmd = &cobra.Command{
 		if pushRange != "" {
 			commitRanges = []string{pushRange}
 		} else {
-			commitRanges = parsePushRanges(os.Stdin)
+			// stdin이 파이프/파일일 때만 읽기
+			stat, _ := os.Stdin.Stat()
+			if (stat.Mode() & os.ModeCharDevice) == 0 {
+				commitRanges = parsePushRanges(os.Stdin)
+			}
 		}
 
 		if len(commitRanges) == 0 {
