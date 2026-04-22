@@ -326,7 +326,11 @@ func TestMarkdownParser_Testdata(t *testing.T) {
 	assertHasComment(t, r, "설치 방법")
 	assertHasComment(t, r, "기여 방법")
 
-	// 코드 블록 내부(go install ..., yaml 설정 등)는 추출되지 않아야 함
+	// HTML 주석과 마크다운 주석도 추출되어야 합니다.
+	assertHasComment(t, r, "이것은 HTML 주석입니다")
+	assertHasComment(t, r, "이것은 마크다운 주석입니다")
+
+	// 코드 블록 내부(go install ..., yaml 설정 등)는 추출되지 않아야 합니다.
 	for _, c := range r.comments {
 		if containsText(c.Text, "go install") {
 			t.Errorf("코드 블록 내용이 추출됨: %q (line %d)", c.Text, c.Line)

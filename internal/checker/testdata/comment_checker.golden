@@ -6,7 +6,7 @@ sample.go: comments=5 strings=2 imports=3 lang=PASS
 sample.java: comments=5 strings=1 imports=0 lang=PASS
 sample.js: comments=3 strings=2 imports=3 lang=PASS
 sample.kt: comments=4 strings=1 imports=0 lang=PASS
-sample.md: comments=17 strings=0 imports=0 lang=PASS
+sample.md: comments=12 strings=0 imports=0 lang=PASS
 sample.py: comments=3 strings=3 imports=0 lang=PASS
 sample.rs: comments=7 strings=2 imports=0 lang=PASS
 sample.swift: comments=8 strings=2 imports=0 lang=PASS
