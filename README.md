@@ -119,6 +119,26 @@ lefthook install
 
 이후 `git commit` 시 자동으로 검사가 실행됩니다.
 
+### 5. 기존 파일 전체 검사 (초기 도입 시)
+
+commit-checker 를 기존 리포지터리에 도입하면 훅 설치 이전 커밋의 파일은 검사되지 않습니다.
+도입 시점에 한 번 전체 파일을 검사하려면 `run` 커맨드를 사용합니다:
+
+```bash
+commit-checker run
+```
+
+`git ls-files` 로 추적되는 모든 파일을 staged 여부와 관계없이 검사합니다.
+위반 항목을 자동으로 수정하려면 `fix` 커맨드를 함께 사용합니다:
+
+```bash
+# 수정 내용 미리 보기
+commit-checker fix --dry-run
+
+# 실제 수정 적용
+commit-checker fix
+```
+
 ### husky (Node.js 프로젝트)
 
 ```bash
