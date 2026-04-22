@@ -36,37 +36,18 @@ func (p *MarkdownParser) ParseFile(content string) ([]Comment, error) {
 			return ast.WalkContinue, nil
 		}
 
-		switch n.Kind() {
-		case ast.KindFencedCodeBlock, ast.KindCodeBlock:
-			return ast.WalkSkipChildren, nil
-
-		case ast.KindHTMLBlock:
+		if n.Kind() == ast.KindHTMLBlock {
 			// HTML 주석(<!-- ... -->) 만 추출하고 나머지 HTML 블록은 건너뜁니다.
 			raw := mdHTMLBlockText(n, src)
 			if commentText, ok := mdExtractHTMLComment(raw); ok && strings.TrimSpace(commentText) != "" {
-				lineNo := mdBlockLineNo(n, src)
 				result = append(result, Comment{
 					Text:    strings.TrimSpace(commentText),
-					Line:    lineNo,
+					Line:    mdBlockLineNo(n, src),
 					EndLine: mdBlockEndLine(n, src),
 					IsBlock: true,
 					Kind:    KindComment,
 				})
 			}
-			return ast.WalkSkipChildren, nil
-
-		case ast.KindHeading, ast.KindParagraph:
-			extracted := strings.TrimSpace(mdExtractText(n, src))
-			if extracted == "" {
-				return ast.WalkSkipChildren, nil
-			}
-			result = append(result, Comment{
-				Text:    extracted,
-				Line:    mdBlockLineNo(n, src),
-				EndLine: mdBlockEndLine(n, src),
-				IsBlock: false,
-				Kind:    KindComment,
-			})
 			return ast.WalkSkipChildren, nil
 		}
 
@@ -99,27 +80,6 @@ func (p *MarkdownParser) ParseFile(content string) ([]Comment, error) {
 	})
 
 	return result, nil
-}
-
-// mdExtractText 는 노드 하위에서 재귀적으로 텍스트를 추출합니다.
-// 인라인 코드 스팬(KindCodeSpan)과 인라인 HTML(KindRawHTML)은 건너뜁니다.
-func mdExtractText(n ast.Node, src []byte) string {
-	var buf strings.Builder
-	for child := n.FirstChild(); child != nil; child = child.NextSibling() {
-		switch child.Kind() {
-		case ast.KindCodeSpan, ast.KindRawHTML:
-			// 인라인 코드와 인라인 HTML 건너뜀
-		case ast.KindText:
-			t := child.(*ast.Text)
-			buf.Write(t.Segment.Value(src))
-			if t.SoftLineBreak() || t.HardLineBreak() {
-				buf.WriteRune(' ')
-			}
-		default:
-			buf.WriteString(mdExtractText(child, src))
-		}
-	}
-	return buf.String()
 }
 
 // mdHTMLBlockText 는 HTMLBlock 노드의 원본 텍스트를 반환합니다.

@@ -319,23 +319,19 @@ func TestMarkdownParser_Testdata(t *testing.T) {
 	}
 	r := classify(all)
 
-	if len(r.comments) == 0 {
-		t.Fatal("Markdown 에서 텍스트를 추출하지 못함")
-	}
-	assertHasComment(t, r, "프로젝트 소개")
-	assertHasComment(t, r, "설치 방법")
-	assertHasComment(t, r, "기여 방법")
-
-	// HTML 주석과 마크다운 주석도 추출되어야 합니다.
+	// 마크다운에서 실제 주석만 추출되어야 합니다: <!-- --> 와 [//]: #
 	assertHasComment(t, r, "이것은 HTML 주석입니다")
 	assertHasComment(t, r, "이것은 마크다운 주석입니다")
 
-	// 코드 블록 내부(go install ..., yaml 설정 등)는 추출되지 않아야 합니다.
+	// 헤딩·단락은 주석이 아니므로 추출되지 않아야 합니다.
 	for _, c := range r.comments {
-		if containsText(c.Text, "go install") {
-			t.Errorf("코드 블록 내용이 추출됨: %q (line %d)", c.Text, c.Line)
+		if containsText(c.Text, "프로젝트 소개") {
+			t.Errorf("헤딩이 주석으로 추출됨: %q (line %d)", c.Text, c.Line)
 		}
-		if containsText(c.Text, "enabled: true") {
+		if containsText(c.Text, "설치 방법") {
+			t.Errorf("헤딩이 주석으로 추출됨: %q (line %d)", c.Text, c.Line)
+		}
+		if containsText(c.Text, "go install") {
 			t.Errorf("코드 블록 내용이 추출됨: %q (line %d)", c.Text, c.Line)
 		}
 	}
