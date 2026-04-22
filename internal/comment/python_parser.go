@@ -86,7 +86,8 @@ func (p *PythonParser) ParseFile(content string) ([]Comment, error) {
 		case stLine:
 			if ch == '\n' {
 				text := strings.TrimSpace(buf.String())
-				if text != "" {
+				// 셔뱅(#!) 라인은 주석으로 처리하지 않음
+				if text != "" && (commentLine != 1 || !strings.HasPrefix(text, "!")) {
 					result = append(result, Comment{
 						Text:    text,
 						Line:    commentLine,
@@ -159,7 +160,7 @@ func (p *PythonParser) ParseFile(content string) ([]Comment, error) {
 	// 파일이 개행 없이 끝날 때 처리
 	if state == stLine {
 		text := strings.TrimSpace(buf.String())
-		if text != "" {
+		if text != "" && (commentLine != 1 || !strings.HasPrefix(text, "!")) {
 			result = append(result, Comment{
 				Text:    text,
 				Line:    commentLine,

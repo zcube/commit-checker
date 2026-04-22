@@ -61,8 +61,8 @@ func (p *HashStyleParser) ParseFile(content string) ([]Comment, error) {
 			}
 		}
 
-		// # 줄 주석 처리
-		if strings.HasPrefix(trimmed, "#") {
+		// # 줄 주석 처리 (셔뱅 #! 라인 제외)
+		if strings.HasPrefix(trimmed, "#") && (lineNo != 1 || !strings.HasPrefix(trimmed, "#!")) {
 			text := strings.TrimSpace(strings.TrimPrefix(trimmed, "#"))
 			if text != "" {
 				result = append(result, Comment{

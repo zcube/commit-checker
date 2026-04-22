@@ -26,9 +26,9 @@ echo "# not a comment"
 		}
 	}
 
-	// shebang(#!...), 한국어 주석, 영어 주석, another comment — 4개
-	if len(onlyComments) != 4 {
-		t.Errorf("expected 4 comments, got %d: %+v", len(onlyComments), onlyComments)
+	// 한국어 주석, 영어 주석, another comment — 3개 (shebang #! 제외)
+	if len(onlyComments) != 3 {
+		t.Errorf("expected 3 comments, got %d: %+v", len(onlyComments), onlyComments)
 	}
 }
 
