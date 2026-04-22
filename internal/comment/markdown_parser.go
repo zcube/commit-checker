@@ -41,6 +41,14 @@ func (p *MarkdownParser) ParseFile(content string) ([]Comment, error) {
 			continue
 		}
 
+		// 마크다운 헤딩 마커(#) 제거: # 는 주석 기호가 아니라 제목 마커
+		if strings.HasPrefix(text, "#") {
+			text = strings.TrimSpace(strings.TrimLeft(text, "#"))
+			if text == "" {
+				continue
+			}
+		}
+
 		result = append(result, Comment{
 			Text:    text,
 			Line:    lineNo,

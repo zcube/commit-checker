@@ -368,7 +368,6 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 	minLength := cfg.CommentLanguage.MinLength
 	skipDirectives := cfg.CommentLanguage.SkipDirectives
 	checkStrings := cfg.CommentLanguage.IsCheckStrings()
-	skipTechnical := cfg.CommentLanguage.IsSkipTechnicalStrings()
 	noEmoji := cfg.CommentLanguage.IsNoEmoji()
 	allowedWords := cfg.CommentLanguage.AllowedWords
 
@@ -416,25 +415,22 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 
 			var msgs []string
 			for _, u := range buildCommentUnits(comments, states, checkStrings) {
-				text := langdetect.StripAllowedWords(u.text, allowedWords)
-				if u.kind == comment.KindString && skipTechnical && IsTechnicalString(text) {
+				if u.kind == comment.KindString {
+					// 문자열 리터럴: 언어 감지 제외 (유니코드 검사는 RunUnicode 에서 처리)
 					continue
 				}
 
+				text := langdetect.StripAllowedWords(u.text, allowedWords)
 				ok, hasContent := langdetect.IsRequiredLanguage(text, u.lang, minLength, skipDirectives)
 				if !hasContent {
 					continue
 				}
 				if !ok {
 					detected := langdetect.Dominant(text)
-					kindID := "diff.kind_comment"
-					if u.kind == comment.KindString {
-						kindID = "diff.kind_string_literal"
-					}
 					msgs = append(msgs, i18n.T("diff.comment_language_error", map[string]any{
 						"Path":     filePath,
 						"Line":     u.line,
-						"Kind":     i18n.T(kindID, nil),
+						"Kind":     i18n.T("diff.kind_comment", nil),
 						"Language": u.lang,
 						"Detected": detected,
 						"Text":     truncate(text, 80),
@@ -444,14 +440,10 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 				if noEmoji {
 					emojis := emoji.FindEmojis(text)
 					for _, e := range emojis {
-						kindID := "diff.kind_comment"
-						if u.kind == comment.KindString {
-							kindID = "diff.kind_string_literal"
-						}
 						msgs = append(msgs, i18n.T("diff.emoji_error", map[string]any{
 							"Path":     filePath,
 							"Line":     u.line + e.Line - 1,
-							"Kind":     i18n.T(kindID, nil),
+							"Kind":     i18n.T("diff.kind_comment", nil),
 							"Char":     e.Char,
 							"CharCode": fmt.Sprintf("%04X", e.Code),
 						}))

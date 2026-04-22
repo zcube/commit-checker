@@ -23,7 +23,7 @@ type commentUnit struct {
 //   - 블록 주석(/* */), 문자열 리터럴: 개별 단위
 //   - 줄 주석(//): 인접한 줄(EndLine+1 == 다음 Line)에 같은 언어의 주석이 이어지면 하나의 단위로 묶음
 //   - Skip=true 인 지시자 주석, KindImport: 제외
-//   - checkStrings=false 이면 KindString 제외
+//   - checkStrings=false 이면 KindString 제외 (true 여도 언어 감지는 호출자가 건너뜀)
 func buildCommentUnits(
 	comments []comment.Comment,
 	states []directive.CommentState,

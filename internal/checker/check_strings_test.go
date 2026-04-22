@@ -1,7 +1,8 @@
 package checker_test
 
-// Integration tests for check_strings feature.
-// Each test covers one exception/behavior case for string literal language checking.
+// check_strings 기능 통합 테스트.
+// check_strings=true 여도 문자열 리터럴은 언어 감지 대상이 아님.
+// 유니코드 검사는 CheckUnicode/RunUnicode 에서 별도 처리.
 
 import (
 	"testing"
@@ -22,7 +23,7 @@ func checkStringsConfig() *config.Config {
 	return cfg
 }
 
-// TestCheckStrings_Disabled: check_strings=false → 문자열 리터럴은 검사하지 않음.
+// TestCheckStrings_Disabled: check_strings=false → 문자열 리터럴은 검사 제외.
 func TestCheckStrings_Disabled(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "main.go", `package main
@@ -45,7 +46,26 @@ func main() {
 	}
 }
 
-// TestCheckStrings_KoreanString_Pass: Korean string literal passes Korean requirement.
+// TestCheckStrings_EnglishString_NoLangError: 영어 문자열 리터럴도 언어 오류를 발생시키지 않음.
+func TestCheckStrings_EnglishString_NoLangError(t *testing.T) {
+	dir := newGitRepo(t)
+	stageFile(t, dir, "main.go", `package main
+
+func main() {
+	msg := "This is an English message for the user"
+	_ = msg
+}
+`)
+	errs, err := checker.CheckDiff(checkStringsConfig())
+	if err != nil {
+		t.Fatalf("CheckDiff error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("string literals should not trigger language errors, got: %v", errs)
+	}
+}
+
+// TestCheckStrings_KoreanString_Pass: 한국어 문자열 리터럴도 언어 오류 없음.
 func TestCheckStrings_KoreanString_Pass(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "main.go", `package main
@@ -64,108 +84,8 @@ func main() {
 	}
 }
 
-// TestCheckStrings_EnglishString_Fail: English string literal fails Korean requirement.
-func TestCheckStrings_EnglishString_Fail(t *testing.T) {
-	dir := newGitRepo(t)
-	stageFile(t, dir, "main.go", `package main
-
-func main() {
-	msg := "This is an English message for the user"
-	_ = msg
-}
-`)
-	errs, err := checker.CheckDiff(checkStringsConfig())
-	if err != nil {
-		t.Fatalf("CheckDiff error: %v", err)
-	}
-	if len(errs) == 0 {
-		t.Error("English string literal should fail Korean requirement")
-	}
-}
-
-// TestCheckStrings_PathString_Skipped: 슬래시 포함 문자열은 경로로 판단해 건너뜀 (skip_technical_strings 기본값 true).
-func TestCheckStrings_PathString_Skipped(t *testing.T) {
-	dir := newGitRepo(t)
-	stageFile(t, dir, "main.go", `package main
-
-func main() {
-	path := "/api/v1/users"
-	_ = path
-}
-`)
-	errs, err := checker.CheckDiff(checkStringsConfig())
-	if err != nil {
-		t.Fatalf("CheckDiff error: %v", err)
-	}
-	if len(errs) != 0 {
-		t.Errorf("path string /api/v1/users should be skipped as technical, got: %v", errs)
-	}
-}
-
-// TestCheckStrings_MimeType_Skipped: MIME 타입 문자열은 슬래시 포함으로 건너뜀.
-func TestCheckStrings_MimeType_Skipped(t *testing.T) {
-	dir := newGitRepo(t)
-	stageFile(t, dir, "main.go", `package main
-
-func main() {
-	ct := "application/json"
-	_ = ct
-}
-`)
-	errs, err := checker.CheckDiff(checkStringsConfig())
-	if err != nil {
-		t.Fatalf("CheckDiff error: %v", err)
-	}
-	if len(errs) != 0 {
-		t.Errorf("MIME type string should be skipped as technical, got: %v", errs)
-	}
-}
-
-// TestCheckStrings_UppercaseConstant_Skipped: 소문자 없는 순수 대문자 ASCII 상수는 건너뜀.
-func TestCheckStrings_UppercaseConstant_Skipped(t *testing.T) {
-	dir := newGitRepo(t)
-	stageFile(t, dir, "main.go", `package main
-
-func main() {
-	code := "ERR_TOKEN_INVALID"
-	_ = code
-}
-`)
-	errs, err := checker.CheckDiff(checkStringsConfig())
-	if err != nil {
-		t.Fatalf("CheckDiff error: %v", err)
-	}
-	if len(errs) != 0 {
-		t.Errorf("uppercase constant string should be skipped as technical, got: %v", errs)
-	}
-}
-
-// TestCheckStrings_SkipTechnicalStrings_Disabled: skip_technical_strings=false → 경로/상수도 검사함.
-func TestCheckStrings_SkipTechnicalStrings_Disabled(t *testing.T) {
-	dir := newGitRepo(t)
-	stageFile(t, dir, "main.go", `package main
-
-func main() {
-	path := "/api/v1/users/list"
-	_ = path
-}
-`)
-	f := false
-	cfg := checkStringsConfig()
-	cfg.CommentLanguage.SkipTechnicalStrings = &f
-
-	errs, err := checker.CheckDiff(cfg)
-	if err != nil {
-		t.Fatalf("CheckDiff error: %v", err)
-	}
-	// 슬래시 포함 문자열이지만 skip_technical_strings=false이므로 검사됨 → 영어로 감지되어 실패
-	if len(errs) == 0 {
-		t.Error("skip_technical_strings=false should check path strings; expected Korean requirement failure")
-	}
-}
-
-// TestCheckStrings_Python_EnglishString_Fail: Python 문자열 리터럴도 검사됨.
-func TestCheckStrings_Python_EnglishString_Fail(t *testing.T) {
+// TestCheckStrings_Python_EnglishString_NoLangError: Python 영어 문자열도 언어 오류 없음.
+func TestCheckStrings_Python_EnglishString_NoLangError(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "utils.py", `def greet():
     msg = "Welcome to the application system"
@@ -175,29 +95,13 @@ func TestCheckStrings_Python_EnglishString_Fail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
-	if len(errs) == 0 {
-		t.Error("English Python string literal should fail Korean requirement")
-	}
-}
-
-// TestCheckStrings_Python_KoreanString_Pass: Korean Python string literal passes.
-func TestCheckStrings_Python_KoreanString_Pass(t *testing.T) {
-	dir := newGitRepo(t)
-	stageFile(t, dir, "utils.py", `def greet():
-    msg = "안녕하세요 사용자"
-    return msg
-`)
-	errs, err := checker.CheckDiff(checkStringsConfig())
-	if err != nil {
-		t.Fatalf("CheckDiff error: %v", err)
-	}
 	if len(errs) != 0 {
-		t.Errorf("Korean Python string literal should pass, got: %v", errs)
+		t.Errorf("string literals should not trigger language errors, got: %v", errs)
 	}
 }
 
-// TestCheckStrings_TypeScript_EnglishString_Fail: TypeScript 문자열 리터럴도 검사됨.
-func TestCheckStrings_TypeScript_EnglishString_Fail(t *testing.T) {
+// TestCheckStrings_TypeScript_EnglishString_NoLangError: TypeScript 영어 문자열도 언어 오류 없음.
+func TestCheckStrings_TypeScript_EnglishString_NoLangError(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "service.ts", `const msg = "This English message will be shown to users";
 export { msg };
@@ -206,13 +110,13 @@ export { msg };
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
-	if len(errs) == 0 {
-		t.Error("English TypeScript string literal should fail Korean requirement")
+	if len(errs) != 0 {
+		t.Errorf("string literals should not trigger language errors, got: %v", errs)
 	}
 }
 
-// TestCheckStrings_ShortString_Skipped: min_length 미만 문자열은 건너뜀.
-func TestCheckStrings_ShortString_Skipped(t *testing.T) {
+// TestCheckStrings_ShortString_NoError: min_length 미만 문자열은 오류 없음.
+func TestCheckStrings_ShortString_NoError(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "main.go", `package main
 
@@ -226,6 +130,6 @@ func main() {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
 	if len(errs) != 0 {
-		t.Errorf("short string below min_length should be skipped, got: %v", errs)
+		t.Errorf("short string should produce no errors, got: %v", errs)
 	}
 }
