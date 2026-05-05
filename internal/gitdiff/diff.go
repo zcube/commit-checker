@@ -119,11 +119,16 @@ func ParseDiff(diff string) []FileDiff {
 			}
 			current = &FileDiff{AddedLines: make(map[int]bool)}
 			currentNewLine = 0
+			// "diff --git a/foo b/foo" 에서 경로 추출 (삭제 파일 포함 모든 케이스 처리)
+			if parts := strings.SplitN(line, " b/", 2); len(parts) == 2 {
+				current.Path = parts[1]
+			}
 
 		case current == nil:
 			continue
 
 		case strings.HasPrefix(line, "+++ b/"):
+			// 정확한 경로로 덮어씀 (rename 등 대비)
 			current.Path = strings.TrimPrefix(line, "+++ b/")
 
 		case line == "+++ /dev/null":
