@@ -274,18 +274,20 @@ func TestCheckAppendOnly_FilenameOrder_FirstFile(t *testing.T) {
 	}
 }
 
-// TestCheckAppendOnly_FilenameOrder_Disabled: filename_order 없으면 순서 검사 안 함.
+// TestCheckAppendOnly_FilenameOrder_Disabled: filename_order=none 이면 순서 검사 안 함.
 func TestCheckAppendOnly_FilenameOrder_Disabled(t *testing.T) {
 	dir := newGitRepo(t)
 	seedCommit(t, dir, "migrations/002.sql", "CREATE TABLE b (id INT);\n")
 	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE a (id INT);\n")
 
-	// filename_order 설정 없음
-	errs, err := checker.CheckAppendOnly(appendOnlyConfig("migrations/**"))
+	cfg := appendOnlyConfig("migrations/**")
+	cfg.AppendOnly.FilenameOrder = "none"
+
+	errs, err := checker.CheckAppendOnly(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(errs) != 0 {
-		t.Errorf("without filename_order option, order should not be checked, got: %v", errs)
+		t.Errorf("filename_order=none should skip order check, got: %v", errs)
 	}
 }

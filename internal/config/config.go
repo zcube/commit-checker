@@ -740,8 +740,8 @@ type AppendOnlyConfig struct {
 	Paths []string `yaml:"paths"`
 
 	// FilenameOrder: 새 파일 이름이 기존 파일보다 뒤에 와야 하는지 검사.
-	// "numeric": 자연수(numeric) 정렬 기준으로 기존 파일 중 최대값보다 뒤에 와야 함.
-	// "" (기본값): 파일 이름 순서 검사 없음.
+	// "numeric" 또는 "" (기본값): 자연수(numeric) 정렬 기준으로 기존 파일 중 최대값보다 뒤에 와야 함.
+	// "none": 파일 이름 순서 검사 비활성화.
 	FilenameOrder string `yaml:"filename_order"`
 }
 
@@ -750,9 +750,10 @@ func (c *AppendOnlyConfig) IsEnabled() bool {
 	return c.Enabled && len(c.Paths) > 0
 }
 
-// IsFilenameOrderNumeric: 파일 이름 numeric sort 순서 검사 활성화 여부 반환.
+// IsFilenameOrderNumeric: 파일 이름 numeric sort 순서 검사 활성화 여부 반환 (기본값: true).
+// "none"으로 명시적으로 비활성화하지 않는 한 항상 활성화.
 func (c *AppendOnlyConfig) IsFilenameOrderNumeric() bool {
-	return c.FilenameOrder == "numeric"
+	return c.FilenameOrder != "none"
 }
 
 // CustomRulesConfig: 정규식 기반 커스텀 규칙 설정.

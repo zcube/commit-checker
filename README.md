@@ -249,20 +249,20 @@ append_only:
   paths:
     - "migrations/**"
     - "db/migrations/**"
-  filename_order: numeric   # 새 파일 이름이 기존 파일보다 뒤에 와야 함 (numeric sort)
+  # filename_order: none   # 기본값은 numeric. 순서 검사를 끄려면 none 지정
 ```
 
 허용되는 변경:
-- 새 파일 추가 (`filename_order: numeric` 설정 시 기존 파일보다 뒤 이름만 허용)
+- 새 파일 추가 (기존 파일보다 뒤 이름만 허용, `filename_order: none` 으로 비활성화 가능)
 - 기존 파일 끝에 내용 추가
 
 차단되는 변경:
 - 파일 삭제
 - 기존 줄 수정·삭제
 - 파일 중간에 내용 삽입
-- (`filename_order: numeric`) 기존 파일보다 앞이나 같은 이름의 파일 추가
+- 기존 파일보다 앞이나 같은 이름의 새 파일 추가 (`filename_order: none` 시 허용)
 
-`filename_order: numeric` 은 자연수 정렬 기준으로 `9 < 10` 으로 처리합니다.
+파일 이름 순서는 자연수 정렬 기준으로 `9 < 10` 으로 처리합니다 (기본값).
 
 ### 허용 단어 사전
 

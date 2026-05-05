@@ -66,7 +66,7 @@ func CheckAppendOnly(cfg *config.Config) ([]string, error) {
 
 		if d.IsNew {
 			if cfg.AppendOnly.IsFilenameOrderNumeric() {
-				if msg := checkFilenameOrder(tree, d.Path); msg != "" {
+				if msg := checkFilenameOrder(tree, d.Path, cfg.AppendOnly.Paths); msg != "" {
 					errs = append(errs, msg)
 				}
 			}
@@ -88,8 +88,9 @@ func CheckAppendOnly(cfg *config.Config) ([]string, error) {
 }
 
 // checkFilenameOrder 는 새 파일의 이름이 같은 디렉터리의 기존 파일보다 뒤에 오는지 검사합니다.
+// patterns 에 매칭되는 파일만 비교 대상으로 삼습니다.
 // 위반 시 i18n 처리된 에러 문자열을 반환합니다.
-func checkFilenameOrder(tree *object.Tree, newPath string) string {
+func checkFilenameOrder(tree *object.Tree, newPath string, patterns []string) string {
 	if tree == nil {
 		return ""
 	}
@@ -100,6 +101,9 @@ func checkFilenameOrder(tree *object.Tree, newPath string) string {
 	maxExisting := ""
 	_ = tree.Files().ForEach(func(f *object.File) error {
 		if filepath.Dir(f.Name) != newDir {
+			return nil
+		}
+		if !pathutil.MatchesAny(f.Name, patterns) {
 			return nil
 		}
 		base := filepath.Base(f.Name)
