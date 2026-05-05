@@ -134,7 +134,7 @@ func TestHasExtension(t *testing.T) {
 }
 
 func TestParseDiff_AppendOnlyFields(t *testing.T) {
-	t.Run("new file has IsNew=true and no removed/middle", func(t *testing.T) {
+	t.Run("new file has IsNew=true and no removed lines", func(t *testing.T) {
 		diff := "diff --git a/migrations/001.sql b/migrations/001.sql\n" +
 			"new file mode 100644\n" +
 			"index 0000000..abc1234\n" +
@@ -154,9 +154,6 @@ func TestParseDiff_AppendOnlyFields(t *testing.T) {
 		}
 		if f.HasRemovedLines {
 			t.Error("HasRemovedLines should be false for new file")
-		}
-		if f.HasMiddleInsert {
-			t.Error("HasMiddleInsert should be false for new file")
 		}
 	})
 
@@ -183,8 +180,7 @@ func TestParseDiff_AppendOnlyFields(t *testing.T) {
 		}
 	})
 
-	t.Run("append at end has no middle insert", func(t *testing.T) {
-		// 파일 끝에 줄 추가: + 줄 뒤에 컨텍스트 줄 없음
+	t.Run("append at end has no removed lines", func(t *testing.T) {
 		diff := "diff --git a/migrations/001.sql b/migrations/001.sql\n" +
 			"index abc1234..def5678 100644\n" +
 			"--- a/migrations/001.sql\n" +
@@ -200,29 +196,6 @@ func TestParseDiff_AppendOnlyFields(t *testing.T) {
 		f := files[0]
 		if f.HasRemovedLines {
 			t.Error("HasRemovedLines should be false for pure append")
-		}
-		if f.HasMiddleInsert {
-			t.Error("HasMiddleInsert should be false when appending at end")
-		}
-	})
-
-	t.Run("insert in middle has HasMiddleInsert=true", func(t *testing.T) {
-		// 중간 삽입: + 줄 뒤에 컨텍스트 줄이 옴
-		diff := "diff --git a/migrations/001.sql b/migrations/001.sql\n" +
-			"index abc1234..def5678 100644\n" +
-			"--- a/migrations/001.sql\n" +
-			"+++ b/migrations/001.sql\n" +
-			"@@ -2,0 +3,1 @@\n" +
-			" existing line 2\n" +
-			"+inserted in middle\n" +
-			" existing line 3\n"
-		files := gitdiff.ParseDiff(diff)
-		if len(files) != 1 {
-			t.Fatalf("expected 1 file, got %d", len(files))
-		}
-		f := files[0]
-		if !f.HasMiddleInsert {
-			t.Error("HasMiddleInsert should be true for middle insertion")
 		}
 	})
 

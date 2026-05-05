@@ -18,7 +18,6 @@ type FileDiff struct {
 	IsDeleted       bool
 	IsNew           bool // 새로 생성된 파일 (new file mode)
 	HasRemovedLines bool // diff 에 제거된 줄(-) 이 존재함
-	HasMiddleInsert bool // 파일 끝이 아닌 중간에 삽입된 줄이 존재함
 	IsSubmodule     bool // git mode 160000 (서브모듈)
 	IsSymlink       bool // git mode 120000 (심볼릭 링크)
 }
@@ -107,8 +106,6 @@ func ParseDiff(diff string) []FileDiff {
 	var result []FileDiff
 	var current *FileDiff
 	currentNewLine := 0
-	// append-only 중간 삽입 감지: 같은 헝크에서 + 줄 이후 컨텍스트 줄이 오면 중간 삽입
-	seenPlusInHunk := false
 
 	scanner := bufio.NewScanner(strings.NewReader(diff))
 	scanner.Buffer(make([]byte, maxDiffLineBytes), maxDiffLineBytes)
@@ -122,7 +119,6 @@ func ParseDiff(diff string) []FileDiff {
 			}
 			current = &FileDiff{AddedLines: make(map[int]bool)}
 			currentNewLine = 0
-			seenPlusInHunk = false
 
 		case current == nil:
 			continue
@@ -160,13 +156,11 @@ func ParseDiff(diff string) []FileDiff {
 
 		case strings.HasPrefix(line, "@@"):
 			currentNewLine = parseHunkHeader(line)
-			seenPlusInHunk = false
 
 		case strings.HasPrefix(line, "+"):
 			// 새 파일에 추가된 줄
 			current.AddedLines[currentNewLine] = true
 			currentNewLine++
-			seenPlusInHunk = true
 
 		case strings.HasPrefix(line, "-"):
 			// 제거된 줄: 새 파일에 존재하지 않으므로 증가하지 않음
@@ -174,10 +168,6 @@ func ParseDiff(diff string) []FileDiff {
 
 		case strings.HasPrefix(line, " "):
 			// 컨텍스트 줄: 이전 파일과 새 파일 모두에 존재
-			// + 줄 이후 컨텍스트 줄이 오면 중간 삽입 (파일 끝 추가가 아님)
-			if seenPlusInHunk {
-				current.HasMiddleInsert = true
-			}
 			currentNewLine++
 		}
 	}
