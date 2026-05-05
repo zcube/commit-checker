@@ -9,6 +9,12 @@ diff.kind_string_literal:
   other: "문자열 리터럴"
 diff.binary_file_error:
   other: "{{.Path}}: 바이너리 파일 감지 — 컴파일된 실행파일 및 바이너리 파일은 커밋하면 안 됩니다"
+diff.append_only_deleted:
+  other: "{{.Path}}: append-only 경로에서 파일 삭제는 허용되지 않습니다"
+diff.append_only_modified:
+  other: "{{.Path}}: append-only 경로에서 기존 내용 수정·삭제는 허용되지 않습니다 (뒤에만 추가 가능)"
+diff.append_only_middle_insert:
+  other: "{{.Path}}: append-only 경로에서 파일 중간에 내용을 삽입할 수 없습니다 (뒤에만 추가 가능)"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
@@ -249,6 +255,8 @@ step.comment_language_check:
   other: "주석 언어 검사"
 step.custom_rules_check:
   other: "커스텀 규칙 검사"
+step.append_only_check:
+  other: "append-only 경로 검사"
 
 # validate 메시지
 validate.config_valid:

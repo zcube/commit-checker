@@ -9,6 +9,12 @@ diff.kind_string_literal:
   other: "string literal"
 diff.binary_file_error:
   other: "{{.Path}}: binary file detected — compiled executables and binary files should not be committed"
+diff.append_only_deleted:
+  other: "{{.Path}}: file deletion is not allowed in an append-only path"
+diff.append_only_modified:
+  other: "{{.Path}}: modifying or removing existing content is not allowed in an append-only path (append only)"
+diff.append_only_middle_insert:
+  other: "{{.Path}}: inserting content in the middle of a file is not allowed in an append-only path (append only)"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
@@ -249,6 +255,8 @@ step.comment_language_check:
   other: "Comment language check"
 step.custom_rules_check:
   other: "Custom rules check"
+step.append_only_check:
+  other: "Append-only path check"
 
 # validate messages
 validate.config_valid:

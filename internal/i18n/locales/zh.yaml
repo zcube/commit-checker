@@ -9,6 +9,12 @@ diff.kind_string_literal:
   other: "字符串字面量"
 diff.binary_file_error:
   other: "{{.Path}}: 检测到二进制文件 — 编译后的可执行文件和二进制文件不应被提交"
+diff.append_only_deleted:
+  other: "{{.Path}}: append-only路径中不允许删除文件"
+diff.append_only_modified:
+  other: "{{.Path}}: append-only路径中不允许修改或删除现有内容（只能在末尾追加）"
+diff.append_only_middle_insert:
+  other: "{{.Path}}: append-only路径中不允许在文件中间插入内容（只能在末尾追加）"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
@@ -247,6 +253,8 @@ step.comment_language_check:
   other: "注释语言检查"
 step.custom_rules_check:
   other: "自定义规则检查"
+step.append_only_check:
+  other: "append-only路径检查"
 
 # validate 消息
 validate.config_valid:

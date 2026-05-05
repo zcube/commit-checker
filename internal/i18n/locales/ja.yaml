@@ -9,6 +9,12 @@ diff.kind_string_literal:
   other: "文字列リテラル"
 diff.binary_file_error:
   other: "{{.Path}}: バイナリファイル検出 — コンパイル済み実行ファイルやバイナリファイルはコミットすべきではありません"
+diff.append_only_deleted:
+  other: "{{.Path}}: append-onlyパスでのファイル削除は許可されていません"
+diff.append_only_modified:
+  other: "{{.Path}}: append-onlyパスでの既存内容の変更・削除は許可されていません（末尾への追加のみ可）"
+diff.append_only_middle_insert:
+  other: "{{.Path}}: append-onlyパスでのファイル中間への挿入は許可されていません（末尾への追加のみ可）"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
@@ -249,6 +255,8 @@ step.comment_language_check:
   other: "コメント言語検査"
 step.custom_rules_check:
   other: "カスタムルール検査"
+step.append_only_check:
+  other: "append-onlyパス検査"
 
 # validate メッセージ
 validate.config_valid:

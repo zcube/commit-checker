@@ -22,6 +22,7 @@ Works with [lefthook](https://github.com/evilmartians/lefthook), husky, or any G
 | **Data file lint** | YAML, JSON (with JSON5 support), XML syntax validation |
 | **EditorConfig** | Validate files against .editorconfig rules |
 | **Conventional Commits** | Enforce commit message format (optional) |
+| **Append-only paths** | Block file deletion, content modification, and mid-file insertion (e.g. DB migrations) |
 | **Repository analysis** | Detect development languages and warn about missing lint configs |
 | **Auto-fix** | Batch-fix unicode/encoding violations across git history |
 | **Config migration** | Auto-detect old config versions and migrate to the latest schema |

@@ -22,6 +22,7 @@ Git 커밋 메시지와 소스 코드의 정책을 자동으로 검사하는 CLI
 | **데이터 파일 린트** | YAML, JSON (JSON5 지원), XML 구문 검사 |
 | **EditorConfig** | .editorconfig 규칙 준수 여부 검사 |
 | **Conventional Commits** | 커밋 메시지 형식 강제 (선택적) |
+| **append-only 경로** | 지정 경로에서 파일 삭제·내용 수정·중간 삽입 차단 (DB 마이그레이션 등) |
 | **리포지터리 분석** | 개발 언어 감지 및 린트 설정 누락 경고 |
 | **자동 수정 (fix)** | 유니코드/인코딩 위반 사항을 git history에서 일괄 수정 |
 | **설정 마이그레이션** | 구 버전 설정 파일을 자동 감지하여 최신 스키마로 변환 |
@@ -227,9 +228,37 @@ commit_message:
   language_check:
     enabled: false
     required_language: korean
+
+append_only:
+  enabled: false
+  # paths:
+  #   - "migrations/**"
+  #   - "db/migrations/**"
 ```
 
 설정 파일이 없으면 기본값이 적용됩니다.
+
+### append-only 경로
+
+DB 마이그레이션 파일 등 한 번 커밋된 내용을 변경해서는 안 되는 경로를 지정합니다.
+위반 시 에러만 발생하며 데이터는 보존됩니다.
+
+```yaml
+append_only:
+  enabled: true
+  paths:
+    - "migrations/**"
+    - "db/migrations/**"
+```
+
+허용되는 변경:
+- 새 파일 추가
+- 기존 파일 끝에 내용 추가
+
+차단되는 변경:
+- 파일 삭제
+- 기존 줄 수정·삭제
+- 파일 중간에 내용 삽입
 
 ### 허용 단어 사전
 

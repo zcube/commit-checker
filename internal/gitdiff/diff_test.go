@@ -132,3 +132,117 @@ func TestHasExtension(t *testing.T) {
 		}
 	}
 }
+
+func TestParseDiff_AppendOnlyFields(t *testing.T) {
+	t.Run("new file has IsNew=true and no removed/middle", func(t *testing.T) {
+		diff := "diff --git a/migrations/001.sql b/migrations/001.sql\n" +
+			"new file mode 100644\n" +
+			"index 0000000..abc1234\n" +
+			"--- /dev/null\n" +
+			"+++ b/migrations/001.sql\n" +
+			"@@ -0,0 +1,3 @@\n" +
+			"+CREATE TABLE users (\n" +
+			"+  id SERIAL PRIMARY KEY\n" +
+			"+);\n"
+		files := gitdiff.ParseDiff(diff)
+		if len(files) != 1 {
+			t.Fatalf("expected 1 file, got %d", len(files))
+		}
+		f := files[0]
+		if !f.IsNew {
+			t.Error("IsNew should be true for new file")
+		}
+		if f.HasRemovedLines {
+			t.Error("HasRemovedLines should be false for new file")
+		}
+		if f.HasMiddleInsert {
+			t.Error("HasMiddleInsert should be false for new file")
+		}
+	})
+
+	t.Run("deleted file has IsDeleted=true", func(t *testing.T) {
+		diff := "diff --git a/migrations/001.sql b/migrations/001.sql\n" +
+			"deleted file mode 100644\n" +
+			"index abc1234..0000000\n" +
+			"--- a/migrations/001.sql\n" +
+			"+++ /dev/null\n" +
+			"@@ -1,3 +0,0 @@\n" +
+			"-CREATE TABLE users (\n" +
+			"-  id SERIAL PRIMARY KEY\n" +
+			"-);\n"
+		files := gitdiff.ParseDiff(diff)
+		if len(files) != 1 {
+			t.Fatalf("expected 1 file, got %d", len(files))
+		}
+		f := files[0]
+		if !f.IsDeleted {
+			t.Error("IsDeleted should be true")
+		}
+		if !f.HasRemovedLines {
+			t.Error("HasRemovedLines should be true for deleted file")
+		}
+	})
+
+	t.Run("append at end has no middle insert", func(t *testing.T) {
+		// 파일 끝에 줄 추가: + 줄 뒤에 컨텍스트 줄 없음
+		diff := "diff --git a/migrations/001.sql b/migrations/001.sql\n" +
+			"index abc1234..def5678 100644\n" +
+			"--- a/migrations/001.sql\n" +
+			"+++ b/migrations/001.sql\n" +
+			"@@ -3,0 +4,2 @@\n" +
+			" last existing line\n" +
+			"+ALTER TABLE users ADD COLUMN email TEXT;\n" +
+			"+ALTER TABLE users ADD COLUMN created_at TIMESTAMP;\n"
+		files := gitdiff.ParseDiff(diff)
+		if len(files) != 1 {
+			t.Fatalf("expected 1 file, got %d", len(files))
+		}
+		f := files[0]
+		if f.HasRemovedLines {
+			t.Error("HasRemovedLines should be false for pure append")
+		}
+		if f.HasMiddleInsert {
+			t.Error("HasMiddleInsert should be false when appending at end")
+		}
+	})
+
+	t.Run("insert in middle has HasMiddleInsert=true", func(t *testing.T) {
+		// 중간 삽입: + 줄 뒤에 컨텍스트 줄이 옴
+		diff := "diff --git a/migrations/001.sql b/migrations/001.sql\n" +
+			"index abc1234..def5678 100644\n" +
+			"--- a/migrations/001.sql\n" +
+			"+++ b/migrations/001.sql\n" +
+			"@@ -2,0 +3,1 @@\n" +
+			" existing line 2\n" +
+			"+inserted in middle\n" +
+			" existing line 3\n"
+		files := gitdiff.ParseDiff(diff)
+		if len(files) != 1 {
+			t.Fatalf("expected 1 file, got %d", len(files))
+		}
+		f := files[0]
+		if !f.HasMiddleInsert {
+			t.Error("HasMiddleInsert should be true for middle insertion")
+		}
+	})
+
+	t.Run("modification has HasRemovedLines=true", func(t *testing.T) {
+		diff := "diff --git a/migrations/001.sql b/migrations/001.sql\n" +
+			"index abc1234..def5678 100644\n" +
+			"--- a/migrations/001.sql\n" +
+			"+++ b/migrations/001.sql\n" +
+			"@@ -1,3 +1,3 @@\n" +
+			" CREATE TABLE users (\n" +
+			"-  id INT PRIMARY KEY\n" +
+			"+  id SERIAL PRIMARY KEY\n" +
+			" );\n"
+		files := gitdiff.ParseDiff(diff)
+		if len(files) != 1 {
+			t.Fatalf("expected 1 file, got %d", len(files))
+		}
+		f := files[0]
+		if !f.HasRemovedLines {
+			t.Error("HasRemovedLines should be true for modification")
+		}
+	})
+}

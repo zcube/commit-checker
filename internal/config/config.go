@@ -38,6 +38,7 @@ type Config struct {
 	EditorConfig    EditorConfigConfig    `yaml:"editorconfig"`
 	Exceptions      ExceptionsConfig      `yaml:"exceptions"`
 	CustomRules     CustomRulesConfig     `yaml:"custom_rules"`
+	AppendOnly      AppendOnlyConfig      `yaml:"append_only"`
 }
 
 // CommentLanguageConfig: 스테이지된 diff의 주석 언어 검사 설정.
@@ -726,6 +727,22 @@ type ExceptionsConfig struct {
 
 	// CommentLanguageIgnore: 주석 언어 검사에서만 건너뛸 파일의 glob 패턴 목록.
 	CommentLanguageIgnore []string `yaml:"comment_language_ignore"`
+}
+
+// AppendOnlyConfig: 특정 경로에서 파일 삭제·내용 수정·중간 삽입을 금지하는 append-only 설정.
+// DB 마이그레이션 디렉터리 등 한 번 커밋한 내용을 변경해서는 안 되는 경우에 사용합니다.
+type AppendOnlyConfig struct {
+	// Enabled: append-only 검사 활성화 여부 (기본값: false).
+	Enabled bool `yaml:"enabled"`
+
+	// Paths: append-only 규칙을 적용할 glob 패턴 목록.
+	// 예: ["migrations/**", "db/migrations/**"]
+	Paths []string `yaml:"paths"`
+}
+
+// IsEnabled: append-only 검사 활성화 여부 반환.
+func (c *AppendOnlyConfig) IsEnabled() bool {
+	return c.Enabled && len(c.Paths) > 0
 }
 
 // CustomRulesConfig: 정규식 기반 커스텀 규칙 설정.

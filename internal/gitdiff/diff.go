@@ -13,11 +13,14 @@ import (
 
 // FileDiff 는 스테이지된 diff 에서 파일 정보를 담습니다.
 type FileDiff struct {
-	Path        string
-	AddedLines  map[int]bool // 새 파일에서 추가된 줄 번호 집합 (1 기반)
-	IsDeleted   bool
-	IsSubmodule bool // git mode 160000 (서브모듈)
-	IsSymlink   bool // git mode 120000 (심볼릭 링크)
+	Path            string
+	AddedLines      map[int]bool // 새 파일에서 추가된 줄 번호 집합 (1 기반)
+	IsDeleted       bool
+	IsNew           bool // 새로 생성된 파일 (new file mode)
+	HasRemovedLines bool // diff 에 제거된 줄(-) 이 존재함
+	HasMiddleInsert bool // 파일 끝이 아닌 중간에 삽입된 줄이 존재함
+	IsSubmodule     bool // git mode 160000 (서브모듈)
+	IsSymlink       bool // git mode 120000 (심볼릭 링크)
 }
 
 // GetStagedDiff 는 git diff --staged 를 실행하고 파싱된 파일 diff 목록을 반환합니다.
@@ -104,6 +107,8 @@ func ParseDiff(diff string) []FileDiff {
 	var result []FileDiff
 	var current *FileDiff
 	currentNewLine := 0
+	// append-only 중간 삽입 감지: 같은 헝크에서 + 줄 이후 컨텍스트 줄이 오면 중간 삽입
+	seenPlusInHunk := false
 
 	scanner := bufio.NewScanner(strings.NewReader(diff))
 	scanner.Buffer(make([]byte, maxDiffLineBytes), maxDiffLineBytes)
@@ -117,6 +122,7 @@ func ParseDiff(diff string) []FileDiff {
 			}
 			current = &FileDiff{AddedLines: make(map[int]bool)}
 			currentNewLine = 0
+			seenPlusInHunk = false
 
 		case current == nil:
 			continue
@@ -129,7 +135,10 @@ func ParseDiff(diff string) []FileDiff {
 
 		case strings.HasPrefix(line, "new file mode "), strings.HasPrefix(line, "old mode "),
 			strings.HasPrefix(line, "new mode "):
-			// 파일 모드 줄: 서브모듈(160000)과 심볼릭 링크(120000) 감지
+			// 파일 모드 줄: 신규 파일, 서브모듈(160000), 심볼릭 링크(120000) 감지
+			if strings.HasPrefix(line, "new file mode ") {
+				current.IsNew = true
+			}
 			for _, prefix := range []string{"new file mode ", "new mode ", "old mode "} {
 				if strings.HasPrefix(line, prefix) {
 					mode := strings.TrimSpace(strings.TrimPrefix(line, prefix))
@@ -151,17 +160,24 @@ func ParseDiff(diff string) []FileDiff {
 
 		case strings.HasPrefix(line, "@@"):
 			currentNewLine = parseHunkHeader(line)
+			seenPlusInHunk = false
 
 		case strings.HasPrefix(line, "+"):
 			// 새 파일에 추가된 줄
 			current.AddedLines[currentNewLine] = true
 			currentNewLine++
+			seenPlusInHunk = true
 
 		case strings.HasPrefix(line, "-"):
 			// 제거된 줄: 새 파일에 존재하지 않으므로 증가하지 않음
+			current.HasRemovedLines = true
 
 		case strings.HasPrefix(line, " "):
 			// 컨텍스트 줄: 이전 파일과 새 파일 모두에 존재
+			// + 줄 이후 컨텍스트 줄이 오면 중간 삽입 (파일 끝 추가가 아님)
+			if seenPlusInHunk {
+				current.HasMiddleInsert = true
+			}
 			currentNewLine++
 		}
 	}
