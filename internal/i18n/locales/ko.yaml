@@ -12,9 +12,7 @@ diff.binary_file_error:
 diff.append_only_deleted:
   other: "{{.Path}}: append-only 경로에서 파일 삭제는 허용되지 않습니다"
 diff.append_only_modified:
-  other: "{{.Path}}: append-only 경로에서 기존 내용 수정·삭제는 허용되지 않습니다 (뒤에만 추가 가능)"
-diff.append_only_middle_insert:
-  other: "{{.Path}}: append-only 경로에서 파일 중간에 내용을 삽입할 수 없습니다 (뒤에만 추가 가능)"
+  other: "{{.Path}}: append-only 경로에서 기존 내용을 변경할 수 없습니다 (수정·삭제·중간 삽입 불가, 끝에 추가만 허용)"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:

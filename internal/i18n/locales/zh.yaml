@@ -12,9 +12,7 @@ diff.binary_file_error:
 diff.append_only_deleted:
   other: "{{.Path}}: append-only路径中不允许删除文件"
 diff.append_only_modified:
-  other: "{{.Path}}: append-only路径中不允许修改或删除现有内容（只能在末尾追加）"
-diff.append_only_middle_insert:
-  other: "{{.Path}}: append-only路径中不允许在文件中间插入内容（只能在末尾追加）"
+  other: "{{.Path}}: append-only路径中不允许修改现有内容（禁止编辑、删除或中间插入，只能在末尾追加）"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:

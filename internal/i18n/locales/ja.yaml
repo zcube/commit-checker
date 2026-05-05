@@ -12,9 +12,7 @@ diff.binary_file_error:
 diff.append_only_deleted:
   other: "{{.Path}}: append-onlyパスでのファイル削除は許可されていません"
 diff.append_only_modified:
-  other: "{{.Path}}: append-onlyパスでの既存内容の変更・削除は許可されていません（末尾への追加のみ可）"
-diff.append_only_middle_insert:
-  other: "{{.Path}}: append-onlyパスでのファイル中間への挿入は許可されていません（末尾への追加のみ可）"
+  other: "{{.Path}}: append-onlyパスでは既存内容を変更できません（変更・削除・中間挿入不可、末尾への追加のみ可）"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:

@@ -12,9 +12,7 @@ diff.binary_file_error:
 diff.append_only_deleted:
   other: "{{.Path}}: file deletion is not allowed in an append-only path"
 diff.append_only_modified:
-  other: "{{.Path}}: modifying or removing existing content is not allowed in an append-only path (append only)"
-diff.append_only_middle_insert:
-  other: "{{.Path}}: inserting content in the middle of a file is not allowed in an append-only path (append only)"
+  other: "{{.Path}}: existing content must not be changed in an append-only path (no edit, delete, or mid-file insert — append at end only)"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
