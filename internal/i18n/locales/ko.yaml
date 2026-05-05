@@ -13,6 +13,8 @@ diff.append_only_deleted:
   other: "{{.Path}}: append-only 경로에서 파일 삭제는 허용되지 않습니다"
 diff.append_only_modified:
   other: "{{.Path}}: append-only 경로에서 기존 내용을 변경할 수 없습니다 (수정·삭제·중간 삽입 불가, 끝에 추가만 허용)"
+diff.append_only_filename_order:
+  other: "{{.Path}}: append-only 경로에서 새 파일은 기존 파일보다 뒤에 와야 합니다 (numeric sort 기준, 현재 최대: {{.MaxFile}})"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:

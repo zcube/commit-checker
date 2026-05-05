@@ -13,6 +13,8 @@ diff.append_only_deleted:
   other: "{{.Path}}: file deletion is not allowed in an append-only path"
 diff.append_only_modified:
   other: "{{.Path}}: existing content must not be changed in an append-only path (no edit, delete, or mid-file insert — append at end only)"
+diff.append_only_filename_order:
+  other: "{{.Path}}: new file must sort after all existing files in append-only path (numeric sort, current max: {{.MaxFile}})"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:

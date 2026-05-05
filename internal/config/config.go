@@ -738,11 +738,21 @@ type AppendOnlyConfig struct {
 	// Paths: append-only 규칙을 적용할 glob 패턴 목록.
 	// 예: ["migrations/**", "db/migrations/**"]
 	Paths []string `yaml:"paths"`
+
+	// FilenameOrder: 새 파일 이름이 기존 파일보다 뒤에 와야 하는지 검사.
+	// "numeric": 자연수(numeric) 정렬 기준으로 기존 파일 중 최대값보다 뒤에 와야 함.
+	// "" (기본값): 파일 이름 순서 검사 없음.
+	FilenameOrder string `yaml:"filename_order"`
 }
 
 // IsEnabled: append-only 검사 활성화 여부 반환.
 func (c *AppendOnlyConfig) IsEnabled() bool {
 	return c.Enabled && len(c.Paths) > 0
+}
+
+// IsFilenameOrderNumeric: 파일 이름 numeric sort 순서 검사 활성화 여부 반환.
+func (c *AppendOnlyConfig) IsFilenameOrderNumeric() bool {
+	return c.FilenameOrder == "numeric"
 }
 
 // CustomRulesConfig: 정규식 기반 커스텀 규칙 설정.

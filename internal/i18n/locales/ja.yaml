@@ -13,6 +13,8 @@ diff.append_only_deleted:
   other: "{{.Path}}: append-onlyパスでのファイル削除は許可されていません"
 diff.append_only_modified:
   other: "{{.Path}}: append-onlyパスでは既存内容を変更できません（変更・削除・中間挿入不可、末尾への追加のみ可）"
+diff.append_only_filename_order:
+  other: "{{.Path}}: append-onlyパスでは新規ファイルは既存ファイルより後に来る必要があります（numericソート基準、現在の最大: {{.MaxFile}}）"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:

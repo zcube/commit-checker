@@ -13,6 +13,8 @@ diff.append_only_deleted:
   other: "{{.Path}}: append-only路径中不允许删除文件"
 diff.append_only_modified:
   other: "{{.Path}}: append-only路径中不允许修改现有内容（禁止编辑、删除或中间插入，只能在末尾追加）"
+diff.append_only_filename_order:
+  other: "{{.Path}}: append-only路径中新文件名必须在所有现有文件之后（numeric排序，当前最大: {{.MaxFile}}）"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:

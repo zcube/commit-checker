@@ -185,3 +185,107 @@ func TestCheckAppendOnly_MultipleViolations(t *testing.T) {
 		t.Errorf("expected at least 2 errors for 2 violations, got %d: %v", len(errs), errs)
 	}
 }
+
+// ---- FilenameOrder=numeric 테스트 ------------------------------------------
+
+func appendOnlyNumericConfig(paths ...string) *config.Config {
+	cfg := appendOnlyConfig(paths...)
+	cfg.AppendOnly.FilenameOrder = "numeric"
+	return cfg
+}
+
+// TestCheckAppendOnly_FilenameOrder_NewFileAfter: 기존 파일보다 뒤에 오는 이름은 허용.
+func TestCheckAppendOnly_FilenameOrder_NewFileAfter(t *testing.T) {
+	dir := newGitRepo(t)
+	seedCommit(t, dir, "migrations/001.sql", "CREATE TABLE a (id INT);\n")
+	seedCommit(t, dir, "migrations/002.sql", "CREATE TABLE b (id INT);\n")
+	stageFile(t, dir, "migrations/003.sql", "CREATE TABLE c (id INT);\n")
+
+	errs, err := checker.CheckAppendOnly(appendOnlyNumericConfig("migrations/**"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("file with name after existing files should be allowed, got: %v", errs)
+	}
+}
+
+// TestCheckAppendOnly_FilenameOrder_NewFileBefore: 기존 파일보다 앞에 오는 이름은 차단.
+func TestCheckAppendOnly_FilenameOrder_NewFileBefore(t *testing.T) {
+	dir := newGitRepo(t)
+	seedCommit(t, dir, "migrations/002.sql", "CREATE TABLE b (id INT);\n")
+	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE a (id INT);\n")
+
+	errs, err := checker.CheckAppendOnly(appendOnlyNumericConfig("migrations/**"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(errs) == 0 {
+		t.Error("file with name before existing max should be blocked")
+	}
+}
+
+// TestCheckAppendOnly_FilenameOrder_SameName: 기존 파일과 같은 이름은 차단 (IsNew=false라 내용 검사로 처리).
+func TestCheckAppendOnly_FilenameOrder_SameName_Modify(t *testing.T) {
+	dir := newGitRepo(t)
+	seedCommit(t, dir, "migrations/002.sql", "CREATE TABLE b (id INT);\n")
+	// 같은 이름 파일 수정 시도 → 내용 검사에서 차단
+	stageFile(t, dir, "migrations/002.sql", "DROP TABLE b;\n")
+
+	errs, err := checker.CheckAppendOnly(appendOnlyNumericConfig("migrations/**"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(errs) == 0 {
+		t.Error("modification of existing file should be blocked")
+	}
+}
+
+// TestCheckAppendOnly_FilenameOrder_NumericSort: 9 < 10 (lexicographic 이 아닌 numeric 정렬).
+func TestCheckAppendOnly_FilenameOrder_NumericSort(t *testing.T) {
+	dir := newGitRepo(t)
+	// 9번 파일이 최대. lexicographic 으로는 "9" > "10" 이지만 numeric 으로는 9 < 10
+	for _, f := range []string{"001", "002", "003", "004", "005", "006", "007", "008", "009"} {
+		seedCommit(t, dir, "migrations/"+f+".sql", "-- "+f+"\n")
+	}
+	stageFile(t, dir, "migrations/010.sql", "-- 010\n")
+
+	errs, err := checker.CheckAppendOnly(appendOnlyNumericConfig("migrations/**"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("010 should come after 009 in numeric sort, got errors: %v", errs)
+	}
+}
+
+// TestCheckAppendOnly_FilenameOrder_FirstFile: 기존 파일이 없으면 어떤 이름이든 허용.
+func TestCheckAppendOnly_FilenameOrder_FirstFile(t *testing.T) {
+	dir := newGitRepo(t)
+	seedCommit(t, dir, "README.md", "init\n")
+	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE a (id INT);\n")
+
+	errs, err := checker.CheckAppendOnly(appendOnlyNumericConfig("migrations/**"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("first file in directory should always be allowed, got: %v", errs)
+	}
+}
+
+// TestCheckAppendOnly_FilenameOrder_Disabled: filename_order 없으면 순서 검사 안 함.
+func TestCheckAppendOnly_FilenameOrder_Disabled(t *testing.T) {
+	dir := newGitRepo(t)
+	seedCommit(t, dir, "migrations/002.sql", "CREATE TABLE b (id INT);\n")
+	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE a (id INT);\n")
+
+	// filename_order 설정 없음
+	errs, err := checker.CheckAppendOnly(appendOnlyConfig("migrations/**"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("without filename_order option, order should not be checked, got: %v", errs)
+	}
+}
