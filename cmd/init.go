@@ -102,11 +102,27 @@ comment_language:
 
 binary_file:
   enabled: true
-  # ignore_files: 바이너리 검사에서 제외할 파일 (이미지, 폰트 등).
+  # default_policy: block         # 기본 정책 — block | allow | lfs (기본값: block)
+  # 내장 이미지 확장자(.png .jpg .jpeg .gif .webp .bmp .ico .tiff .tif .heic .heif .avif)는
+  # 별도 규칙이 없으면 자동으로 allow 가 적용됩니다.
+
+  # rules: 확장자별 정책 (첫 번째 매칭 규칙 적용).
+  # rules:
+  #   # 이미지를 LFS 로 강제하려면:
+  #   - extensions: [.png, .jpg, .jpeg, .gif, .webp]
+  #     policy: lfs
+  #   # 디자인 원본/동영상 등 큰 바이너리:
+  #   - extensions: [.psd, .ai, .sketch]
+  #     policy: lfs
+  #   - extensions: [.mp4, .mov, .webm]
+  #     policy: lfs
+  #   # 폰트는 그냥 허가:
+  #   - extensions: [.woff2, .ttf, .otf]
+  #     policy: allow
+
+  # ignore_files: 정책 검사 자체를 건너뛸 glob 패턴.
   # ignore_files:
-  #   - "**/*.png"
-  #   - "**/*.jpg"
-  #   - "**/*.woff2"
+  #   - "assets/icons/**"
 
 lint:
   enabled: true
@@ -130,6 +146,25 @@ editorconfig:
   enabled: true
   # ignore_files:
   #   - "vendor/**"
+
+# append_only: DB 마이그레이션 등 한 번 커밋된 내용을 변경하면 안 되는 경로.
+# 기본 비활성화 — paths 를 지정하면서 enabled: true 로 켜세요.
+# append_only:
+#   enabled: true
+#   paths:
+#     - "migrations/**"
+#     - "db/migrations/**"
+#   # filename_order: numeric 이 기본. 순서 검사를 끄려면 none 지정.
+#   # filename_order: none
+
+# cache_dir: 빌드 산출물·캐시 디렉터리(node_modules, dist, build, target,
+# __pycache__, .venv 등) 안의 파일이 커밋되는 것을 차단합니다.
+# 부모 디렉터리 인디케이터(go.mod, package.json, Cargo.toml 등) 기반으로 검증.
+cache_dir:
+  enabled: true
+  # ignore_dirs: 의도적으로 커밋하는 디렉터리 (예: Go vendor).
+  # ignore_dirs:
+  #   - vendor
 
 commit_message:
   # enabled: true              # false이면 모든 커밋 메시지 검사 비활성화

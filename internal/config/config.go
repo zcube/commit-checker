@@ -39,6 +39,7 @@ type Config struct {
 	Exceptions      ExceptionsConfig      `yaml:"exceptions"`
 	CustomRules     CustomRulesConfig     `yaml:"custom_rules"`
 	AppendOnly      AppendOnlyConfig      `yaml:"append_only"`
+	CacheDir        CacheDirConfig        `yaml:"cache_dir"`
 }
 
 // CommentLanguageConfig: 스테이지된 diff의 주석 언어 검사 설정.
@@ -557,13 +558,41 @@ func ExtractCoauthorEmail(line string) string {
 
 // BinaryFileConfig: 스테이지된 diff에서 바이너리 파일 감지 설정.
 // 컴파일된 실행파일 등 바이너리 파일이 커밋되는 것을 방지.
+//
+// 정책 종류 (block | allow | lfs):
+//   - block: 차단 (에러)
+//   - allow: 허가 (통과)
+//   - lfs:   git LFS 로 추적되는 경우만 허가, 아니면 차단
+//
+// 우선순위: rules (확장자 매칭) > 내장 이미지 정책(이미지 확장자 → allow) > default_policy
 type BinaryFileConfig struct {
 	// Enabled: 바이너리 파일 감지 활성화 여부 (기본값: true).
 	Enabled *bool `yaml:"enabled"`
 
-	// IgnoreFiles: 허용할 바이너리 파일의 glob 패턴 목록.
-	// 예: 이미지, 폰트 등 의도적으로 포함하는 바이너리 파일.
+	// DefaultPolicy: 어느 규칙에도 매칭되지 않은 바이너리에 대한 정책 (기본값: block).
+	DefaultPolicy string `yaml:"default_policy"`
+
+	// Rules: 확장자별 정책 규칙. 첫 번째 매칭 규칙이 적용됩니다.
+	Rules []BinaryFilePolicyRule `yaml:"rules"`
+
+	// IgnoreFiles: 검사에서 완전히 제외할 파일 glob 패턴.
 	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// BinaryFilePolicyRule: 확장자별 바이너리 정책 규칙.
+type BinaryFilePolicyRule struct {
+	// Extensions: 정책을 적용할 파일 확장자 목록 (.png, .jpg 등). 대소문자 무관.
+	Extensions []string `yaml:"extensions"`
+
+	// Policy: 적용할 정책 (block | allow | lfs).
+	Policy string `yaml:"policy"`
+}
+
+// BuiltinImageExtensions: 내장 이미지 확장자 목록.
+// rules 에서 명시적으로 지정하지 않은 경우 이미지 확장자는 allow 가 기본입니다.
+var BuiltinImageExtensions = []string{
+	".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp",
+	".ico", ".tiff", ".tif", ".heic", ".heif", ".avif",
 }
 
 // IsEnabled: 바이너리 파일 감지 활성화 여부 반환 (기본값: true).
@@ -572,6 +601,41 @@ func (c *BinaryFileConfig) IsEnabled() bool {
 		return true
 	}
 	return *c.Enabled
+}
+
+// PolicyFor: path 의 확장자에 적용할 정책을 반환합니다.
+// 우선순위: 사용자 rules > 내장 이미지 정책(allow) > default_policy(또는 block).
+func (c *BinaryFileConfig) PolicyFor(path string) string {
+	ext := strings.ToLower(filepath.Ext(path))
+
+	for _, r := range c.Rules {
+		for _, e := range r.Extensions {
+			if strings.EqualFold(ext, e) {
+				return normalizePolicy(r.Policy)
+			}
+		}
+	}
+
+	for _, e := range BuiltinImageExtensions {
+		if ext == e {
+			return "allow"
+		}
+	}
+
+	return normalizePolicy(c.DefaultPolicy)
+}
+
+func normalizePolicy(p string) string {
+	switch strings.ToLower(strings.TrimSpace(p)) {
+	case "allow":
+		return "allow"
+	case "lfs":
+		return "lfs"
+	case "block", "":
+		return "block"
+	default:
+		return "block"
+	}
 }
 
 // LintConfig: 데이터 파일(YAML, JSON, XML) 구문 lint 검사 설정.
@@ -754,6 +818,26 @@ func (c *AppendOnlyConfig) IsEnabled() bool {
 // "none"으로 명시적으로 비활성화하지 않는 한 항상 활성화.
 func (c *AppendOnlyConfig) IsFilenameOrderNumeric() bool {
 	return c.FilenameOrder != "none"
+}
+
+// CacheDirConfig: 빌드 산출물·캐시 디렉터리(node_modules, dist, build, target, __pycache__ 등)
+// 안의 파일이 git 에 커밋되거나 스테이지되는지 검사하는 설정.
+// pkg/cachedir 의 검증기를 사용하여 부모 디렉터리 인디케이터(go.mod, package.json 등) 기반으로 판별합니다.
+type CacheDirConfig struct {
+	// Enabled: 캐시/빌드 디렉터리 검사 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// IgnoreDirs: 검사에서 제외할 디렉터리 이름 목록.
+	// 예: 의도적으로 vendor/ 를 커밋하는 Go 프로젝트에서 ["vendor"] 지정.
+	IgnoreDirs []string `yaml:"ignore_dirs"`
+}
+
+// IsEnabled: 캐시/빌드 디렉터리 검사 활성화 여부 반환 (기본값: true).
+func (c *CacheDirConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
 }
 
 // CustomRulesConfig: 정규식 기반 커스텀 규칙 설정.

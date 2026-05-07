@@ -9,12 +9,18 @@ diff.kind_string_literal:
   other: "string literal"
 diff.binary_file_error:
   other: "{{.Path}}: binary file detected — compiled executables and binary files should not be committed"
+diff.binary_file_lfs_required:
+  other: "{{.Path}}: this binary file must be tracked by git LFS — add `filter=lfs` to `.gitattributes` or run `git lfs track`"
 diff.append_only_deleted:
   other: "{{.Path}}: file deletion is not allowed in an append-only path"
 diff.append_only_modified:
   other: "{{.Path}}: existing content must not be changed in an append-only path (no edit, delete, or mid-file insert — append at end only)"
 diff.append_only_filename_order:
   other: "{{.Path}}: new file must sort after all existing files in append-only path (numeric sort, current max: {{.MaxFile}})"
+diff.cache_dir_staged:
+  other: "{{.Path}}: file inside build artifact / cache dir ({{.CacheDir}}) should not be committed — add to .gitignore"
+diff.cache_dir_committed:
+  other: "{{.CacheDir}}: build artifact / cache dir has {{.Count}} tracked files — run 'commit-checker clean'"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
@@ -172,6 +178,38 @@ cmd.fix.long:
     Examples:
       commit-checker fix             # fix staged files
       commit-checker fix --dry-run   # preview fixes without writing changes
+cmd.clean.short:
+  other: "Clean untracked files inside build artifact / cache directories"
+cmd.clean.long:
+  other: |-
+    Scan the current git repository for build artifact / cache directories
+    (node_modules, dist, build, target, __pycache__, .venv, etc.).
+
+    Detection uses parent-dir indicators (go.mod, package.json, Cargo.toml, …)
+    so false positives are minimised.
+
+    Tracked files are never deleted — only files reported by
+    `git ls-files --others` are eligible.
+
+    Examples:
+      commit-checker clean              # list found dirs (dry-run)
+      commit-checker clean --yes        # actually delete untracked files
+cmd.clean.scanning:
+  other: "Scanning: {{.Path}}"
+cmd.clean.no_cache_dirs:
+  other: "No cache / build directories found."
+cmd.clean.found_header:
+  other: "Found {{.Count}} cache / build directories (total {{.Size}}):"
+cmd.clean.entry:
+  other: "  {{.Path}}  ({{.Size}}{{.Tracked}})"
+cmd.clean.entry_tracked:
+  other: ", {{.Count}} tracked files ⚠"
+cmd.clean.dry_run_hint:
+  other: "\nUse --yes to delete untracked files."
+cmd.clean.cleaned_summary:
+  other: "Cleaned {{.Size}} ({{.Count}} dirs)"
+cmd.clean.not_in_repo:
+  other: "not a git repository: {{.Path}}"
 cmd.push.short:
   other: "Check commit messages for commits about to be pushed"
 cmd.push.long:
@@ -257,6 +295,8 @@ step.custom_rules_check:
   other: "Custom rules check"
 step.append_only_check:
   other: "Append-only path check"
+step.cache_dir_check:
+  other: "Build artifact / cache directory check"
 
 # validate messages
 validate.config_valid:

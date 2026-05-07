@@ -76,12 +76,11 @@ func RunBinaryFiles(cfg *config.Config) ([]string, error) {
 				return nil
 			}
 			if encoding.IsBinary(content) {
-				msg := i18n.T("diff.binary_file_error", map[string]any{
-					"Path": path,
-				})
-				mu.Lock()
-				errs = append(errs, msg)
-				mu.Unlock()
+				if msg := evaluateBinaryPolicy(&cfg.BinaryFile, path); msg != "" {
+					mu.Lock()
+					errs = append(errs, msg)
+					mu.Unlock()
+				}
 			}
 			return nil
 		})

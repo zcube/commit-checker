@@ -30,6 +30,7 @@ var diffCmd = &cobra.Command{
 			{Name: i18n.T("step.comment_language_check", nil), Category: "comment_language", Fn: func() ([]string, error) { return checker.CheckDiff(cfg) }},
 			{Name: i18n.T("step.custom_rules_check", nil), Category: "custom_rules", Fn: func() ([]string, error) { return checker.CheckDiffCustomRules(cfg) }},
 			{Name: i18n.T("step.append_only_check", nil), Category: "append_only", Fn: func() ([]string, error) { return checker.CheckAppendOnly(cfg) }},
+			{Name: i18n.T("step.cache_dir_check", nil), Category: "cache_dir", Fn: func() ([]string, error) { return checker.CheckCacheDirStaged(cfg) }},
 		}
 
 		result, err := progress.RunWithProgress(steps, progress.Options{

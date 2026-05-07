@@ -9,12 +9,18 @@ diff.kind_string_literal:
   other: "文字列リテラル"
 diff.binary_file_error:
   other: "{{.Path}}: バイナリファイル検出 — コンパイル済み実行ファイルやバイナリファイルはコミットすべきではありません"
+diff.binary_file_lfs_required:
+  other: "{{.Path}}: このバイナリファイルは git LFS で追跡される必要があります — `.gitattributes` に `filter=lfs` を追加するか `git lfs track` を実行してください"
 diff.append_only_deleted:
   other: "{{.Path}}: append-onlyパスでのファイル削除は許可されていません"
 diff.append_only_modified:
   other: "{{.Path}}: append-onlyパスでは既存内容を変更できません（変更・削除・中間挿入不可、末尾への追加のみ可）"
 diff.append_only_filename_order:
   other: "{{.Path}}: append-onlyパスでは新規ファイルは既存ファイルより後に来る必要があります（numericソート基準、現在の最大: {{.MaxFile}}）"
+diff.cache_dir_staged:
+  other: "{{.Path}}: ビルド成果物・キャッシュディレクトリ({{.CacheDir}})内のファイルはコミットすべきではありません — .gitignore に追加してください"
+diff.cache_dir_committed:
+  other: "{{.CacheDir}}: ビルド成果物・キャッシュディレクトリに追跡中のファイルが {{.Count}} 件あります — 'commit-checker clean' で整理してください"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
@@ -172,6 +178,38 @@ cmd.fix.long:
     例:
       commit-checker fix             # ステージ済みファイルを修正
       commit-checker fix --dry-run   # 変更を保存せずにプレビュー
+cmd.clean.short:
+  other: "ビルド成果物・キャッシュディレクトリの未追跡ファイルを整理します"
+cmd.clean.long:
+  other: |-
+    現在の git リポジトリをスキャンしてビルド成果物・キャッシュディレクトリ
+    (node_modules, dist, build, target, __pycache__, .venv 等)を検出します。
+
+    親ディレクトリのインジケータ(go.mod, package.json, Cargo.toml 等)を
+    基準に検証するため誤検出が少ないです。
+
+    git 追跡中のファイルは絶対に削除しません — `git ls-files --others` で
+    未追跡のファイルのみを対象とします。
+
+    例:
+      commit-checker clean              # 検出のみ表示 (dry-run)
+      commit-checker clean --yes        # 未追跡ファイルを実際に削除
+cmd.clean.scanning:
+  other: "スキャン中: {{.Path}}"
+cmd.clean.no_cache_dirs:
+  other: "キャッシュ・ビルドディレクトリは見つかりませんでした。"
+cmd.clean.found_header:
+  other: "{{.Count}} 件のキャッシュ・ビルドディレクトリを発見 (合計 {{.Size}}):"
+cmd.clean.entry:
+  other: "  {{.Path}}  ({{.Size}}{{.Tracked}})"
+cmd.clean.entry_tracked:
+  other: ", git 追跡ファイル {{.Count}} 件 ⚠"
+cmd.clean.dry_run_hint:
+  other: "\n--yes フラグで未追跡ファイルを削除できます。"
+cmd.clean.cleaned_summary:
+  other: "{{.Size}} を整理しました ({{.Count}} ディレクトリ)"
+cmd.clean.not_in_repo:
+  other: "git リポジトリではありません: {{.Path}}"
 cmd.push.short:
   other: "プッシュされるコミットのメッセージを検査します"
 cmd.push.long:
@@ -257,6 +295,8 @@ step.custom_rules_check:
   other: "カスタムルール検査"
 step.append_only_check:
   other: "append-onlyパス検査"
+step.cache_dir_check:
+  other: "ビルド成果物・キャッシュディレクトリ検査"
 
 # validate メッセージ
 validate.config_valid:

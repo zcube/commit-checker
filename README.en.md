@@ -17,12 +17,14 @@ Works with [lefthook](https://github.com/evilmartians/lefthook), husky, or any G
 | **File Unicode check** | Detect invisible/ambiguous Unicode characters in source and markdown files |
 | **Invalid UTF-8** | Block invalid byte sequences |
 | **Emoji ban** | Block emojis in commit messages and comments (optional) |
-| **Binary file detection** | Block compiled executables and binary files from being committed |
+| **Binary file policy** | Per-extension block / allow / lfs policy (images allowed by default, git-LFS verification) |
 | **Encoding check** | Block non-UTF-8 encoded files (chardet-based) |
 | **Data file lint** | YAML, JSON (with JSON5 support), XML syntax validation |
 | **EditorConfig** | Validate files against .editorconfig rules |
 | **Conventional Commits** | Enforce commit message format (optional) |
 | **Append-only paths** | Block file deletion, content modification, and mid-file insertion (e.g. DB migrations) |
+| **Cache / build dirs** | Block commits inside `node_modules`, `dist`, `build`, `target`, `__pycache__`, `.venv`, etc. (parent-indicator validation) |
+| **clean command** | Remove untracked files inside cache/build dirs (tracked files preserved) |
 | **Repository analysis** | Detect development languages and warn about missing lint configs |
 | **Auto-fix** | Batch-fix unicode/encoding violations across git history |
 | **Config migration** | Auto-detect old config versions and migrate to the latest schema |
@@ -156,6 +158,26 @@ comment_language:
 
 binary_file:
   enabled: true
+  # default_policy: block         # block | allow | lfs (default: block)
+  # rules:                        # per-extension policy (first match wins)
+  #   - extensions: [.psd, .ai]
+  #     policy: lfs
+  #   - extensions: [.mp4, .mov]
+  #     policy: lfs
+  # Built-in image extensions (.png .jpg .jpeg .gif .webp .bmp .ico .tiff
+  # .tif .heic .heif .avif) default to "allow" if no rule matches.
+
+append_only:                     # optional — DB migrations, audit logs, …
+  enabled: false
+  # paths:
+  #   - "migrations/**"
+  #   - "db/migrations/**"
+  # filename_order: numeric        # default. Use "none" to disable order check.
+
+cache_dir:                       # block commits inside node_modules, dist, build, …
+  enabled: true
+  # ignore_dirs:
+  #   - vendor                     # for projects that intentionally vendor
 
 lint:
   enabled: true
@@ -246,7 +268,93 @@ commit-checker msg <file>    Check commit message file
 commit-checker fix           Auto-fix git history (supports --dry-run)
 commit-checker migrate       Migrate config file to the latest schema
 commit-checker analyze       Analyze repository (language detection, lint config check)
+commit-checker clean         Remove untracked files inside cache/build directories
 commit-checker version       Print version info
+```
+
+### Binary file policy
+
+Per-extension policy with three options:
+
+| Policy | Behaviour |
+|---|---|
+| `block` | Reject (default for non-images) |
+| `allow` | Accept |
+| `lfs` | Accept only when tracked by git LFS (`.gitattributes` `filter=lfs`) |
+
+Built-in image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`,
+`.ico`, `.tiff`, `.tif`, `.heic`, `.heif`, `.avif`) default to `allow` when no
+rule matches.
+
+```yaml
+binary_file:
+  enabled: true
+  default_policy: block
+  rules:
+    - extensions: [.png, .jpg, .jpeg, .gif, .webp]   # force LFS for images
+      policy: lfs
+    - extensions: [.psd, .ai, .sketch]
+      policy: lfs
+    - extensions: [.mp4, .mov, .webm]
+      policy: lfs
+  ignore_files:
+    - "assets/icons/**"
+```
+
+Resolution order: `rules` match → built-in image (`allow`) → `default_policy` → `block`.
+
+### Append-only paths
+
+Block any change to existing content under specified paths (deletion, modification,
+mid-file insertion). Useful for DB migration directories.
+
+```yaml
+append_only:
+  enabled: true
+  paths:
+    - "migrations/**"
+    - "db/migrations/**"
+  # filename_order: numeric is default; use "none" to disable order check.
+```
+
+`filename_order: numeric` requires new files to sort *after* the largest existing
+file by natural numeric order (`9 < 10`). Same-directory pattern-matched files are
+compared.
+
+### Build artifact / cache directories
+
+Detect and block commits inside well-known cache/build directories using
+parent-indicator validation:
+
+| Directory | Indicator (parent dir contains) |
+|---|---|
+| `node_modules` | `package.json` / lockfile |
+| `dist` | `package.json` / `go.mod` / `Cargo.toml` |
+| `build` | `package.json` / `Cargo.toml` / `build.gradle` / `pubspec.yaml` / `CMakeLists.txt`, or `CMakeCache.txt` inside |
+| `target` | `Cargo.toml` / `pom.xml` / `build.sbt` |
+| `vendor` | `go.mod` / `Cargo.toml` / `Gemfile` / `composer.json` / `package.json` |
+| `__pycache__` | `.py` files |
+| `.venv` (any name) | `pyvenv.cfg` inside |
+
+Other supported names: `.gradle`, `.next`, `.nuxt`, `.output`, `.svelte-kit`,
+`.yarn`, `.bun`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.turbo`,
+`.parcel-cache`, `.tox`, `.nox`, `.embuild`, `.dart_tool`.
+
+```yaml
+cache_dir:
+  enabled: true
+  ignore_dirs:
+    - vendor
+```
+
+#### clean command
+
+Remove untracked files inside cache/build directories. **Tracked files are
+never deleted** (uses `git ls-files --others`).
+
+```bash
+commit-checker clean         # dry-run: list found dirs only
+commit-checker clean --yes   # actually delete untracked files
 ```
 
 ### init command

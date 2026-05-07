@@ -17,12 +17,14 @@ Git 커밋 메시지와 소스 코드의 정책을 자동으로 검사하는 CLI
 | **파일 유니코드 검사** | 소스/마크다운 파일 내용에서 비가시·모호한 유니코드 문자 검사 |
 | **잘못된 UTF-8** | 잘못된 바이트 시퀀스 차단 |
 | **이모지 금지** | 커밋 메시지 및 주석에서 이모지 사용 차단 (선택적) |
-| **바이너리 파일 감지** | 컴파일된 실행파일 등 바이너리 파일 커밋 차단 |
+| **바이너리 파일 정책** | 확장자별 block / allow / lfs 정책 (이미지 기본 허가, git LFS 검증 지원) |
 | **인코딩 검사** | UTF-8이 아닌 파일 커밋 차단 (chardet 기반) |
 | **데이터 파일 린트** | YAML, JSON (JSON5 지원), XML 구문 검사 |
 | **EditorConfig** | .editorconfig 규칙 준수 여부 검사 |
 | **Conventional Commits** | 커밋 메시지 형식 강제 (선택적) |
 | **append-only 경로** | 지정 경로에서 파일 삭제·내용 수정·중간 삽입 차단 (DB 마이그레이션 등) |
+| **빌드 산출물·캐시 디렉터리** | node_modules, dist, build, target, __pycache__, .venv 등의 커밋 차단 (부모 인디케이터 검증 기반) |
+| **clean 명령** | 미추적 캐시/빌드 파일 정리 (git 추적 파일은 보존) |
 | **리포지터리 분석** | 개발 언어 감지 및 린트 설정 누락 경고 |
 | **자동 수정 (fix)** | 유니코드/인코딩 위반 사항을 git history에서 일괄 수정 |
 | **설정 마이그레이션** | 구 버전 설정 파일을 자동 감지하여 최신 스키마로 변환 |
@@ -191,6 +193,12 @@ comment_language:
 
 binary_file:
   enabled: true
+  # default_policy: block       # block | allow | lfs (기본 block)
+  # rules:                      # 확장자별 정책 규칙
+  #   - extensions: [.psd, .ai]
+  #     policy: lfs              # PSD 등은 LFS 추적 시에만 허용
+  #   - extensions: [.mp4, .mov]
+  #     policy: lfs
   # ignore_files:
   #   - "**/*.png"
 
@@ -234,9 +242,47 @@ append_only:
   # paths:
   #   - "migrations/**"
   #   - "db/migrations/**"
+
+cache_dir:
+  enabled: true                # 기본 활성화
+  # ignore_dirs:
+  #   - vendor                 # vendor 디렉터리를 의도적으로 커밋하는 Go 프로젝트 등
 ```
 
 설정 파일이 없으면 기본값이 적용됩니다.
+
+### 바이너리 파일 정책
+
+확장자별로 세 가지 정책을 지정할 수 있습니다:
+
+| 정책 | 동작 |
+|---|---|
+| `block` | 차단 (기본) |
+| `allow` | 허가 |
+| `lfs` | git LFS 로 추적되는 경우만 허가 (`.gitattributes` 의 `filter=lfs` 확인) |
+
+내장 이미지 확장자(`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`, `.tiff`,
+`.tif`, `.heic`, `.heif`, `.avif`)는 별도 규칙이 없으면 **자동으로 `allow`** 입니다.
+
+```yaml
+binary_file:
+  enabled: true
+  default_policy: block          # 매칭되지 않은 바이너리: 기본 block
+  rules:
+    # 이미지를 LFS 로 강제하고 싶을 때:
+    - extensions: [.png, .jpg, .jpeg, .gif, .webp]
+      policy: lfs
+    # PSD/AI 같은 디자인 원본:
+    - extensions: [.psd, .ai, .sketch]
+      policy: lfs
+    # 동영상:
+    - extensions: [.mp4, .mov, .webm]
+      policy: lfs
+  ignore_files:
+    - "assets/icons/**"          # 정책 검사 자체를 건너뜀
+```
+
+우선순위: `rules` 매칭 > 내장 이미지(`allow`) > `default_policy` (없으면 `block`).
 
 ### append-only 경로
 
@@ -263,6 +309,48 @@ append_only:
 - 기존 파일보다 앞이나 같은 이름의 새 파일 추가 (`filename_order: none` 시 허용)
 
 파일 이름 순서는 자연수 정렬 기준으로 `9 < 10` 으로 처리합니다 (기본값).
+
+### 빌드 산출물·캐시 디렉터리 검사
+
+`node_modules`, `dist`, `build`, `target`, `__pycache__`, `.venv` 등의 빌드 산출물 또는 캐시 디렉터리가
+git에 커밋되거나 스테이지되는 것을 차단합니다.
+
+**부모 디렉터리 인디케이터 기반 검증**으로 false positive를 줄입니다:
+
+| 디렉터리 | 인디케이터 |
+|---|---|
+| `node_modules` | 부모에 `package.json` / lockfile |
+| `dist` | 부모에 `package.json` / `go.mod` / `Cargo.toml` |
+| `build` | 부모에 `package.json` / `Cargo.toml` / `build.gradle` / `pubspec.yaml` / `CMakeLists.txt` 또는 자체에 `CMakeCache.txt` |
+| `target` | 부모에 `Cargo.toml` / `pom.xml` / `build.sbt` |
+| `vendor` | 부모에 `go.mod` / `Cargo.toml` / `Gemfile` 등 |
+| `__pycache__` | 부모에 `.py` 파일 |
+| `.venv` 등 | 자체에 `pyvenv.cfg` (이름 무관) |
+
+지원 디렉터리: `node_modules`, `dist`, `out`, `build`, `target`, `vendor`,
+`.gradle`, `.next`, `.nuxt`, `.output`, `.svelte-kit`, `.yarn`, `.bun`,
+`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.turbo`,
+`.parcel-cache`, `.venv` (+pyvenv 가상환경), `.tox`, `.nox`, `.embuild`, `.dart_tool`.
+
+```yaml
+cache_dir:
+  enabled: true               # 기본 활성화
+  ignore_dirs:                # 의도적으로 커밋하는 디렉터리
+    - vendor                  # 예: Go vendor 디렉터리
+```
+
+#### clean 명령
+
+캐시/빌드 디렉터리 안의 미추적 파일을 정리합니다. **git 추적 파일은 절대 삭제하지 않습니다**
+(`git ls-files --others` 기반).
+
+```bash
+# 발견 항목만 표시 (dry-run)
+commit-checker clean
+
+# 미추적 파일 실제 삭제
+commit-checker clean --yes
+```
 
 ### 허용 단어 사전
 
@@ -346,6 +434,7 @@ commit-checker msg <file>    커밋 메시지 파일 검사
 commit-checker fix           git history 자동 수정 (dry-run 지원)
 commit-checker migrate       설정 파일을 최신 스키마로 마이그레이션
 commit-checker analyze       리포지터리 분석 (언어 감지, 린트 설정 확인)
+commit-checker clean         캐시/빌드 디렉터리 미추적 파일 정리
 commit-checker version       버전 정보 출력
 ```
 

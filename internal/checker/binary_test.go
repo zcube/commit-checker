@@ -243,10 +243,9 @@ binary_file:
 	}
 }
 
-// TestCheckBinaryFiles_ImageBinary: image files are binary and detected unless ignored.
-func TestCheckBinaryFiles_ImageBinary(t *testing.T) {
+// TestCheckBinaryFiles_ImageDefaultAllow: 기본적으로 이미지는 허가됨.
+func TestCheckBinaryFiles_ImageDefaultAllow(t *testing.T) {
 	dir := newGitRepo(t)
-	// PNG magic bytes
 	full := filepath.Join(dir, "photo.png")
 	png := []byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0, 0, 0, 0, 0}
 	if err := os.WriteFile(full, png, 0644); err != nil {
@@ -254,13 +253,116 @@ func TestCheckBinaryFiles_ImageBinary(t *testing.T) {
 	}
 	gitMust(t, dir, "git", "add", "photo.png")
 
-	// Without ignore — should be flagged
 	errs, err := checker.CheckBinaryFiles(binaryCheckConfig())
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
+	if len(errs) != 0 {
+		t.Errorf("PNG should be allowed by default, got: %v", errs)
+	}
+}
+
+// TestCheckBinaryFiles_ImageRuleBlock: 이미지를 명시적으로 block 정책으로 설정 → 차단.
+func TestCheckBinaryFiles_ImageRuleBlock(t *testing.T) {
+	dir := newGitRepo(t)
+	full := filepath.Join(dir, "photo.png")
+	png := []byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0, 0, 0, 0, 0}
+	if err := os.WriteFile(full, png, 0644); err != nil {
+		t.Fatal(err)
+	}
+	gitMust(t, dir, "git", "add", "photo.png")
+
+	cfg := binaryCheckConfig()
+	cfg.BinaryFile.Rules = []config.BinaryFilePolicyRule{
+		{Extensions: []string{".png"}, Policy: "block"},
+	}
+
+	errs, err := checker.CheckBinaryFiles(cfg)
+	if err != nil {
+		t.Fatalf("CheckBinaryFiles error: %v", err)
+	}
 	if len(errs) == 0 {
-		t.Error("PNG file should be detected as binary")
+		t.Error("PNG should be blocked when policy is 'block'")
+	}
+}
+
+// TestCheckBinaryFiles_LfsPolicy_NotTracked: lfs 정책이지만 LFS 추적되지 않음 → 차단.
+func TestCheckBinaryFiles_LfsPolicy_NotTracked(t *testing.T) {
+	dir := newGitRepo(t)
+	full := filepath.Join(dir, "movie.mp4")
+	if err := os.WriteFile(full, []byte{0, 0, 0, 0x18, 'f', 't', 'y', 'p', 0, 0, 0, 0}, 0644); err != nil {
+		t.Fatal(err)
+	}
+	gitMust(t, dir, "git", "add", "movie.mp4")
+
+	cfg := binaryCheckConfig()
+	cfg.BinaryFile.Rules = []config.BinaryFilePolicyRule{
+		{Extensions: []string{".mp4"}, Policy: "lfs"},
+	}
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	_ = os.Chdir(dir)
+
+	errs, err := checker.CheckBinaryFiles(cfg)
+	if err != nil {
+		t.Fatalf("CheckBinaryFiles error: %v", err)
+	}
+	if len(errs) == 0 {
+		t.Error("non-LFS-tracked binary should fail under lfs policy")
+	}
+	if len(errs) > 0 && !findSubstr(errs[0], "LFS") && !findSubstr(errs[0], "lfs") {
+		t.Errorf("expected LFS-related message, got: %s", errs[0])
+	}
+}
+
+// TestCheckBinaryFiles_LfsPolicy_Tracked: lfs 정책 + .gitattributes 에 filter=lfs → 허가.
+func TestCheckBinaryFiles_LfsPolicy_Tracked(t *testing.T) {
+	dir := newGitRepo(t)
+	if err := os.WriteFile(filepath.Join(dir, ".gitattributes"), []byte("*.psd filter=lfs diff=lfs merge=lfs -text\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	gitMust(t, dir, "git", "add", ".gitattributes")
+
+	full := filepath.Join(dir, "design.psd")
+	if err := os.WriteFile(full, []byte{'8', 'B', 'P', 'S', 0, 1, 0, 0, 0, 0, 0, 0}, 0644); err != nil {
+		t.Fatal(err)
+	}
+	gitMust(t, dir, "git", "add", "design.psd")
+
+	cfg := binaryCheckConfig()
+	cfg.BinaryFile.Rules = []config.BinaryFilePolicyRule{
+		{Extensions: []string{".psd"}, Policy: "lfs"},
+	}
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	_ = os.Chdir(dir)
+
+	errs, err := checker.CheckBinaryFiles(cfg)
+	if err != nil {
+		t.Fatalf("CheckBinaryFiles error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("LFS-tracked file under lfs policy should pass, got: %v", errs)
+	}
+}
+
+// TestCheckBinaryFiles_DefaultPolicyAllow: default_policy=allow → 모든 비매칭 바이너리 허가.
+func TestCheckBinaryFiles_DefaultPolicyAllow(t *testing.T) {
+	dir := newGitRepo(t)
+	writeBinaryFile(t, dir, "app.exe")
+	gitMust(t, dir, "git", "add", "app.exe")
+
+	cfg := binaryCheckConfig()
+	cfg.BinaryFile.DefaultPolicy = "allow"
+
+	errs, err := checker.CheckBinaryFiles(cfg)
+	if err != nil {
+		t.Fatalf("CheckBinaryFiles error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("default_policy=allow should permit binaries, got: %v", errs)
 	}
 }
 

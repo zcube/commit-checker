@@ -28,6 +28,7 @@ var runCmd = &cobra.Command{
 			{Name: i18n.T("step.lint_check", nil), Category: "lint", Fn: func() ([]string, error) { return checker.RunLint(cfg) }},
 			{Name: i18n.T("step.editorconfig_check", nil), Category: "editorconfig", Fn: func() ([]string, error) { return checker.RunEditorConfig(cfg) }},
 			{Name: i18n.T("step.comment_language_check", nil), Category: "comment_language", Fn: func() ([]string, error) { return checker.RunCommentLanguage(cfg) }},
+			{Name: i18n.T("step.cache_dir_check", nil), Category: "cache_dir", Fn: func() ([]string, error) { return checker.CheckCacheDirCommitted(cfg) }},
 		}
 
 		result, err := progress.RunWithProgress(steps, progress.Options{

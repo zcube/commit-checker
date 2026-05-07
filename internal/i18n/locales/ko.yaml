@@ -9,12 +9,18 @@ diff.kind_string_literal:
   other: "문자열 리터럴"
 diff.binary_file_error:
   other: "{{.Path}}: 바이너리 파일 감지 — 컴파일된 실행파일 및 바이너리 파일은 커밋하면 안 됩니다"
+diff.binary_file_lfs_required:
+  other: "{{.Path}}: 이 바이너리 파일은 git LFS 로 추적되어야 합니다 — `.gitattributes` 에 `filter=lfs` 를 추가하거나 `git lfs track` 명령을 사용하세요"
 diff.append_only_deleted:
   other: "{{.Path}}: append-only 경로에서 파일 삭제는 허용되지 않습니다"
 diff.append_only_modified:
   other: "{{.Path}}: append-only 경로에서 기존 내용을 변경할 수 없습니다 (수정·삭제·중간 삽입 불가, 끝에 추가만 허용)"
 diff.append_only_filename_order:
   other: "{{.Path}}: append-only 경로에서 새 파일은 기존 파일보다 뒤에 와야 합니다 (numeric sort 기준, 현재 최대: {{.MaxFile}})"
+diff.cache_dir_staged:
+  other: "{{.Path}}: 빌드 산출물·캐시 디렉터리({{.CacheDir}})의 파일은 커밋하면 안 됩니다 — .gitignore 에 추가하세요"
+diff.cache_dir_committed:
+  other: "{{.CacheDir}}: 빌드 산출물·캐시 디렉터리에 추적 중인 파일이 {{.Count}}개 있습니다 — 'commit-checker clean' 으로 정리하세요"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
@@ -172,6 +178,38 @@ cmd.fix.long:
     예시:
       commit-checker fix             # 스테이지된 파일 수정
       commit-checker fix --dry-run   # 변경하지 않고 수정 내용 미리 보기
+cmd.clean.short:
+  other: "빌드 산출물·캐시 디렉터리에서 미추적 파일을 정리합니다"
+cmd.clean.long:
+  other: |-
+    현재 git 저장소를 스캔하여 빌드 산출물·캐시 디렉터리(node_modules, dist,
+    build, target, __pycache__, .venv 등)를 찾습니다.
+
+    부모 디렉터리 인디케이터(go.mod, package.json, Cargo.toml 등) 기반으로
+    실제 캐시 디렉터리만 식별하므로 false positive 가 적습니다.
+
+    git 추적 중인 파일은 절대 삭제하지 않습니다 — `git ls-files --others` 로
+    미추적 파일만 대상으로 삼습니다.
+
+    예시:
+      commit-checker clean              # 발견 항목 출력 (dry-run)
+      commit-checker clean --yes        # 미추적 파일 실제 삭제
+cmd.clean.scanning:
+  other: "스캔 중: {{.Path}}"
+cmd.clean.no_cache_dirs:
+  other: "캐시/빌드 디렉터리를 찾지 못했습니다."
+cmd.clean.found_header:
+  other: "{{.Count}}개의 캐시/빌드 디렉터리 발견 (총 {{.Size}}):"
+cmd.clean.entry:
+  other: "  {{.Path}}  ({{.Size}}{{.Tracked}})"
+cmd.clean.entry_tracked:
+  other: ", git 추적 파일 {{.Count}}개 ⚠"
+cmd.clean.dry_run_hint:
+  other: "\n--yes 플래그로 미추적 파일을 삭제할 수 있습니다."
+cmd.clean.cleaned_summary:
+  other: "{{.Size}} 정리됨 ({{.Count}}개 디렉터리)"
+cmd.clean.not_in_repo:
+  other: "git 저장소가 아닙니다: {{.Path}}"
 cmd.push.short:
   other: "푸쉬될 커밋의 메시지를 검사합니다"
 cmd.push.long:
@@ -257,6 +295,8 @@ step.custom_rules_check:
   other: "커스텀 규칙 검사"
 step.append_only_check:
   other: "append-only 경로 검사"
+step.cache_dir_check:
+  other: "빌드 산출물·캐시 디렉터리 검사"
 
 # validate 메시지
 validate.config_valid:

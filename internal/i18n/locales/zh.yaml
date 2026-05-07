@@ -9,12 +9,18 @@ diff.kind_string_literal:
   other: "字符串字面量"
 diff.binary_file_error:
   other: "{{.Path}}: 检测到二进制文件 — 编译后的可执行文件和二进制文件不应被提交"
+diff.binary_file_lfs_required:
+  other: "{{.Path}}: 此二进制文件必须由 git LFS 追踪 — 在 `.gitattributes` 添加 `filter=lfs` 或运行 `git lfs track`"
 diff.append_only_deleted:
   other: "{{.Path}}: append-only路径中不允许删除文件"
 diff.append_only_modified:
   other: "{{.Path}}: append-only路径中不允许修改现有内容（禁止编辑、删除或中间插入，只能在末尾追加）"
 diff.append_only_filename_order:
   other: "{{.Path}}: append-only路径中新文件名必须在所有现有文件之后（numeric排序，当前最大: {{.MaxFile}}）"
+diff.cache_dir_staged:
+  other: "{{.Path}}: 构建产物·缓存目录({{.CacheDir}})中的文件不应被提交 — 请添加到 .gitignore"
+diff.cache_dir_committed:
+  other: "{{.CacheDir}}: 构建产物·缓存目录中有 {{.Count}} 个被追踪的文件 — 请运行 'commit-checker clean'"
 diff.lint_error:
   other: "{{.Path}}:{{.Line}}: {{.Message}}"
 diff.encoding_error:
@@ -171,6 +177,38 @@ cmd.fix.long:
     示例:
       commit-checker fix             # 修复已暂存文件
       commit-checker fix --dry-run   # 预览修复内容而不保存更改
+cmd.clean.short:
+  other: "清理构建产物·缓存目录中的未追踪文件"
+cmd.clean.long:
+  other: |-
+    扫描当前 git 仓库以查找构建产物·缓存目录
+    (node_modules, dist, build, target, __pycache__, .venv 等)。
+
+    通过父目录指示器(go.mod, package.json, Cargo.toml 等)进行验证，
+    误报较少。
+
+    git 追踪的文件绝不会被删除 — 仅删除 `git ls-files --others`
+    报告的未追踪文件。
+
+    示例:
+      commit-checker clean              # 仅显示发现项 (dry-run)
+      commit-checker clean --yes        # 实际删除未追踪文件
+cmd.clean.scanning:
+  other: "扫描中: {{.Path}}"
+cmd.clean.no_cache_dirs:
+  other: "未发现缓存·构建目录。"
+cmd.clean.found_header:
+  other: "发现 {{.Count}} 个缓存·构建目录 (总计 {{.Size}}):"
+cmd.clean.entry:
+  other: "  {{.Path}}  ({{.Size}}{{.Tracked}})"
+cmd.clean.entry_tracked:
+  other: ", git 追踪文件 {{.Count}} 个 ⚠"
+cmd.clean.dry_run_hint:
+  other: "\n使用 --yes 标志可删除未追踪文件。"
+cmd.clean.cleaned_summary:
+  other: "已清理 {{.Size}} ({{.Count}} 个目录)"
+cmd.clean.not_in_repo:
+  other: "不是 git 仓库: {{.Path}}"
 cmd.push.short:
   other: "检查即将推送的提交消息"
 cmd.push.long:
@@ -255,6 +293,8 @@ step.custom_rules_check:
   other: "自定义规则检查"
 step.append_only_check:
   other: "append-only路径检查"
+step.cache_dir_check:
+  other: "构建产物·缓存目录检查"
 
 # validate 消息
 validate.config_valid:

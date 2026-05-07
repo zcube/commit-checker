@@ -17,12 +17,14 @@
 | **文件Unicode检查** | 检测源代码/Markdown文件中的不可见和易混淆Unicode字符 |
 | **无效UTF-8** | 阻止无效的字节序列 |
 | **表情符号禁止** | 阻止在提交消息和注释中使用表情符号（可选） |
-| **二进制文件检测** | 阻止提交编译后的可执行文件和二进制文件 |
+| **二进制文件策略** | 按扩展名 block / allow / lfs 策略（图片默认允许，支持 git LFS 验证） |
 | **编码检查** | 阻止提交非UTF-8编码的文件（基于chardet） |
 | **数据文件lint** | YAML、JSON（支持JSON5）、XML语法验证 |
 | **EditorConfig** | 验证文件是否符合.editorconfig规则 |
 | **约定式提交** | 强制执行提交消息格式（可选） |
 | **append-only路径** | 禁止在指定路径中删除文件、修改内容或中间插入（如DB迁移文件） |
+| **缓存/构建目录** | 阻止 `node_modules`, `dist`, `build`, `target`, `__pycache__`, `.venv` 等的提交（基于父目录指示器验证） |
+| **clean 命令** | 清理缓存/构建目录中的未追踪文件（追踪文件保留） |
 | **仓库分析** | 检测开发语言并警告缺失的lint配置 |
 | **自动修复（fix）** | 在git历史中批量修复unicode/编码违规 |
 | **配置迁移** | 自动检测旧版配置文件并迁移到最新架构 |
@@ -134,6 +136,73 @@ commit_message:
   no_bad_runes: true
   no_emoji: false              # true 禁止提交消息中的表情符号
   locale: zh
+
+binary_file:
+  enabled: true
+  # default_policy: block        # block | allow | lfs (默认: block)
+  # rules:                       # 按扩展名的策略 (首个匹配规则生效)
+  #   - extensions: [.psd, .ai]
+  #     policy: lfs
+  # 内置图片扩展名 (.png .jpg .jpeg .gif .webp .bmp .ico .tiff .tif .heic .heif .avif)
+  # 在没有规则匹配时自动应用 allow。
+
+append_only:                    # 可选 — DB 迁移等
+  enabled: false
+  # paths:
+  #   - "migrations/**"
+  # filename_order: numeric (默认)。设为 "none" 可禁用顺序检查。
+
+cache_dir:                      # 阻止 node_modules, dist, build, target 等目录的提交
+  enabled: true
+  # ignore_dirs:
+  #   - vendor                   # Go vendor 等有意提交的目录
+```
+
+### 二进制文件策略
+
+按扩展名指定三种策略:
+
+| 策略 | 行为 |
+|---|---|
+| `block` | 拒绝（非图片默认） |
+| `allow` | 允许 |
+| `lfs` | 仅在 git LFS 追踪时允许 |
+
+内置图片扩展名在没有规则匹配时自动应用 `allow`。
+优先级: `rules` > 内置图片 (allow) > `default_policy` > `block`。
+
+### append-only 路径
+
+为 DB 迁移等"一旦提交不可修改"的路径指定规则。
+
+```yaml
+append_only:
+  enabled: true
+  paths:
+    - "migrations/**"
+  # filename_order: numeric (默认): 新文件名按自然数排序必须在现有文件之后 ("9 < 10")
+  # 设为 "none" 可禁用。
+```
+
+### 构建产物·缓存目录
+
+通过父目录指示器（`go.mod`, `package.json`, `Cargo.toml` 等）验证
+`node_modules`, `dist`, `build`, `target`, `__pycache__`, `.venv` 等。
+
+```yaml
+cache_dir:
+  enabled: true
+  ignore_dirs:
+    - vendor
+```
+
+#### clean 命令
+
+清理缓存/构建目录中的未追踪文件。**git 追踪的文件绝不会被删除**。
+
+```bash
+commit-checker clean         # 仅显示发现项 (dry-run)
+commit-checker clean --yes   # 实际删除未追踪文件
 ```
 
 ### 源码内指令
@@ -157,6 +226,7 @@ commit-checker msg <file>    检查提交消息
 commit-checker fix           自动修复git历史（支持 --dry-run）
 commit-checker migrate       将配置文件迁移到最新架构
 commit-checker analyze       仓库分析
+commit-checker clean         清理缓存/构建目录的未追踪文件
 commit-checker version       版本信息
 ```
 

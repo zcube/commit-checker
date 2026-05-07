@@ -28,11 +28,42 @@ func CheckBinaryFiles(cfg *config.Config) ([]string, error) {
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			continue
 		}
-		errs = append(errs, i18n.T("diff.binary_file_error", map[string]interface{}{
-			"Path": path,
-		}))
+		if msg := evaluateBinaryPolicy(&cfg.BinaryFile, path); msg != "" {
+			errs = append(errs, msg)
+		}
 	}
 	return errs, nil
+}
+
+// evaluateBinaryPolicy 는 path 에 적용할 정책에 따라 i18n 처리된 에러 메시지를 반환합니다.
+// allow 또는 lfs(LFS-tracked) 인 경우 빈 문자열을 반환합니다.
+func evaluateBinaryPolicy(cfg *config.BinaryFileConfig, path string) string {
+	policy := cfg.PolicyFor(path)
+	switch policy {
+	case "allow":
+		return ""
+	case "lfs":
+		if isLFSTracked(path) {
+			return ""
+		}
+		return i18n.T("diff.binary_file_lfs_required", map[string]any{"Path": path})
+	case "block":
+		fallthrough
+	default:
+		return i18n.T("diff.binary_file_error", map[string]any{"Path": path})
+	}
+}
+
+// isLFSTracked 는 path 가 git LFS filter 로 추적되는지 확인합니다.
+// `.gitattributes` 에 `path filter=lfs` 가 등록되어 있으면 true.
+func isLFSTracked(path string) bool {
+	out, err := exec.Command("git", "check-attr", "-z", "filter", "--", path).Output()
+	if err != nil {
+		return false
+	}
+	// check-attr -z 출력 형식: <path>\0filter\0<value>\0
+	parts := strings.Split(strings.TrimRight(string(out), "\x00"), "\x00")
+	return len(parts) >= 3 && parts[2] == "lfs"
 }
 
 // getStagedBinaryFiles: git이 바이너리로 판별한 스테이지된 파일 목록 반환.
