@@ -140,15 +140,29 @@ cmd.run.long:
 
     与'diff'不同，此命令检查所有文件，无论是否已暂存。
 cmd.diff.short:
-  other: "检查暂存差异的策略合规性"
+  other: "检查 diff 的策略合规性 (支持 CI 用 from..to 比较)"
 cmd.diff.long:
   other: |-
-    读取当前暂存的更改(git diff --staged)并检查:
-    - 二进制文件检测
+    使用与 git diff 兼容的参数格式检查代码策略。
+
+    无参数时检查暂存的更改 (HEAD ↔ index)。其他比较使用与 git diff
+    相同的语法:
+
+      commit-checker diff                  # 默认: 暂存
+      commit-checker diff --staged         # 显式暂存 (--cached 同义)
+      commit-checker diff HEAD             # HEAD ↔ working tree
+      commit-checker diff origin/main      # origin/main ↔ working tree
+      commit-checker diff A B              # A ↔ B
+      commit-checker diff A..B             # A ↔ B (range 表示)
+      commit-checker diff A...B            # merge-base(A,B) ↔ B
+
+    检查项:
+    - 二进制文件策略 (block/allow/lfs)
     - 文件编码 (UTF-8)
-    - 数据文件lint (YAML, JSON/JSON5, XML)
-    - .editorconfig合规性
+    - 数据文件 lint
+    - .editorconfig 合规性
     - 注释语言合规性
+    - append-only 路径 / 缓存目录等
 cmd.msg.short:
   other: "检查提交消息是否存在违规"
 cmd.msg.long:
@@ -263,6 +277,8 @@ flag.no_color:
   other: "禁用颜色输出"
 flag.format:
   other: "输出格式: text 或 json"
+flag.diff_staged:
+  other: "与索引比较 (与 git diff --staged 相同; --cached 是别名)"
 flag.msg_fix:
   other: "检查前自动修复违规"
 flag.fix_dry_run:

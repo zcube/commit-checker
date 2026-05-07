@@ -140,15 +140,29 @@ cmd.run.long:
 
     'diff'와 달리, 스테이징 여부와 관계없이 모든 파일을 검사합니다.
 cmd.diff.short:
-  other: "스테이징된 변경 사항의 정책 준수 여부를 검사합니다"
+  other: "diff 의 정책 준수를 검사합니다 (CI 용 from..to 비교 지원)"
 cmd.diff.long:
   other: |-
-    현재 스테이징된 변경 사항(git diff --staged)을 읽어 다음을 검사합니다:
-    - 바이너리 파일 감지
+    git diff 와 호환되는 인자 형식으로 코드 정책을 검사합니다.
+
+    인자 없으면 스테이지된 변경(HEAD ↔ index)을 검사합니다.
+    그 외 비교는 git diff 와 동일하게 지정합니다:
+
+      commit-checker diff                  # 기본: 스테이지된 변경
+      commit-checker diff --staged         # 명시적 스테이지 (== --cached)
+      commit-checker diff HEAD             # HEAD ↔ working tree (uncommitted 전체)
+      commit-checker diff origin/main      # origin/main ↔ working tree
+      commit-checker diff A B              # A ↔ B
+      commit-checker diff A..B             # A ↔ B (range 표기)
+      commit-checker diff A...B            # merge-base(A,B) ↔ B
+
+    검사 항목:
+    - 바이너리 파일 정책 (block/allow/lfs)
     - 파일 인코딩 (UTF-8)
     - 데이터 파일 lint (YAML, JSON/JSON5, XML)
     - .editorconfig 준수
     - 주석 언어 준수
+    - append-only 경로 / 캐시 디렉터리 등
 cmd.msg.short:
   other: "커밋 메시지 위반 사항을 검사합니다"
 cmd.msg.long:
@@ -265,6 +279,8 @@ flag.no_color:
   other: "색상 출력 비활성화"
 flag.format:
   other: "출력 형식: text 또는 json"
+flag.diff_staged:
+  other: "스테이지(인덱스)와 비교 (git diff --staged 와 동일, --cached 동의어)"
 flag.msg_fix:
   other: "검사 전 위반 사항 자동 수정"
 flag.fix_dry_run:

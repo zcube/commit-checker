@@ -140,15 +140,29 @@ cmd.run.long:
 
     Unlike 'diff', this command checks all files regardless of staged state.
 cmd.diff.short:
-  other: "Check staged diff for policy compliance"
+  other: "Check a diff for policy compliance (CI-friendly from..to)"
 cmd.diff.long:
   other: |-
-    Reads the current staged changes (git diff --staged) and checks:
-    - binary file detection
+    Check policy on a diff. Argument format mirrors `git diff`.
+
+    Without arguments, checks staged changes (HEAD ↔ index). For other
+    comparisons, use the same syntax as `git diff`:
+
+      commit-checker diff                  # default: staged
+      commit-checker diff --staged         # explicit (alias: --cached)
+      commit-checker diff HEAD             # HEAD ↔ working tree
+      commit-checker diff origin/main      # origin/main ↔ working tree
+      commit-checker diff A B              # A ↔ B
+      commit-checker diff A..B             # A ↔ B (range)
+      commit-checker diff A...B            # merge-base(A,B) ↔ B
+
+    Checks:
+    - binary file policy (block/allow/lfs)
     - file encoding (UTF-8)
     - data file lint (YAML, JSON/JSON5, XML)
     - .editorconfig compliance
     - comment language compliance
+    - append-only paths / cache directories, etc.
 cmd.msg.short:
   other: "Check commit message for violations"
 cmd.msg.long:
@@ -265,6 +279,8 @@ flag.no_color:
   other: "disable color output"
 flag.format:
   other: "output format: text or json"
+flag.diff_staged:
+  other: "compare against the index (same as git diff --staged; --cached is an alias)"
 flag.msg_fix:
   other: "auto-fix violations in place before checking"
 flag.fix_dry_run:

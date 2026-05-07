@@ -357,6 +357,31 @@ commit-checker clean         # dry-run: list found dirs only
 commit-checker clean --yes   # actually delete untracked files
 ```
 
+### diff command (CI-friendly `from..to`)
+
+`commit-checker diff` accepts the same positional argument forms as `git diff`.
+Without arguments, it checks staged changes (current default for pre-commit hooks).
+
+```bash
+commit-checker diff                      # default: staged (pre-commit)
+commit-checker diff --staged             # explicit (alias: --cached)
+commit-checker diff HEAD                 # HEAD ↔ working tree
+commit-checker diff origin/main          # origin/main ↔ working tree
+commit-checker diff A B                  # A ↔ B
+commit-checker diff A..B                 # A ↔ B (range)
+commit-checker diff A...B                # merge-base(A,B) ↔ B
+```
+
+Typical CI usage:
+
+```yaml
+# GitHub Actions: check the PR diff
+- run: commit-checker diff ${{ github.event.pull_request.base.sha }}..HEAD
+
+# GitLab CI: check the MR diff
+- commit-checker diff ${CI_MERGE_REQUEST_DIFF_BASE_SHA}..HEAD
+```
+
 ### init command
 
 ```bash

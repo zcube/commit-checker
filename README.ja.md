@@ -220,7 +220,7 @@ commit-checker clean --yes   # 未追跡ファイルを実際に削除
 
 ```
 commit-checker init          デフォルト設定ファイルの生成
-commit-checker diff          ステージされたdiffの検査
+commit-checker diff [A..B]   git diff 互換引数で diff を検査 (CI 対応)
 commit-checker run           追跡中の全ファイルを検査
 commit-checker msg <file>    コミットメッセージの検査
 commit-checker fix           git履歴の自動修正（--dry-run対応）
@@ -228,6 +228,24 @@ commit-checker migrate       設定ファイルを最新スキーマに移行
 commit-checker analyze       リポジトリ分析
 commit-checker clean         キャッシュ/ビルドディレクトリの未追跡ファイル整理
 commit-checker version       バージョン情報
+```
+
+### diff コマンド (CI 用 from..to 比較)
+
+引数は `git diff` と同じ書き方が可能です。引数なしならステージ済み変更を検査します。
+
+```bash
+commit-checker diff                      # 既定: ステージ
+commit-checker diff --staged             # 明示 (--cached も可)
+commit-checker diff HEAD                 # HEAD ↔ working tree
+commit-checker diff A..B                 # A ↔ B (range)
+commit-checker diff A...B                # merge-base(A,B) ↔ B
+```
+
+CI 例 (GitHub Actions PR):
+
+```yaml
+- run: commit-checker diff ${{ github.event.pull_request.base.sha }}..HEAD
 ```
 
 ## 対応言語

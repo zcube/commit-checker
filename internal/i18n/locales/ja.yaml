@@ -140,15 +140,29 @@ cmd.run.long:
 
     'diff'と異なり、ステージング状態に関わらずすべてのファイルをチェックします。
 cmd.diff.short:
-  other: "ステージングされた差分のポリシー準拠をチェックします"
+  other: "差分のポリシー準拠をチェックします (CI 用の from..to 比較対応)"
 cmd.diff.long:
   other: |-
-    現在のステージングされた変更(git diff --staged)を読み込み、以下を検査します:
-    - バイナリファイル検出
+    git diff と互換の引数形式でコードポリシーをチェックします。
+
+    引数なしならステージされた変更 (HEAD ↔ index) を検査します。
+    その他の比較は git diff と同じ方法で指定します:
+
+      commit-checker diff                  # 既定: ステージされた変更
+      commit-checker diff --staged         # 明示的ステージ (--cached も同じ)
+      commit-checker diff HEAD             # HEAD ↔ working tree
+      commit-checker diff origin/main      # origin/main ↔ working tree
+      commit-checker diff A B              # A ↔ B
+      commit-checker diff A..B             # A ↔ B (range 表記)
+      commit-checker diff A...B            # merge-base(A,B) ↔ B
+
+    検査項目:
+    - バイナリファイルポリシー (block/allow/lfs)
     - ファイルエンコーディング (UTF-8)
-    - データファイルlint (YAML, JSON/JSON5, XML)
-    - .editorconfig準拠
+    - データファイル lint
+    - .editorconfig 準拠
     - コメント言語準拠
+    - append-only パス / キャッシュディレクトリ等
 cmd.msg.short:
   other: "コミットメッセージの違反をチェックします"
 cmd.msg.long:
@@ -265,6 +279,8 @@ flag.no_color:
   other: "カラー出力を無効化"
 flag.format:
   other: "出力形式: text または json"
+flag.diff_staged:
+  other: "インデックスと比較 (git diff --staged と同じ。--cached は別名)"
 flag.msg_fix:
   other: "チェック前に違反を自動修正"
 flag.fix_dry_run:

@@ -220,7 +220,7 @@ commit-checker clean --yes   # 实际删除未追踪文件
 
 ```
 commit-checker init          生成默认配置文件
-commit-checker diff          检查暂存的diff
+commit-checker diff [A..B]   使用 git diff 兼容参数检查 diff (支持 CI)
 commit-checker run           检查所有已跟踪文件
 commit-checker msg <file>    检查提交消息
 commit-checker fix           自动修复git历史（支持 --dry-run）
@@ -228,6 +228,24 @@ commit-checker migrate       将配置文件迁移到最新架构
 commit-checker analyze       仓库分析
 commit-checker clean         清理缓存/构建目录的未追踪文件
 commit-checker version       版本信息
+```
+
+### diff 命令 (CI 用 from..to 比较)
+
+参数与 `git diff` 兼容。无参数时检查暂存的更改。
+
+```bash
+commit-checker diff                      # 默认: 暂存
+commit-checker diff --staged             # 显式 (--cached 同义)
+commit-checker diff HEAD                 # HEAD ↔ working tree
+commit-checker diff A..B                 # A ↔ B (range)
+commit-checker diff A...B                # merge-base(A,B) ↔ B
+```
+
+CI 示例 (GitHub Actions PR):
+
+```yaml
+- run: commit-checker diff ${{ github.event.pull_request.base.sha }}..HEAD
 ```
 
 ## 支持的语言

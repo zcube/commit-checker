@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/zcube/commit-checker/internal/config"
 	"github.com/zcube/commit-checker/internal/gitdiff"
@@ -41,7 +42,13 @@ func CheckAppendOnly(cfg *config.Config) ([]string, error) {
 		return nil, err
 	}
 
-	tree, err := headTree(repo)
+	// "from" tree 결정: spec.From 이 비어있으면 HEAD 사용.
+	spec := gitdiff.CurrentSpec()
+	fromRef := spec.From
+	if fromRef == "" {
+		fromRef = "HEAD"
+	}
+	tree, err := treeAt(repo, fromRef)
 	if err != nil {
 		return nil, err
 	}
@@ -126,14 +133,14 @@ func checkFilenameOrder(tree *object.Tree, newPath string, patterns []string) st
 	return ""
 }
 
-// headTree 는 HEAD 커밋의 트리를 반환합니다.
-// HEAD 가 없는 빈 저장소면 nil, nil 을 반환합니다.
-func headTree(repo *gogit.Repository) (*object.Tree, error) {
-	ref, err := repo.Head()
+// treeAt 는 주어진 ref 의 커밋 트리를 반환합니다.
+// HEAD 가 없는 빈 저장소이거나 ref 해석에 실패하면 nil, nil 을 반환합니다.
+func treeAt(repo *gogit.Repository, ref string) (*object.Tree, error) {
+	hash, err := repo.ResolveRevision(plumbing.Revision(ref))
 	if err != nil {
 		return nil, nil
 	}
-	commit, err := repo.CommitObject(ref.Hash())
+	commit, err := repo.CommitObject(*hash)
 	if err != nil {
 		return nil, err
 	}

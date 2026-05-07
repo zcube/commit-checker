@@ -438,6 +438,31 @@ commit-checker clean         캐시/빌드 디렉터리 미추적 파일 정리
 commit-checker version       버전 정보 출력
 ```
 
+### diff 커맨드 (CI 친화적 from..to 비교)
+
+`git diff` 와 호환되는 인자 형식을 그대로 받습니다. 인자가 없으면 기존처럼
+스테이지된 변경(HEAD ↔ index)을 검사합니다.
+
+```bash
+commit-checker diff                      # 기본: 스테이지 (pre-commit)
+commit-checker diff --staged             # 명시적 (--cached 동의어)
+commit-checker diff HEAD                 # HEAD ↔ working tree (uncommitted 전체)
+commit-checker diff origin/main          # origin/main ↔ working tree
+commit-checker diff A B                  # A ↔ B
+commit-checker diff A..B                 # A ↔ B (range 표기)
+commit-checker diff A...B                # merge-base(A,B) ↔ B
+```
+
+CI 예시 (GitHub Actions, GitLab CI 등):
+
+```yaml
+# GitHub Actions 의 PR 검사
+- run: commit-checker diff ${{ github.event.pull_request.base.sha }}..HEAD
+
+# GitLab CI MR 검사
+- commit-checker diff ${CI_MERGE_REQUEST_DIFF_BASE_SHA}..HEAD
+```
+
 ### init 커맨드
 
 ```bash
