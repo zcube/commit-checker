@@ -43,14 +43,20 @@ type Config struct {
 }
 
 // CommentLanguageConfig: 스테이지된 diff의 주석 언어 검사 설정.
+//
+// 로케일/언어 필드 통일 정책:
+//   - Locale 이 단일 진실의 소스입니다. BCP-47 코드(ko/en/ja/zh)와 legacy 언어명
+//     (korean/english/japanese/chinese/any) 모두 허용됩니다.
+//   - RequiredLanguage 는 v1.1.0 이전 설정과의 backward compatibility 를 위해
+//     남아 있으며, Locale 이 비어있을 때만 fallback 으로 사용됩니다.
+//   - applyDefaults 가 두 필드를 정규화하여 동일한 canonical 값을 갖도록 만듭니다.
 type CommentLanguageConfig struct {
 	// Enabled: 주석 언어 검사 활성화 여부 (기본값: true).
 	Enabled *bool `yaml:"enabled"`
 
-	// RequiredLanguage: 주석을 작성해야 하는 자연어.
-	// 지원값: korean, english, japanese, chinese, any
-	// 기본값: korean
-	RequiredLanguage string `yaml:"required_language"`
+	// RequiredLanguage: (legacy) 주석을 작성해야 하는 자연어. Locale 의 별칭.
+	// 신규 설정에서는 Locale 사용을 권장합니다.
+	RequiredLanguage string `yaml:"required_language,omitempty"`
 
 	// Languages: 파싱할 언어 이름 목록 (예: go, typescript, python).
 	// 설정 시 해당 파서만 실행되며 Extensions보다 우선함.
@@ -78,9 +84,11 @@ type CommentLanguageConfig struct {
 	// exceptions.comment_language_ignore에 패턴을 추가하는 것과 동일.
 	IgnoreFiles []string `yaml:"ignore_files"`
 
-	// Locale: 필수 언어를 자동으로 설정하는 BCP-47 로케일 코드.
-	// 지원: ko (korean), en (english), ja (japanese), zh / zh-hans / zh-hant (chinese).
-	// 설정 시 RequiredLanguage를 재정의함.
+	// Locale: 주석에 요구되는 자연어. BCP-47 코드 또는 legacy 언어명 모두 허용.
+	// 지원값:
+	//   - BCP-47:   ko, en, ja, zh (또는 zh-hans, zh-hant)
+	//   - Legacy:   korean, english, japanese, chinese, any
+	// 기본값: ko (korean)
 	Locale string `yaml:"locale"`
 
 	// FileLanguages: 순서대로 적용되는 파일별 언어 규칙.
@@ -126,9 +134,19 @@ type CommentLanguageConfig struct {
 type FileLanguageRule struct {
 	// Pattern: 파일 경로에 대해 매칭되는 glob 패턴 (** 와일드카드 지원).
 	Pattern string `yaml:"pattern"`
-	// Language: Pattern에 일치하는 파일에 필요한 언어.
-	// required_language와 동일한 값 및 로케일 코드 허용.
-	Language string `yaml:"language"`
+	// Locale: Pattern 에 일치하는 파일에 필요한 자연어.
+	// BCP-47 코드(ko, en, ja, zh) 또는 legacy 언어명(korean, english 등) 또는 "any".
+	Locale string `yaml:"locale"`
+	// Language: Locale 의 legacy 별칭 (구 설정 호환용). Locale 이 비어 있을 때만 사용됩니다.
+	Language string `yaml:"language,omitempty"`
+}
+
+// GetLocale 은 정규화된 언어 식별자를 반환합니다 (Locale > Language 순).
+func (r *FileLanguageRule) GetLocale() string {
+	if v := langdetect.NormalizeLocale(r.Locale); v != "" {
+		return v
+	}
+	return langdetect.NormalizeLocale(r.Language)
 }
 
 // IsEnabled: 주석 언어 검사 활성화 여부 반환 (기본값: true).
@@ -137,6 +155,18 @@ func (c *CommentLanguageConfig) IsEnabled() bool {
 		return true
 	}
 	return *c.Enabled
+}
+
+// GetLocale 은 정규화된 자연어 식별자를 반환합니다.
+// Locale 이 비어있으면 RequiredLanguage(legacy)를, 그것도 비어있으면 "korean"을 반환합니다.
+func (c *CommentLanguageConfig) GetLocale() string {
+	if v := langdetect.NormalizeLocale(c.Locale); v != "" {
+		return v
+	}
+	if v := langdetect.NormalizeLocale(c.RequiredLanguage); v != "" {
+		return v
+	}
+	return langdetect.Korean
 }
 
 // IsNoEmoji: 주석 이모지 검사 활성화 여부 반환 (기본값: false).
@@ -219,14 +249,20 @@ type CommitMessageConfig struct {
 }
 
 // CommitMessageLanguageConfig: 커밋 메시지 본문의 자연어 검사 설정.
+//
+// 로케일/언어 통일: Locale 이 단일 진실의 소스이며 BCP-47(ko/en/ja/zh) 와
+// legacy 언어명(korean/english/...) 둘 다 허용합니다. RequiredLanguage 는
+// v1.1.0 이전 설정 호환용 필드입니다.
 type CommitMessageLanguageConfig struct {
 	// Enabled: 커밋 메시지 언어 검사 활성화 여부 (기본값: false).
 	Enabled *bool `yaml:"enabled"`
 
-	// RequiredLanguage: 커밋 메시지 본문을 작성해야 하는 자연어.
-	// 지원값: korean, english, japanese, chinese, any
-	// 기본값: korean
-	RequiredLanguage string `yaml:"required_language"`
+	// Locale: 커밋 메시지 본문에 요구되는 자연어 (BCP-47 또는 legacy 언어명).
+	// 비어있으면 CommitMessageConfig.Locale 에서 자동 유도됩니다.
+	Locale string `yaml:"locale,omitempty"`
+
+	// RequiredLanguage: (legacy) Locale 의 별칭. 신규 설정에서는 Locale 사용을 권장.
+	RequiredLanguage string `yaml:"required_language,omitempty"`
 
 	// MinLength: 언어 검사 전 최소 글자 수.
 	// 기본값: 5
@@ -243,6 +279,18 @@ func (c *CommitMessageLanguageConfig) IsEnabled() bool {
 		return false
 	}
 	return *c.Enabled
+}
+
+// GetLocale 은 정규화된 자연어 식별자를 반환합니다.
+// Locale > RequiredLanguage > "korean" 순으로 fallback 합니다.
+func (c *CommitMessageLanguageConfig) GetLocale() string {
+	if v := langdetect.NormalizeLocale(c.Locale); v != "" {
+		return v
+	}
+	if v := langdetect.NormalizeLocale(c.RequiredLanguage); v != "" {
+		return v
+	}
+	return langdetect.Korean
 }
 
 // ConventionalCommitConfig: Conventional Commits 형식 강제 설정.
@@ -1190,15 +1238,34 @@ func loadWordsFromURLWithBody(rawURL string) ([]string, []byte, error) {
 }
 
 func applyDefaults(cfg *Config) {
-	// locale이 comment_language의 required_language보다 우선함
-	if cfg.CommentLanguage.Locale != "" {
-		if lang := langdetect.LocaleToLanguage(cfg.CommentLanguage.Locale); lang != "" {
-			cfg.CommentLanguage.RequiredLanguage = lang
+	// CommentLanguage: Locale 과 RequiredLanguage 통일 (v1.2.0+ Locale 기준).
+	// 우선순위: Locale > RequiredLanguage > "korean".
+	// 정규화 후 두 필드를 모두 동일한 canonical 값으로 채워 호환성 유지.
+	{
+		lang := langdetect.NormalizeLocale(cfg.CommentLanguage.Locale)
+		if lang == "" {
+			lang = langdetect.NormalizeLocale(cfg.CommentLanguage.RequiredLanguage)
+		}
+		if lang == "" {
+			lang = langdetect.Korean
+		}
+		cfg.CommentLanguage.Locale = lang
+		cfg.CommentLanguage.RequiredLanguage = lang
+	}
+
+	// FileLanguages: 각 항목의 Locale 과 Language 통일.
+	for i := range cfg.CommentLanguage.FileLanguages {
+		r := &cfg.CommentLanguage.FileLanguages[i]
+		lang := langdetect.NormalizeLocale(r.Locale)
+		if lang == "" {
+			lang = langdetect.NormalizeLocale(r.Language)
+		}
+		if lang != "" {
+			r.Locale = lang
+			r.Language = lang
 		}
 	}
-	if cfg.CommentLanguage.RequiredLanguage == "" {
-		cfg.CommentLanguage.RequiredLanguage = "korean"
-	}
+
 	if len(cfg.CommentLanguage.Extensions) == 0 && len(cfg.CommentLanguage.Languages) == 0 {
 		cfg.CommentLanguage.Extensions = []string{
 			".go", ".ts", ".tsx", ".js", ".jsx", ".mjs",
@@ -1218,8 +1285,21 @@ func applyDefaults(cfg *Config) {
 	if cfg.CommitMessage.Locale == "" {
 		cfg.CommitMessage.Locale = "ko"
 	}
-	if cfg.CommitMessage.LanguageCheck.RequiredLanguage == "" {
-		cfg.CommitMessage.LanguageCheck.RequiredLanguage = "korean"
+
+	// CommitMessage.LanguageCheck: Locale > RequiredLanguage > CommitMessage.Locale 에서 유도 > "korean".
+	{
+		lang := langdetect.NormalizeLocale(cfg.CommitMessage.LanguageCheck.Locale)
+		if lang == "" {
+			lang = langdetect.NormalizeLocale(cfg.CommitMessage.LanguageCheck.RequiredLanguage)
+		}
+		if lang == "" {
+			lang = langdetect.NormalizeLocale(cfg.CommitMessage.Locale)
+		}
+		if lang == "" {
+			lang = langdetect.Korean
+		}
+		cfg.CommitMessage.LanguageCheck.Locale = lang
+		cfg.CommitMessage.LanguageCheck.RequiredLanguage = lang
 	}
 	if cfg.CommitMessage.LanguageCheck.MinLength == 0 {
 		cfg.CommitMessage.LanguageCheck.MinLength = 5

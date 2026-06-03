@@ -8,11 +8,26 @@ import (
 	"strings"
 )
 
-// validLanguages: required_language / language 필드에 허용되는 값 목록.
+// validLanguages: locale 필드에 허용되는 값 (BCP-47 또는 legacy 언어명).
 var validLanguages = map[string]bool{
 	"korean": true, "english": true, "japanese": true, "chinese": true, "any": true,
 	"ko": true, "en": true, "ja": true, "zh": true,
 	"zh-hans": true, "zh-hant": true,
+}
+
+// checkLocale 는 값이 유효한 locale 인지 확인하고 그렇지 않으면 경고를 추가합니다.
+// 빈 문자열은 무시합니다.
+func checkLocale(warns []string, cfgPath, section, field, value string) []string {
+	if value == "" {
+		return warns
+	}
+	if !validLanguages[strings.ToLower(value)] {
+		warns = append(warns, fmt.Sprintf(
+			"%s: %s.%s 알 수 없는 값: %q (ko/en/ja/zh 또는 korean/english/japanese/chinese/any)",
+			cfgPath, section, field, value,
+		))
+	}
+	return warns
 }
 
 // Validate: 설정 값의 유효성을 검사하고 경고 메시지 목록을 반환.
@@ -20,32 +35,22 @@ var validLanguages = map[string]bool{
 func Validate(cfg *Config, cfgPath string) []string {
 	var warns []string
 
-	// required_language 값 검증
-	if !validLanguages[strings.ToLower(cfg.CommentLanguage.RequiredLanguage)] {
-		warns = append(warns, fmt.Sprintf(
-			"%s: comment_language.required_language 알 수 없는 언어: %q (korean/english/japanese/chinese/any)",
-			cfgPath, cfg.CommentLanguage.RequiredLanguage,
-		))
-	}
+	// comment_language: locale 과 (legacy) required_language 둘 다 검증
+	warns = checkLocale(warns, cfgPath, "comment_language", "locale", cfg.CommentLanguage.Locale)
+	warns = checkLocale(warns, cfgPath, "comment_language", "required_language", cfg.CommentLanguage.RequiredLanguage)
+
 	if cfg.CommitMessage.LanguageCheck.IsEnabled() {
-		if !validLanguages[strings.ToLower(cfg.CommitMessage.LanguageCheck.RequiredLanguage)] {
-			warns = append(warns, fmt.Sprintf(
-				"%s: commit_message.language_check.required_language 알 수 없는 언어: %q",
-				cfgPath, cfg.CommitMessage.LanguageCheck.RequiredLanguage,
-			))
-		}
+		warns = checkLocale(warns, cfgPath, "commit_message.language_check", "locale", cfg.CommitMessage.LanguageCheck.Locale)
+		warns = checkLocale(warns, cfgPath, "commit_message.language_check", "required_language", cfg.CommitMessage.LanguageCheck.RequiredLanguage)
 	}
 	for i, fl := range cfg.CommentLanguage.FileLanguages {
-		if !validLanguages[strings.ToLower(fl.Language)] {
-			warns = append(warns, fmt.Sprintf(
-				"%s: comment_language.file_languages[%d].language 알 수 없는 언어: %q",
-				cfgPath, i, fl.Language,
-			))
-		}
+		section := fmt.Sprintf("comment_language.file_languages[%d]", i)
+		warns = checkLocale(warns, cfgPath, section, "locale", fl.Locale)
+		warns = checkLocale(warns, cfgPath, section, "language", fl.Language)
 		if _, err := filepath.Match(fl.Pattern, ""); err != nil {
 			warns = append(warns, fmt.Sprintf(
-				"%s: comment_language.file_languages[%d].pattern 잘못된 glob 패턴: %q (%v)",
-				cfgPath, i, fl.Pattern, err,
+				"%s: %s.pattern 잘못된 glob 패턴: %q (%v)",
+				cfgPath, section, fl.Pattern, err,
 			))
 		}
 	}

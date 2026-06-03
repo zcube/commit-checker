@@ -1,7 +1,7 @@
 # v1.0.1 설정 파일 예시
 comment_language:
   enabled: true
-  required_language: korean
+  locale: korean
   min_length: 5
   check_mode: diff
   no_emoji: false
@@ -44,4 +44,4 @@ commit_message:
     locale: ko
   language_check:
     enabled: false
-    required_language: korean
+    locale: korean

@@ -34,6 +34,43 @@ func LocaleToLanguage(locale string) Language {
 	}
 }
 
+// NormalizeLocale 은 BCP-47 코드("ko") 또는 legacy 언어명("korean") 입력을
+// canonical Language 상수("korean")로 정규화합니다.
+// 인식 못하는 값이면 "" 를 반환합니다.
+func NormalizeLocale(s string) Language {
+	v := strings.ToLower(strings.TrimSpace(s))
+	if v == "" {
+		return ""
+	}
+	// BCP-47 코드 우선 (ko, en, ja, zh, zh-hans, zh-hant)
+	if lang := LocaleToLanguage(v); lang != "" {
+		return lang
+	}
+	// Legacy 언어명: korean, english, japanese, chinese, any
+	switch v {
+	case Korean, English, Japanese, Chinese, Any:
+		return v
+	}
+	return ""
+}
+
+// LanguageToBCP47 은 Language 상수를 BCP-47 코드로 변환합니다 (canonical 출력).
+// 인식 못하면 입력값을 그대로 반환합니다 (예: "any").
+func LanguageToBCP47(lang Language) string {
+	switch lang {
+	case Korean:
+		return "ko"
+	case English:
+		return "en"
+	case Japanese:
+		return "ja"
+	case Chinese:
+		return "zh"
+	default:
+		return lang
+	}
+}
+
 // builtinSkipPrefixes 는 언어에 관계없이 항상 기술적/지시자 주석으로 처리되어 건너뛰는 접두사 목록입니다.
 var builtinSkipPrefixes = []string{
 	"todo", "fixme", "hack", "note:", "xxx", "bug",

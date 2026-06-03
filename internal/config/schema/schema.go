@@ -12,7 +12,8 @@ import (
 type Version string
 
 const (
-	VersionCurrent Version = "v1.1.0" // v1.1.0+ (현재: allowed_words, encoding unicode)
+	VersionCurrent Version = "v1.2.0" // v1.2.0+ (locale 통일: required_language → locale)
+	VersionV110    Version = "v1.1.0" // v1.1.0~v1.1.x (allowed_words, encoding unicode, required_language 사용)
 	VersionV102    Version = "v1.0.2" // v1.0.2~v1.0.4 (no_ai_coauthor, allowed_words 없음)
 	VersionV101    Version = "v1.0.1" // v1.0.1 (no_coauthor, 전체 섹션)
 	VersionV100    Version = "v1.0.0" // v1.0.0 (no_coauthor, 최소 섹션)
@@ -25,7 +26,13 @@ type PresetConfig struct {
 	Cache AllowedWordsCacheConfig `yaml:"cache"`
 }
 
-// ConfigCurrent: v1.1.0+ 설정 스키마.
+// ConfigCurrent: v1.2.0+ 설정 스키마.
+// 변경 사항(v1.1.0 → v1.2.0):
+//   - comment_language.required_language → comment_language.locale (필드 통합)
+//   - commit_message.language_check.required_language → commit_message.language_check.locale
+//   - file_languages[].language → file_languages[].locale
+// 단, strict 파싱에서는 unknown 필드를 거부하므로 v1.2.0 스키마는 새 이름만 허용합니다.
+// 구 필드 사용 시에는 DetectVersion 이 v1.1.0 으로 판정하고 Migrate 가 자동 변환합니다.
 type ConfigCurrent struct {
 	Preset          PresetConfig                 `yaml:"preset"`
 	CommentLanguage CommentLanguageConfigCurrent `yaml:"comment_language"`
@@ -37,8 +44,48 @@ type ConfigCurrent struct {
 	Exceptions      ExceptionsConfig             `yaml:"exceptions"`
 }
 
-// CommentLanguageConfigCurrent: v1.1.0+ 주석 언어 검사 설정.
+// CommentLanguageConfigCurrent: v1.2.0+ 주석 언어 검사 설정.
+// required_language 제거 (locale 로 통합).
 type CommentLanguageConfigCurrent struct {
+	Enabled              *bool                   `yaml:"enabled"`
+	Languages            []string                `yaml:"languages"`
+	Extensions           []string                `yaml:"extensions"`
+	MinLength            int                     `yaml:"min_length"`
+	SkipDirectives       []string                `yaml:"skip_directives"`
+	CheckMode            string                  `yaml:"check_mode"`
+	IgnoreFiles          []string                `yaml:"ignore_files"`
+	Locale               string                  `yaml:"locale"`
+	FileLanguages        []FileLanguageRuleV120  `yaml:"file_languages"`
+	NoEmoji              *bool                   `yaml:"no_emoji"`
+	CheckStrings         *bool                   `yaml:"check_strings"`
+	SkipTechnicalStrings *bool                   `yaml:"skip_technical_strings"`
+	AllowedWords         []string                `yaml:"allowed_words"`
+	AllowedWordsFile     string                  `yaml:"allowed_words_file"`
+	AllowedWordsURL      string                  `yaml:"allowed_words_url"`
+	AllowedWordsCache    AllowedWordsCacheConfig `yaml:"allowed_words_cache"`
+}
+
+// FileLanguageRuleV120: v1.2.0+ 파일별 로케일 규칙. language → locale.
+type FileLanguageRuleV120 struct {
+	Pattern string `yaml:"pattern"`
+	Locale  string `yaml:"locale"`
+}
+
+// ConfigV110: v1.1.0~v1.1.x 설정 스키마 (locale 통합 이전).
+type ConfigV110 struct {
+	Preset          PresetConfig               `yaml:"preset"`
+	CommentLanguage CommentLanguageConfigV110  `yaml:"comment_language"`
+	CommitMessage   CommitMessageConfigV110    `yaml:"commit_message"`
+	BinaryFile      BinaryFileConfig           `yaml:"binary_file"`
+	Lint            LintConfig                 `yaml:"lint"`
+	Encoding        EncodingConfigCurrent      `yaml:"encoding"`
+	EditorConfig    EditorConfigConfig         `yaml:"editorconfig"`
+	Exceptions      ExceptionsConfig           `yaml:"exceptions"`
+}
+
+// CommentLanguageConfigV110: v1.1.0 주석 언어 검사 설정.
+// required_language 와 locale 동시 사용.
+type CommentLanguageConfigV110 struct {
 	Enabled              *bool                   `yaml:"enabled"`
 	RequiredLanguage     string                  `yaml:"required_language"`
 	Languages            []string                `yaml:"languages"`
@@ -58,6 +105,21 @@ type CommentLanguageConfigCurrent struct {
 	AllowedWordsCache    AllowedWordsCacheConfig `yaml:"allowed_words_cache"`
 }
 
+// CommitMessageConfigV110: v1.1.0 커밋 메시지 설정.
+// language_check 가 required_language 사용.
+type CommitMessageConfigV110 struct {
+	Enabled              *bool                          `yaml:"enabled"`
+	NoAICoauthor         *bool                          `yaml:"no_ai_coauthor"`
+	CoauthorRemoveEmails []string                       `yaml:"coauthor_remove_emails"`
+	NoUnicodeSpaces      *bool                          `yaml:"no_unicode_spaces"`
+	NoAmbiguousChars     *bool                          `yaml:"no_ambiguous_chars"`
+	NoBadRunes           *bool                          `yaml:"no_bad_runes"`
+	NoEmoji              *bool                          `yaml:"no_emoji"`
+	Locale               string                         `yaml:"locale"`
+	LanguageCheck        CommitMessageLanguageConfig    `yaml:"language_check"`
+	ConventionalCommit   ConventionalCommitConfig       `yaml:"conventional_commit"`
+}
+
 // AllowedWordsCacheConfig: URL 캐싱 설정 (v1.1.0+).
 type AllowedWordsCacheConfig struct {
 	Enabled *bool  `yaml:"enabled"`
@@ -65,18 +127,28 @@ type AllowedWordsCacheConfig struct {
 	Dir     string `yaml:"dir"`
 }
 
-// CommitMessageConfigCurrent: v1.0.2+ 커밋 메시지 검사 설정.
+// CommitMessageConfigCurrent: v1.2.0+ 커밋 메시지 검사 설정.
+// language_check 가 locale 사용으로 통일됨.
 type CommitMessageConfigCurrent struct {
-	Enabled              *bool                      `yaml:"enabled"`
-	NoAICoauthor         *bool                      `yaml:"no_ai_coauthor"`
-	CoauthorRemoveEmails []string                   `yaml:"coauthor_remove_emails"`
-	NoUnicodeSpaces      *bool                      `yaml:"no_unicode_spaces"`
-	NoAmbiguousChars     *bool                      `yaml:"no_ambiguous_chars"`
-	NoBadRunes           *bool                      `yaml:"no_bad_runes"`
-	NoEmoji              *bool                      `yaml:"no_emoji"`
-	Locale               string                     `yaml:"locale"`
-	LanguageCheck        CommitMessageLanguageConfig `yaml:"language_check"`
-	ConventionalCommit   ConventionalCommitConfig    `yaml:"conventional_commit"`
+	Enabled              *bool                           `yaml:"enabled"`
+	NoAICoauthor         *bool                           `yaml:"no_ai_coauthor"`
+	CoauthorRemoveEmails []string                        `yaml:"coauthor_remove_emails"`
+	NoUnicodeSpaces      *bool                           `yaml:"no_unicode_spaces"`
+	NoAmbiguousChars     *bool                           `yaml:"no_ambiguous_chars"`
+	NoBadRunes           *bool                           `yaml:"no_bad_runes"`
+	NoEmoji              *bool                           `yaml:"no_emoji"`
+	Locale               string                          `yaml:"locale"`
+	LanguageCheck        CommitMessageLanguageConfigV120 `yaml:"language_check"`
+	ConventionalCommit   ConventionalCommitConfig        `yaml:"conventional_commit"`
+}
+
+// CommitMessageLanguageConfigV120: v1.2.0+ 커밋 메시지 본문 언어 검사 설정.
+// required_language 제거, locale 만 사용.
+type CommitMessageLanguageConfigV120 struct {
+	Enabled      *bool    `yaml:"enabled"`
+	Locale       string   `yaml:"locale"`
+	MinLength    int      `yaml:"min_length"`
+	SkipPrefixes []string `yaml:"skip_prefixes"`
 }
 
 // EncodingConfigCurrent: v1.1.0+ 인코딩 설정.
@@ -91,10 +163,11 @@ type EncodingConfigCurrent struct {
 
 // ConfigV102: v1.0.2~v1.0.4 설정 스키마.
 // no_ai_coauthor 사용, allowed_words/encoding unicode 미지원.
+// CommitMessage 는 v1.1.0 형태(language_check.required_language)를 사용.
 type ConfigV102 struct {
 	Preset          PresetConfig              `yaml:"preset"`
 	CommentLanguage CommentLanguageConfigV102 `yaml:"comment_language"`
-	CommitMessage   CommitMessageConfigCurrent `yaml:"commit_message"`
+	CommitMessage   CommitMessageConfigV110   `yaml:"commit_message"`
 	BinaryFile      BinaryFileConfig          `yaml:"binary_file"`
 	Lint            LintConfig                `yaml:"lint"`
 	Encoding        EncodingConfigV101        `yaml:"encoding"`
@@ -145,12 +218,14 @@ func DetectVersion(data []byte) Version {
 		version  Version
 		tryParse func([]byte) error
 	}
-	// 구 버전 → 신 버전 순서
+	// 구 버전 → 신 버전 순서. v1.2.0(Current) 를 v1.1.0 보다 먼저 시도하여
+	// required_language 없는 신형 설정이 v1.1.0 으로 잘못 감지되지 않게 함.
 	candidates := []candidate{
 		{VersionV100, tryParseStrict[ConfigV100]},
 		{VersionV101, tryParseStrict[ConfigV101]},
 		{VersionV102, tryParseStrict[ConfigV102]},
-		{VersionCurrent, tryParseStrict[ConfigCurrent]},
+		{VersionCurrent, tryParseStrict[ConfigCurrent]}, // v1.2.0 (required_language 없음)
+		{VersionV110, tryParseStrict[ConfigV110]},       // v1.1.0 (required_language 있음)
 	}
 
 	var matched Version
@@ -169,18 +244,27 @@ func DetectVersion(data []byte) Version {
 	switch matched {
 	case VersionV100:
 		// v1.0.0 config는 v1.0.1에서도 파싱됨 (부분집합).
-		// v1.0.1 고유 필드(binary_file 등)가 있으면 v1.0.1.
 		if hasV101Fields(data) {
 			return VersionV101
 		}
 		return VersionV100
 	case VersionV102:
-		// v1.0.2 config는 v1.1.0에서도 파싱됨 (부분집합).
-		// v1.1.0 고유 필드(allowed_words 등)가 있으면 v1.1.0.
-		if hasV110Fields(data) {
+		// v1.0.2 config는 v1.1.0/v1.2.0 모두의 부분집합.
+		//   - allowed_words 등 v1.1.0+ 신규 필드가 있는지 확인
+		//   - required_language 가 있으면 v1.1.0 (마이그레이션 대상)
+		//   - 그 외에는 v1.0.2 또는 v1.2.0
+		hasNew := hasV110Fields(data)
+		hasReqLang := hasRequiredLanguageField(data)
+		switch {
+		case hasNew && hasReqLang:
+			return VersionV110
+		case hasNew && !hasReqLang:
 			return VersionCurrent
+		case !hasNew && hasReqLang:
+			return VersionV102 // v1.0.2 라도 required_language 가 있으면 마이그레이션 필요
+		default:
+			return VersionV102
 		}
-		return VersionV102
 	}
 
 	return matched
@@ -207,6 +291,39 @@ func hasV101Fields(data []byte) bool {
 	if cl, ok := raw["comment_language"].(map[string]any); ok {
 		if _, ok := cl["no_emoji"]; ok {
 			return true
+		}
+	}
+	return false
+}
+
+// hasRequiredLanguageField: YAML 데이터에 v1.2.0 에서 제거된 required_language 키가
+// (comment_language.required_language 또는 commit_message.language_check.required_language 또는
+// comment_language.file_languages[].language 형태로) 존재하는지 확인.
+// 이 필드가 있으면 마이그레이션이 필요합니다 (locale 로 변환).
+func hasRequiredLanguageField(data []byte) bool {
+	var raw map[string]any
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return false
+	}
+	if cl, ok := raw["comment_language"].(map[string]any); ok {
+		if _, ok := cl["required_language"]; ok {
+			return true
+		}
+		if fl, ok := cl["file_languages"].([]any); ok {
+			for _, item := range fl {
+				if m, ok := item.(map[string]any); ok {
+					if _, ok := m["language"]; ok {
+						return true
+					}
+				}
+			}
+		}
+	}
+	if cm, ok := raw["commit_message"].(map[string]any); ok {
+		if lc, ok := cm["language_check"].(map[string]any); ok {
+			if _, ok := lc["required_language"]; ok {
+				return true
+			}
 		}
 	}
 	return false
@@ -245,6 +362,20 @@ type MigrationRule struct {
 	Apply func(data []byte) []byte
 }
 
+// renameRequiredLanguageRule: v1.2.0 통일을 위한 마이그레이션 규칙.
+// required_language 와 file_languages[].language 를 모두 locale 로 통합.
+// 두 키가 동시 존재하면 locale 을 우선시키고 required_language 줄을 제거합니다.
+var renameRequiredLanguageRule = MigrationRule{
+	Description: "required_language / language → locale 통합 (v1.2.0)",
+	Apply: func(data []byte) []byte {
+		data = removeKeyIfPeerExists(data, "required_language", "locale")
+		data = removeKeyIfPeerExists(data, "language", "locale")
+		data = renameYAMLKey(data, "required_language", "locale")
+		data = renameYAMLKey(data, "language", "locale")
+		return data
+	},
+}
+
 // migrationRules: 버전별 마이그레이션 규칙 매핑.
 // key는 감지된 (구) 버전.
 var migrationRules = map[Version][]MigrationRule{
@@ -255,6 +386,7 @@ var migrationRules = map[Version][]MigrationRule{
 				return renameYAMLKey(data, "no_coauthor", "no_ai_coauthor")
 			},
 		},
+		renameRequiredLanguageRule,
 	},
 	VersionV101: {
 		{
@@ -263,8 +395,14 @@ var migrationRules = map[Version][]MigrationRule{
 				return renameYAMLKey(data, "no_coauthor", "no_ai_coauthor")
 			},
 		},
+		renameRequiredLanguageRule,
 	},
-	// VersionV102: 마이그레이션 불필요 (v1.1.0은 필드 추가만, 제거/이름 변경 없음)
+	VersionV102: {
+		renameRequiredLanguageRule,
+	},
+	VersionV110: {
+		renameRequiredLanguageRule,
+	},
 }
 
 // MigrateResult: 마이그레이션 결과.
@@ -329,4 +467,85 @@ func renameYAMLKey(data []byte, oldKey, newKey string) []byte {
 		}
 	}
 	return []byte(strings.Join(lines, "\n"))
+}
+
+// removeKeyIfPeerExists 는 동일 블록 내에 peerKey 와 staleKey 가 같이 존재할 때
+// staleKey 줄을 제거합니다 (YAML 중복 키 충돌 방지).
+// 블록 판별은 들여쓰기 기준입니다.
+func removeKeyIfPeerExists(data []byte, staleKey, peerKey string) []byte {
+	lines := strings.Split(string(data), "\n")
+	stalePrefix := staleKey + ":"
+	peerPrefix := peerKey + ":"
+
+	indentOf := func(s string) int {
+		n := 0
+		for _, ch := range s {
+			if ch == ' ' || ch == '\t' {
+				n++
+				continue
+			}
+			break
+		}
+		return n
+	}
+	keyAt := func(line string) string {
+		trimmed := strings.TrimLeft(line, " \t")
+		idx := strings.Index(trimmed, ":")
+		if idx < 0 {
+			return ""
+		}
+		return trimmed[:idx+1]
+	}
+
+	// 같은 들여쓰기·같은 블록 내에 peer 가 있는 stale 라인 인덱스 수집.
+	toRemove := make(map[int]bool)
+	for i, line := range lines {
+		trimmed := strings.TrimLeft(line, " \t")
+		if !strings.HasPrefix(trimmed, stalePrefix) {
+			continue
+		}
+		indent := indentOf(line)
+		// 같은 indent 의 형제 키들 중 peer 가 있는지 확인 (앞·뒤 양방향).
+		hasPeer := false
+		scan := func(start, step int) {
+			for j := start; j >= 0 && j < len(lines); j += step {
+				if j == i {
+					continue
+				}
+				ln := lines[j]
+				if strings.TrimSpace(ln) == "" || strings.HasPrefix(strings.TrimLeft(ln, " \t"), "#") {
+					continue
+				}
+				ind := indentOf(ln)
+				if ind < indent {
+					return // 블록 경계
+				}
+				if ind > indent {
+					continue
+				}
+				if keyAt(ln) == peerPrefix {
+					hasPeer = true
+					return
+				}
+			}
+		}
+		scan(i-1, -1)
+		if !hasPeer {
+			scan(i+1, 1)
+		}
+		if hasPeer {
+			toRemove[i] = true
+		}
+	}
+
+	if len(toRemove) == 0 {
+		return data
+	}
+	out := make([]string, 0, len(lines))
+	for i, line := range lines {
+		if !toRemove[i] {
+			out = append(out, line)
+		}
+	}
+	return []byte(strings.Join(out, "\n"))
 }

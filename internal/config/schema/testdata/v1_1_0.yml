@@ -1,7 +1,7 @@
-# 현재 버전 설정 파일 예시 (v1.2.0+: locale 통합)
+# v1.1.0 설정 파일 예시 (required_language 사용, v1.2.0 에서 locale 로 통합됨)
 comment_language:
   enabled: true
-  locale: korean
+  required_language: korean
   min_length: 5
   check_mode: diff
   no_emoji: false
@@ -47,4 +47,4 @@ commit_message:
     locale: ko
   language_check:
     enabled: false
-    locale: korean
+    required_language: korean

@@ -1,4 +1,4 @@
-# 현재 버전 설정 파일 예시 (v1.2.0+: locale 통합)
+# v1.0.2~v1.0.4 설정 파일 예시
 comment_language:
   enabled: true
   locale: korean
@@ -9,9 +9,6 @@ comment_language:
     - .go
     - .ts
     - .py
-  allowed_words:
-    - TypeScript
-    - API
 
 binary_file:
   enabled: true
@@ -28,8 +25,6 @@ lint:
 encoding:
   enabled: true
   require_utf8: true
-  no_invisible_chars: true
-  no_ambiguous_chars: true
 
 editorconfig:
   enabled: true

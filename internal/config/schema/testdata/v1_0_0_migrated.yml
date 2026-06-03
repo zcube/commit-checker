@@ -1,7 +1,7 @@
 # v1.0.0 설정 파일 예시
 comment_language:
   enabled: true
-  required_language: korean
+  locale: korean
   min_length: 5
   check_mode: diff
   extensions:

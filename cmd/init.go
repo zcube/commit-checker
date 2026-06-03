@@ -28,10 +28,8 @@ func getDefaultConfig(lang string) string {
 	}
 	lang = strings.ToLower(lang)
 
-	requiredLang := "korean"
 	locale := "ko"
-	if name, ok := localeToLanguageName[lang]; ok {
-		requiredLang = name
+	if _, ok := localeToLanguageName[lang]; ok {
 		locale = lang
 	}
 
@@ -41,7 +39,7 @@ func getDefaultConfig(lang string) string {
 
 comment_language:
   enabled: true
-  required_language: %s   # korean | english | japanese | chinese | any
+  locale: %s                  # BCP-47 (ko/en/ja/zh) 또는 legacy (korean/english/japanese/chinese/any)
   min_length: 5
   check_mode: diff            # diff | full
   extensions:
@@ -93,12 +91,12 @@ comment_language:
   #   - "**/*.generated.go"
   #   - "vendor/**"
 
-  # file_languages: 파일별 언어 규칙 (첫 번째 일치 패턴 적용).
+  # file_languages: 파일별 로케일 규칙 (첫 번째 일치 패턴 적용).
   # file_languages:
   #   - pattern: "locales/**"
-  #     language: any
+  #     locale: any
   #   - pattern: "i18n/**"
-  #     language: english
+  #     locale: en
 
 binary_file:
   enabled: true
@@ -181,7 +179,7 @@ commit_message:
 
   language_check:
     enabled: false
-    required_language: %s
+    locale: %s    # 비어두면 commit_message.locale 에서 자동 유도
     min_length: 5
     skip_prefixes:
       - "Merge"
@@ -211,7 +209,7 @@ commit_message:
 #     - name: no-api-key
 #       pattern: "(?i)(api_key|secret_key)\\s*=\\s*['\"][^'\"]{10,}"
 #       message: "API 키가 감지되었습니다 — 커밋에 포함하지 마세요"
-`, requiredLang, locale, locale, localizedExample(locale), requiredLang)
+`, locale, locale, locale, localizedExample(locale), locale)
 }
 
 // localizedExample: 해당 로케일의 대표 타입 별칭 예시를 반환.

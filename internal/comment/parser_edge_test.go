@@ -419,6 +419,171 @@ y = 2
 	}
 }
 
+// ---- Python PEP 723 inline script metadata ----------------------------------
+
+func TestPythonParser_PEP723_Basic(t *testing.T) {
+	// PEP 723 블록 전체가 KindImport로 표시되어 언어 검사에서 제외되어야 합니다.
+	src := `#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = [
+#   "ruamel.yaml>=0.18.0",
+#   "tabulate>=0.9.0",
+# ]
+# ///
+# 진짜 주석입니다
+x = 1
+`
+	p := &comment.PythonParser{}
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var kindComments, kindImports []comment.Comment
+	for _, c := range comments {
+		switch c.Kind {
+		case comment.KindComment:
+			kindComments = append(kindComments, c)
+		case comment.KindImport:
+			kindImports = append(kindImports, c)
+		}
+	}
+
+	// PEP 723 블록(시작/내용/종료)은 KindImport, 진짜 주석만 KindComment여야 합니다.
+	if len(kindComments) != 1 {
+		t.Errorf("expected 1 KindComment (real comment), got %d: %+v", len(kindComments), kindComments)
+	}
+	if len(kindComments) == 1 && !containsText(kindComments[0].Text, "진짜 주석") {
+		t.Errorf("expected real comment text, got %q", kindComments[0].Text)
+	}
+	// /// script, dependencies = [...], ///(종료) 포함하여 KindImport가 여럿이어야 합니다.
+	if len(kindImports) == 0 {
+		t.Error("expected PEP 723 block lines to be KindImport, got none")
+	}
+}
+
+func TestPythonParser_PEP723_ToolUV(t *testing.T) {
+	// tool.uv 타입처럼 점(.)이 포함된 타입도 인식해야 합니다.
+	src := `# /// tool.uv
+# constraint-dependencies = [
+#   "requests>=2.28.0",
+# ]
+# ///
+# 정상 주석
+`
+	p := &comment.PythonParser{}
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var kindComments, kindImports []comment.Comment
+	for _, c := range comments {
+		switch c.Kind {
+		case comment.KindComment:
+			kindComments = append(kindComments, c)
+		case comment.KindImport:
+			kindImports = append(kindImports, c)
+		}
+	}
+
+	if len(kindComments) != 1 {
+		t.Errorf("expected 1 KindComment, got %d: %+v", len(kindComments), kindComments)
+	}
+	if len(kindImports) == 0 {
+		t.Error("expected tool.uv PEP 723 block to produce KindImport entries")
+	}
+}
+
+func TestPythonParser_PEP723_MultipleBlocks(t *testing.T) {
+	// 여러 PEP 723 블록이 연속으로 있을 때 모두 KindImport로 표시되어야 합니다.
+	src := `# /// script
+# requires-python = ">=3.11"
+# ///
+# /// tool.uv
+# environments = ["linux"]
+# ///
+# 실제 주석
+`
+	p := &comment.PythonParser{}
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var kindComments, kindImports []comment.Comment
+	for _, c := range comments {
+		switch c.Kind {
+		case comment.KindComment:
+			kindComments = append(kindComments, c)
+		case comment.KindImport:
+			kindImports = append(kindImports, c)
+		}
+	}
+
+	if len(kindComments) != 1 {
+		t.Errorf("expected 1 KindComment, got %d: %+v", len(kindComments), kindComments)
+	}
+	if len(kindImports) == 0 {
+		t.Error("expected multiple PEP 723 block lines as KindImport")
+	}
+}
+
+func TestPythonParser_PEP723_NotFalsePositive(t *testing.T) {
+	// "/// " 이후에 공백만 있거나 유효하지 않은 타입이면 PEP 723로 인식하지 않아야 합니다.
+	src := `# ///
+# /// 123-invalid type here with spaces
+# 일반 주석
+`
+	p := &comment.PythonParser{}
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var kindComments []comment.Comment
+	for _, c := range comments {
+		if c.Kind == comment.KindComment {
+			kindComments = append(kindComments, c)
+		}
+	}
+
+	// 유효하지 않은 태그는 일반 주석으로 처리되어야 합니다.
+	if len(kindComments) != 3 {
+		t.Errorf("expected 3 KindComments (no false PEP 723 detection), got %d: %+v", len(kindComments), kindComments)
+	}
+}
+
+func TestPythonParser_PEP723_OpenTagLineNumber(t *testing.T) {
+	// PEP 723 블록이 올바른 줄 번호를 가지는지, 블록 다음 주석이 제대로 남는지 확인합니다.
+	src := `x = 1
+# /// script
+# deps = []
+# ///
+y = 2
+# 다섯 번째 줄 주석
+`
+	p := &comment.PythonParser{}
+	comments, err := p.ParseFile(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var kindComments []comment.Comment
+	for _, c := range comments {
+		if c.Kind == comment.KindComment {
+			kindComments = append(kindComments, c)
+		}
+	}
+
+	if len(kindComments) != 1 {
+		t.Fatalf("expected 1 KindComment after PEP 723 block, got %d: %+v", len(kindComments), kindComments)
+	}
+	if kindComments[0].Line != 6 {
+		t.Errorf("expected real comment at line 6, got line %d", kindComments[0].Line)
+	}
+}
+
 // ---- helper -----------------------------------------------------------------
 
 func containsText(s, sub string) bool {

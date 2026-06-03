@@ -143,22 +143,16 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 }
 
 // resolveFileLang 는 file_languages 규칙을 순서대로 확인하여 파일 경로에 대한 필수 언어를 반환합니다.
-// 첫 번째로 일치하는 규칙이 적용되며, 없으면 전역 required_language 로 폴백합니다.
+// 첫 번째로 일치하는 규칙이 적용되며, 없으면 전역 locale 로 폴백합니다.
 func resolveFileLang(path string, cfg *config.Config) string {
 	for _, rule := range cfg.CommentLanguage.FileLanguages {
 		if pathutil.MatchesAny(path, []string{rule.Pattern}) {
-			return normaliseLanguage(rule.Language)
+			if v := rule.GetLocale(); v != "" {
+				return v
+			}
 		}
 	}
-	return cfg.CommentLanguage.RequiredLanguage
-}
-
-// normaliseLanguage 는 로케일 코드를 전체 언어 이름으로 매핑하고 소문자로 변환합니다.
-func normaliseLanguage(lang string) string {
-	if mapped := langdetect.LocaleToLanguage(strings.ToLower(lang)); mapped != "" {
-		return mapped
-	}
-	return strings.ToLower(lang)
+	return cfg.CommentLanguage.GetLocale()
 }
 
 func truncate(s string, max int) string {

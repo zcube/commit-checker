@@ -22,6 +22,7 @@ func TestDetectVersion(t *testing.T) {
 		version Version
 	}{
 		{"current.yml", VersionCurrent},
+		{"v1_1_0.yml", VersionV110},
 		{"v1_0_2.yml", VersionV102},
 		{"v1_0_1.yml", VersionV101},
 		{"v1_0_0.yml", VersionV100},
@@ -70,6 +71,7 @@ func TestMigrate_Current(t *testing.T) {
 
 func TestMigrate_V102(t *testing.T) {
 	data := readTestdata(t, "v1_0_2.yml")
+	expected := readTestdata(t, "v1_0_2_migrated.yml")
 	result, err := Migrate(data)
 	if err != nil {
 		t.Fatalf("Migrate(v1.0.2) 실패: %v", err)
@@ -77,13 +79,31 @@ func TestMigrate_V102(t *testing.T) {
 	if result.DetectedVersion != VersionV102 {
 		t.Errorf("DetectedVersion = %q, want %q", result.DetectedVersion, VersionV102)
 	}
-	// v1.0.2 → current: 마이그레이션 규칙 없음 (추가만)
-	if len(result.Applied) != 0 {
-		t.Errorf("Applied = %v, want empty (no migration needed)", result.Applied)
+	// v1.0.2 → v1.2.0: required_language → locale 통합 적용됨
+	if len(result.Applied) == 0 {
+		t.Error("Applied가 비어있으면 안 됨 (required_language → locale 마이그레이션 필요)")
 	}
-	// 데이터 변경 없음
-	if string(result.Data) != string(data) {
-		t.Error("v1.0.2 데이터가 변경되면 안 됨")
+	if string(result.Data) != string(expected) {
+		t.Errorf("마이그레이션 결과 불일치:\ngot:\n%s\nwant:\n%s", result.Data, expected)
+	}
+}
+
+// TestMigrate_V110: v1.1.0 (required_language) → v1.2.0 (locale) 마이그레이션.
+func TestMigrate_V110(t *testing.T) {
+	data := readTestdata(t, "v1_1_0.yml")
+	expected := readTestdata(t, "v1_1_0_migrated.yml")
+	result, err := Migrate(data)
+	if err != nil {
+		t.Fatalf("Migrate(v1.1.0) 실패: %v", err)
+	}
+	if result.DetectedVersion != VersionV110 {
+		t.Errorf("DetectedVersion = %q, want %q", result.DetectedVersion, VersionV110)
+	}
+	if len(result.Applied) == 0 {
+		t.Error("Applied가 비어있으면 안 됨")
+	}
+	if string(result.Data) != string(expected) {
+		t.Errorf("마이그레이션 결과 불일치:\ngot:\n%s\nwant:\n%s", result.Data, expected)
 	}
 }
 

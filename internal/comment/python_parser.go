@@ -1,9 +1,14 @@
 package comment
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 // PythonParser 는 Python 소스 코드에서 # 줄 주석과 문자열 리터럴을 추출.
 // 단일/이중 따옴표 문자열과 삼중 따옴표 문자열(docstring 포함)을 모두 처리.
+// PEP 723 인라인 스크립트 메타데이터 블록(# /// <type> ... # ///)은 KindImport로 표시되어
+// 언어 검사에서 제외됩니다.
 type PythonParser struct{}
 
 func (p *PythonParser) SupportedExtensions() []string {
@@ -174,5 +179,48 @@ func (p *PythonParser) ParseFile(content string) ([]Comment, error) {
 		emitString(line)
 	}
 
+	markPEP723Blocks(result)
 	return result, nil
+}
+
+// markPEP723Blocks 는 PEP 723 인라인 스크립트 메타데이터 블록을 감지하여 KindImport로 표시합니다.
+// 패턴: # /// <type> (시작) ... # /// (종료), 시작/종료 줄 포함 블록 전체가 제외 대상입니다.
+func markPEP723Blocks(comments []Comment) {
+	inBlock := false
+	for i := range comments {
+		c := &comments[i]
+		if c.Kind != KindComment || c.IsBlock {
+			continue
+		}
+		if !inBlock {
+			if isPEP723OpenTag(c.Text) {
+				c.Kind = KindImport
+				inBlock = true
+			}
+		} else {
+			c.Kind = KindImport
+			if c.Text == "///" {
+				inBlock = false
+			}
+		}
+	}
+}
+
+// isPEP723OpenTag 는 PEP 723 블록 시작 태그를 감지합니다.
+// 텍스트는 `#` 제거 후 TrimSpace 된 값입니다.
+// 예: "/// script", "/// tool.uv"
+func isPEP723OpenTag(text string) bool {
+	if !strings.HasPrefix(text, "/// ") {
+		return false
+	}
+	typ := strings.TrimSpace(text[4:])
+	if typ == "" {
+		return false
+	}
+	for _, ch := range typ {
+		if !unicode.IsLetter(ch) && !unicode.IsDigit(ch) && ch != '-' && ch != '.' {
+			return false
+		}
+	}
+	return true
 }

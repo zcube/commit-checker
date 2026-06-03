@@ -172,7 +172,7 @@ func checkMsgLanguage(content string, cfg *config.CommitMessageLanguageConfig) [
 		}
 	}
 
-	required := cfg.RequiredLanguage
+	required := cfg.GetLocale()
 	minLength := cfg.MinLength
 
 	var errs []string
