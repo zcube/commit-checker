@@ -177,6 +177,149 @@ func TestRunLint_Disabled(t *testing.T) {
 	}
 }
 
+// TestRunLint_ValidJSON: 유효한 JSON 파일에서 오류 없음.
+func TestRunLint_ValidJSON(t *testing.T) {
+	dir := newGitRepo(t)
+	writeFile(t, dir, "config.json", `{"key": "value"}`)
+	gitMust(t, dir, "git", "add", "config.json")
+	gitMust(t, dir, "git", "commit", "-m", "init")
+
+	cfg := &config.Config{}
+	cfg.Lint.Enabled = truePtr()
+	cfg.Lint.JSON.Enabled = truePtr()
+
+	errs, err := checker.RunLint(cfg)
+	if err != nil {
+		t.Fatalf("RunLint error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("expected no errors for valid JSON, got: %v", errs)
+	}
+}
+
+// TestRunLint_InvalidJSON: 잘못된 JSON 파일에서 오류 반환.
+func TestRunLint_InvalidJSON(t *testing.T) {
+	dir := newGitRepo(t)
+	writeFile(t, dir, "bad.json", `{key: value}`)
+	gitMust(t, dir, "git", "add", "bad.json")
+	gitMust(t, dir, "git", "commit", "-m", "init")
+
+	cfg := &config.Config{}
+	cfg.Lint.Enabled = truePtr()
+	cfg.Lint.JSON.Enabled = truePtr()
+
+	errs, err := checker.RunLint(cfg)
+	if err != nil {
+		t.Fatalf("RunLint error: %v", err)
+	}
+	if len(errs) == 0 {
+		t.Error("expected lint error for invalid JSON, got none")
+	}
+}
+
+// TestRunLint_JSONC_WithComments: .jsonc 파일은 // 주석 포함 시 통과.
+func TestRunLint_JSONC_WithComments(t *testing.T) {
+	dir := newGitRepo(t)
+	writeFile(t, dir, "config.jsonc", "{\n// comment\n\"key\": \"value\"\n}")
+	gitMust(t, dir, "git", "add", "config.jsonc")
+	gitMust(t, dir, "git", "commit", "-m", "init")
+
+	cfg := &config.Config{}
+	cfg.Lint.Enabled = truePtr()
+	cfg.Lint.JSON.Enabled = truePtr()
+
+	errs, err := checker.RunLint(cfg)
+	if err != nil {
+		t.Fatalf("RunLint error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf(".jsonc with // comment should pass, got: %v", errs)
+	}
+}
+
+// TestRunLint_JSONC_Invalid: .jsonc 파일의 구문 오류는 검출.
+func TestRunLint_JSONC_Invalid(t *testing.T) {
+	dir := newGitRepo(t)
+	writeFile(t, dir, "bad.jsonc", `{key: value}`)
+	gitMust(t, dir, "git", "add", "bad.jsonc")
+	gitMust(t, dir, "git", "commit", "-m", "init")
+
+	cfg := &config.Config{}
+	cfg.Lint.Enabled = truePtr()
+	cfg.Lint.JSON.Enabled = truePtr()
+
+	errs, err := checker.RunLint(cfg)
+	if err != nil {
+		t.Fatalf("RunLint error: %v", err)
+	}
+	if len(errs) == 0 {
+		t.Error("expected lint error for invalid .jsonc, got none")
+	}
+}
+
+// TestRunLint_JSONCommentFilter: comment_filter=true이면 .json에서 // 주석 허용.
+func TestRunLint_JSONCommentFilter(t *testing.T) {
+	dir := newGitRepo(t)
+	writeFile(t, dir, "config.json", "{\n// comment\n\"key\": \"value\"\n}")
+	gitMust(t, dir, "git", "add", "config.json")
+	gitMust(t, dir, "git", "commit", "-m", "init")
+
+	cfg := &config.Config{}
+	cfg.Lint.Enabled = truePtr()
+	cfg.Lint.JSON.Enabled = truePtr()
+	cfg.Lint.JSON.CommentFilter = truePtr()
+
+	errs, err := checker.RunLint(cfg)
+	if err != nil {
+		t.Fatalf("RunLint error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("comment_filter=true should allow // in .json, got: %v", errs)
+	}
+}
+
+// TestRunLint_YAMLCommentFilter_SkipLint: YAML skip-lint 주석으로 검사 비활성화.
+func TestRunLint_YAMLCommentFilter_SkipLint(t *testing.T) {
+	dir := newGitRepo(t)
+	writeFile(t, dir, "skip.yaml", "# commit-checker: skip-lint\nkey: [invalid yaml structure\n")
+	gitMust(t, dir, "git", "add", "skip.yaml")
+	gitMust(t, dir, "git", "commit", "-m", "init")
+
+	cfg := &config.Config{}
+	cfg.Lint.Enabled = truePtr()
+	cfg.Lint.YAML.Enabled = truePtr()
+	cfg.Lint.YAML.CommentFilter = truePtr()
+
+	errs, err := checker.RunLint(cfg)
+	if err != nil {
+		t.Fatalf("RunLint error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("skip-lint comment should disable YAML lint, got: %v", errs)
+	}
+}
+
+// TestRunLint_YAMLCommentFilter_NoSkip: comment_filter=true지만 skip-lint 없으면 정상 검사.
+func TestRunLint_YAMLCommentFilter_NoSkip(t *testing.T) {
+	dir := newGitRepo(t)
+	writeFile(t, dir, "bad.yaml", "key: [invalid yaml structure\n")
+	gitMust(t, dir, "git", "add", "bad.yaml")
+	gitMust(t, dir, "git", "commit", "-m", "init")
+
+	cfg := &config.Config{}
+	cfg.Lint.Enabled = truePtr()
+	cfg.Lint.YAML.Enabled = truePtr()
+	cfg.Lint.YAML.CommentFilter = truePtr()
+
+	errs, err := checker.RunLint(cfg)
+	if err != nil {
+		t.Fatalf("RunLint error: %v", err)
+	}
+	if len(errs) == 0 {
+		t.Error("no skip-lint comment: should still validate and find error")
+	}
+}
+
 // TestRunEditorConfig_NoViolations: .editorconfig 없을 때 오류 없음.
 func TestRunEditorConfig_NoViolations(t *testing.T) {
 	dir := newGitRepo(t)
