@@ -130,6 +130,50 @@ func TestJSONLintConfig_IsAllowJSON5_True(t *testing.T) {
 	}
 }
 
+func TestJSONLintConfig_IsCommentFilter_Nil(t *testing.T) {
+	c := &config.JSONLintConfig{}
+	if c.IsCommentFilter() {
+		t.Error("nil CommentFilter should default to false")
+	}
+}
+
+func TestJSONLintConfig_IsCommentFilter_True(t *testing.T) {
+	c := &config.JSONLintConfig{CommentFilter: ptrBool(true)}
+	if !c.IsCommentFilter() {
+		t.Error("expected true")
+	}
+}
+
+// YAMLLintConfig
+
+func TestYAMLLintConfig_IsEnabled_Nil(t *testing.T) {
+	c := &config.YAMLLintConfig{}
+	if !c.IsEnabled() {
+		t.Error("nil Enabled should default to true")
+	}
+}
+
+func TestYAMLLintConfig_IsEnabled_False(t *testing.T) {
+	c := &config.YAMLLintConfig{Enabled: ptrBool(false)}
+	if c.IsEnabled() {
+		t.Error("expected false")
+	}
+}
+
+func TestYAMLLintConfig_IsCommentFilter_Nil(t *testing.T) {
+	c := &config.YAMLLintConfig{}
+	if c.IsCommentFilter() {
+		t.Error("nil CommentFilter should default to false")
+	}
+}
+
+func TestYAMLLintConfig_IsCommentFilter_True(t *testing.T) {
+	c := &config.YAMLLintConfig{CommentFilter: ptrBool(true)}
+	if !c.IsCommentFilter() {
+		t.Error("expected true")
+	}
+}
+
 // EncodingConfig
 
 func TestEncodingConfig_IsEnabled_Nil(t *testing.T) {
