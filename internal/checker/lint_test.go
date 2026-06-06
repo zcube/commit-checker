@@ -119,6 +119,102 @@ func TestCheckLint_JSON5Disallowed(t *testing.T) {
 	}
 }
 
+// TestCheckLint_JSONC_WithComments: .jsonc 파일은 // 주석 포함 시 통과.
+func TestCheckLint_JSONC_WithComments(t *testing.T) {
+	dir := newGitRepo(t)
+	stageFile(t, dir, "config.jsonc", "{\n// comment\n\"key\": \"value\"\n}")
+
+	errs, err := checker.CheckLint(lintConfig())
+	if err != nil {
+		t.Fatalf("CheckLint error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf(".jsonc with // comment should pass, got: %v", errs)
+	}
+}
+
+// TestCheckLint_JSONC_TrailingComma: .jsonc 파일은 trailing comma도 허용 (JSON5로 검사).
+func TestCheckLint_JSONC_TrailingComma(t *testing.T) {
+	dir := newGitRepo(t)
+	stageFile(t, dir, "config.jsonc", "{\n// comment\n\"key\": \"value\",\n}")
+
+	errs, err := checker.CheckLint(lintConfig())
+	if err != nil {
+		t.Fatalf("CheckLint error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf(".jsonc with trailing comma should pass, got: %v", errs)
+	}
+}
+
+// TestCheckLint_JSONC_Invalid: .jsonc 파일의 구문 오류는 검출.
+func TestCheckLint_JSONC_Invalid(t *testing.T) {
+	dir := newGitRepo(t)
+	stageFile(t, dir, "bad.jsonc", `{key: value}`)
+
+	errs, err := checker.CheckLint(lintConfig())
+	if err != nil {
+		t.Fatalf("CheckLint error: %v", err)
+	}
+	if len(errs) == 0 {
+		t.Error("expected error for invalid .jsonc")
+	}
+}
+
+// TestCheckLint_JSONCommentFilter: comment_filter=true이면 .json 파일에서 // 주석 허용 (trailing comma 불허).
+func TestCheckLint_JSONCommentFilter(t *testing.T) {
+	dir := newGitRepo(t)
+	stageFile(t, dir, "config.json", "{\n// comment\n\"key\": \"value\"\n}")
+
+	cfg := lintConfig()
+	tr := true
+	cfg.Lint.JSON.CommentFilter = &tr
+
+	errs, err := checker.CheckLint(cfg)
+	if err != nil {
+		t.Fatalf("CheckLint error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("comment_filter=true should allow // in .json, got: %v", errs)
+	}
+}
+
+// TestCheckLint_JSONCommentFilter_TrailingCommaRejected: comment_filter 모드에서 trailing comma는 오류.
+func TestCheckLint_JSONCommentFilter_TrailingCommaRejected(t *testing.T) {
+	dir := newGitRepo(t)
+	stageFile(t, dir, "config.json", "{\n// comment\n\"key\": \"value\",\n}")
+
+	cfg := lintConfig()
+	tr := true
+	cfg.Lint.JSON.CommentFilter = &tr
+
+	errs, err := checker.CheckLint(cfg)
+	if err != nil {
+		t.Fatalf("CheckLint error: %v", err)
+	}
+	if len(errs) == 0 {
+		t.Error("comment_filter mode should reject trailing comma")
+	}
+}
+
+// TestCheckLint_YAMLCommentFilter_SkipLint: comment_filter=true이면 skip-lint 주석으로 YAML 검사 비활성화.
+func TestCheckLint_YAMLCommentFilter_SkipLint(t *testing.T) {
+	dir := newGitRepo(t)
+	stageFile(t, dir, "config.yaml", "# commit-checker: skip-lint\nkey: [invalid yaml structure\n")
+
+	cfg := lintConfig()
+	tr := true
+	cfg.Lint.YAML.CommentFilter = &tr
+
+	errs, err := checker.CheckLint(cfg)
+	if err != nil {
+		t.Fatalf("CheckLint error: %v", err)
+	}
+	if len(errs) != 0 {
+		t.Errorf("skip-lint comment should disable YAML lint, got: %v", errs)
+	}
+}
+
 // TestCheckLint_ValidXML: valid XML passes.
 func TestCheckLint_ValidXML(t *testing.T) {
 	dir := newGitRepo(t)

@@ -692,7 +692,7 @@ type LintConfig struct {
 	Enabled *bool `yaml:"enabled"`
 
 	// YAML lint 설정
-	YAML LintRuleConfig `yaml:"yaml"`
+	YAML YAMLLintConfig `yaml:"yaml"`
 
 	// JSON lint 설정
 	JSON JSONLintConfig `yaml:"json"`
@@ -729,6 +729,34 @@ func (c *LintRuleConfig) IsEnabled() bool {
 	return *c.Enabled
 }
 
+// YAMLLintConfig: YAML lint 검사 설정.
+type YAMLLintConfig struct {
+	// Enabled: YAML lint 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+
+	// CommentFilter: true이면 파일 내 "# commit-checker: skip-lint" 주석으로 검사 비활성화 가능.
+	CommentFilter *bool `yaml:"comment_filter"`
+
+	// IgnoreFiles: 건너뛸 파일의 glob 패턴 목록.
+	IgnoreFiles []string `yaml:"ignore_files"`
+}
+
+// IsEnabled: YAML lint 활성화 여부 반환 (기본값: true).
+func (c *YAMLLintConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// IsCommentFilter: comment filter 활성화 여부 반환 (기본값: false).
+func (c *YAMLLintConfig) IsCommentFilter() bool {
+	if c.CommentFilter == nil {
+		return false
+	}
+	return *c.CommentFilter
+}
+
 // JSONLintConfig: JSON lint 검사 설정.
 type JSONLintConfig struct {
 	// Enabled: JSON lint 활성화 여부 (기본값: true).
@@ -737,6 +765,10 @@ type JSONLintConfig struct {
 	// AllowJSON5: JSON5 형식 허용 여부 (기본값: false).
 	// true이면 // 및 /* */ 주석, trailing comma 허용.
 	AllowJSON5 *bool `yaml:"allow_json5"`
+
+	// CommentFilter: true이면 .json 파일에서 // 및 /* */ 주석을 제거 후 strict JSON 검사 (JSONC 모드).
+	// .jsonc 파일은 설정과 무관하게 항상 JSON5로 검사.
+	CommentFilter *bool `yaml:"comment_filter"`
 
 	// IgnoreFiles: 건너뛸 파일의 glob 패턴 목록.
 	// 기본 제외: package-lock.json, yarn.lock 등 auto-generated 파일.
@@ -757,6 +789,14 @@ func (c *JSONLintConfig) IsAllowJSON5() bool {
 		return false
 	}
 	return *c.AllowJSON5
+}
+
+// IsCommentFilter: comment filter 활성화 여부 반환 (기본값: false).
+func (c *JSONLintConfig) IsCommentFilter() bool {
+	if c.CommentFilter == nil {
+		return false
+	}
+	return *c.CommentFilter
 }
 
 // EncodingConfig: 파일 인코딩 검사 설정.

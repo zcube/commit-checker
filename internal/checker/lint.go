@@ -46,7 +46,20 @@ func CheckLint(cfg *config.Config) ([]string, error) {
 			if err != nil {
 				continue
 			}
+			if cfg.Lint.YAML.IsCommentFilter() && lint.HasLintDisableComment(content, "#") {
+				continue
+			}
 			validationErrs = lint.ValidateYAML(path, content)
+
+		case ".jsonc":
+			if !cfg.Lint.JSON.IsEnabled() {
+				continue
+			}
+			content, err := gitdiff.GetStagedContent(path)
+			if err != nil {
+				continue
+			}
+			validationErrs = lint.ValidateJSON5(path, content)
 
 		case ".json":
 			if !cfg.Lint.JSON.IsEnabled() {
@@ -66,6 +79,8 @@ func CheckLint(cfg *config.Config) ([]string, error) {
 			}
 			if cfg.Lint.JSON.IsAllowJSON5() {
 				validationErrs = lint.ValidateJSON5(path, content)
+			} else if cfg.Lint.JSON.IsCommentFilter() {
+				validationErrs = lint.ValidateJSONC(path, content)
 			} else {
 				validationErrs = lint.ValidateJSON(path, content)
 			}

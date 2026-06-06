@@ -120,6 +120,63 @@ func TestValidateJSON5_UnterminatedComment(t *testing.T) {
 	}
 }
 
+// --- ValidateJSONC tests ---
+
+func TestValidateJSONC_WithComments(t *testing.T) {
+	content := "{\n// single-line comment\n\"key\": \"value\"\n}"
+	errs := ValidateJSONC("test.jsonc", content)
+	if len(errs) != 0 {
+		t.Errorf("JSONC with // comment should pass, got: %v", errs)
+	}
+}
+
+func TestValidateJSONC_BlockComment(t *testing.T) {
+	content := "{\n/* block comment */\n\"key\": \"value\"\n}"
+	errs := ValidateJSONC("test.jsonc", content)
+	if len(errs) != 0 {
+		t.Errorf("JSONC with /* */ comment should pass, got: %v", errs)
+	}
+}
+
+func TestValidateJSONC_TrailingCommaRejected(t *testing.T) {
+	content := `{"key": "value",}`
+	errs := ValidateJSONC("test.jsonc", content)
+	if len(errs) == 0 {
+		t.Error("JSONC should reject trailing comma")
+	}
+}
+
+func TestValidateJSONC_Invalid(t *testing.T) {
+	content := `{key: value}`
+	errs := ValidateJSONC("test.jsonc", content)
+	if len(errs) == 0 {
+		t.Error("expected error for invalid JSONC")
+	}
+}
+
+// --- HasLintDisableComment tests ---
+
+func TestHasLintDisableComment_YAML(t *testing.T) {
+	content := "# commit-checker: skip-lint\nkey: value\n"
+	if !HasLintDisableComment(content, "#") {
+		t.Error("should detect YAML skip-lint comment")
+	}
+}
+
+func TestHasLintDisableComment_JSON(t *testing.T) {
+	content := "{\n// commit-checker: skip-lint\n\"key\": \"value\"\n}"
+	if !HasLintDisableComment(content, "//") {
+		t.Error("should detect JSON skip-lint comment")
+	}
+}
+
+func TestHasLintDisableComment_NotPresent(t *testing.T) {
+	content := "key: value\n# normal comment\n"
+	if HasLintDisableComment(content, "#") {
+		t.Error("should not detect skip-lint when absent")
+	}
+}
+
 // --- XML tests ---
 
 func TestValidateXML_Valid(t *testing.T) {

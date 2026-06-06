@@ -93,6 +93,19 @@ func ValidateJSON5(filename, content string) []ValidationError {
 	return ValidateJSON(filename, stripped)
 }
 
+// ValidateJSONC: JSONC 주석(//, /* */)을 제거한 후 strict JSON으로 검사.
+// trailing comma는 허용하지 않음 (JSONC 모드).
+func ValidateJSONC(filename, content string) []ValidationError {
+	stripped, err := stripComments(content)
+	if err != nil {
+		return []ValidationError{{
+			File:    filename,
+			Message: fmt.Sprintf("JSONC syntax error: %s", err),
+		}}
+	}
+	return ValidateJSON(filename, stripped)
+}
+
 // ValidateXML: 콘텐츠가 올바른 형식의 XML인지 검사.
 func ValidateXML(filename, content string) []ValidationError {
 	dec := xml.NewDecoder(bytes.NewReader([]byte(content)))
@@ -113,9 +126,9 @@ func ValidateXML(filename, content string) []ValidationError {
 	return nil
 }
 
-// StripJSON5Comments: JSON5 콘텐츠에서 // 및 /* */ 주석을 제거하고
-// } 또는 ] 앞의 trailing comma를 제거.
-func StripJSON5Comments(input string) (string, error) {
+// stripComments: JSON/JSONC/JSON5 콘텐츠에서 // 및 /* */ 주석만 제거.
+// trailing comma는 유지됨 (JSONC 모드용).
+func stripComments(input string) (string, error) {
 	var out strings.Builder
 	runes := []rune(input)
 	n := len(runes)
@@ -180,10 +193,16 @@ func StripJSON5Comments(input string) (string, error) {
 		}
 	}
 
-	// } 또는 ] 앞의 trailing comma 제거
-	result := out.String()
-	result = stripTrailingCommas(result)
-	return result, nil
+	return out.String(), nil
+}
+
+// StripJSON5Comments: JSON5 콘텐츠에서 // 및 /* */ 주석과 trailing comma를 제거.
+func StripJSON5Comments(input string) (string, error) {
+	stripped, err := stripComments(input)
+	if err != nil {
+		return "", err
+	}
+	return stripTrailingCommas(stripped), nil
 }
 
 // stripTrailingCommas: } 또는 ] 바로 앞의 쉼표(옵션 공백 포함)를 제거.
@@ -245,4 +264,16 @@ var DefaultJSONIgnoreFiles = []string{
 	"Gemfile.lock",
 	"Cargo.lock",
 	"go.sum",
+}
+
+// HasLintDisableComment: 파일 내 "commit-checker: skip-lint" 지시어 존재 여부 검사.
+// commentPrefix: "#" (YAML) 또는 "//" (JSON5/JSONC).
+func HasLintDisableComment(content, commentPrefix string) bool {
+	prefix := commentPrefix + " commit-checker: skip-lint"
+	for _, line := range strings.Split(content, "\n") {
+		if strings.Contains(strings.TrimSpace(line), prefix) {
+			return true
+		}
+	}
+	return false
 }

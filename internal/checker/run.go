@@ -183,7 +183,7 @@ func RunLint(cfg *config.Config) ([]string, error) {
 
 		ext := strings.ToLower(filepath.Ext(path))
 		switch ext {
-		case ".yaml", ".yml", ".json", ".xml", ".toml":
+		case ".yaml", ".yml", ".json", ".jsonc", ".xml", ".toml":
 			// 처리 대상
 		default:
 			continue
@@ -208,7 +208,20 @@ func RunLint(cfg *config.Config) ([]string, error) {
 				if err != nil {
 					return nil
 				}
+				if cfg.Lint.YAML.IsCommentFilter() && lint.HasLintDisableComment(string(content), "#") {
+					return nil
+				}
 				validationErrs = lint.ValidateYAML(path, string(content))
+
+			case ".jsonc":
+				if !cfg.Lint.JSON.IsEnabled() {
+					return nil
+				}
+				content, err := os.ReadFile(path)
+				if err != nil {
+					return nil
+				}
+				validationErrs = lint.ValidateJSON5(path, string(content))
 
 			case ".json":
 				if !cfg.Lint.JSON.IsEnabled() {
@@ -227,6 +240,8 @@ func RunLint(cfg *config.Config) ([]string, error) {
 				}
 				if cfg.Lint.JSON.IsAllowJSON5() {
 					validationErrs = lint.ValidateJSON5(path, string(content))
+				} else if cfg.Lint.JSON.IsCommentFilter() {
+					validationErrs = lint.ValidateJSONC(path, string(content))
 				} else {
 					validationErrs = lint.ValidateJSON(path, string(content))
 				}

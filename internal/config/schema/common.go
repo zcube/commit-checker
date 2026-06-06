@@ -43,7 +43,7 @@ type BinaryFileConfig struct {
 // LintConfig: 데이터 파일 lint 설정 (v1.0.1+).
 type LintConfig struct {
 	Enabled *bool          `yaml:"enabled"`
-	YAML    LintRuleConfig `yaml:"yaml"`
+	YAML    YAMLLintConfig `yaml:"yaml"`
 	JSON    JSONLintConfig `yaml:"json"`
 	XML     LintRuleConfig `yaml:"xml"`
 }
@@ -54,11 +54,19 @@ type LintRuleConfig struct {
 	IgnoreFiles []string `yaml:"ignore_files"`
 }
 
+// YAMLLintConfig: YAML lint 설정.
+type YAMLLintConfig struct {
+	Enabled       *bool    `yaml:"enabled"`
+	CommentFilter *bool    `yaml:"comment_filter"`
+	IgnoreFiles   []string `yaml:"ignore_files"`
+}
+
 // JSONLintConfig: JSON lint 설정.
 type JSONLintConfig struct {
-	Enabled     *bool    `yaml:"enabled"`
-	AllowJSON5  *bool    `yaml:"allow_json5"`
-	IgnoreFiles []string `yaml:"ignore_files"`
+	Enabled       *bool    `yaml:"enabled"`
+	AllowJSON5    *bool    `yaml:"allow_json5"`
+	CommentFilter *bool    `yaml:"comment_filter"`
+	IgnoreFiles   []string `yaml:"ignore_files"`
 }
 
 // EditorConfigConfig: EditorConfig 검사 설정 (v1.0.1+).
