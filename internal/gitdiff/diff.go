@@ -153,7 +153,9 @@ type FileDiff struct {
 // Spec 이 기본값(IsDefault) 이면 기존처럼 git diff --staged 를 실행합니다.
 func GetStagedDiff() ([]FileDiff, error) {
 	args := buildDiffArgs(currentSpec)
-	cmd := exec.Command("git", args...)
+	// quotepath=false: diff 헤더의 비ASCII 경로가 C-스타일로 인용되지 않도록 함
+	// (인용되면 ParseDiff 가 경로를 원형으로 복원하지 못함).
+	cmd := exec.Command("git", append([]string{"-c", "core.quotepath=false"}, args...)...)
 	out, err := cmd.Output()
 	if err != nil {
 		// git diff 의 종료 코드 1 은 단순히 차이가 있음을 의미하며 오류가 아닙니다.
@@ -162,6 +164,15 @@ func GetStagedDiff() ([]FileDiff, error) {
 		}
 	}
 	return ParseDiff(string(out)), nil
+}
+
+// SplitNullSeparated 는 git 의 -z 출력(NUL 구분, 경로 인용 없음)을 경로 목록으로 분리합니다.
+func SplitNullSeparated(out []byte) []string {
+	raw := strings.TrimRight(string(out), "\x00")
+	if raw == "" {
+		return nil
+	}
+	return strings.Split(raw, "\x00")
 }
 
 // contentCache: 스테이지된 파일 내용 캐시 (sync.Map으로 동시성 안전).

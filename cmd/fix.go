@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/zcube/commit-checker/internal/checker"
 	"github.com/zcube/commit-checker/internal/config"
 	"github.com/zcube/commit-checker/internal/encoding"
+	"github.com/zcube/commit-checker/internal/gitdiff"
 	"github.com/zcube/commit-checker/internal/i18n"
 )
 
@@ -90,18 +90,12 @@ func runFix(cmd *cobra.Command, args []string) error {
 }
 
 func getStagedFilesForFix() ([]string, error) {
-	out, err := exec.Command("git", "diff", "--staged", "--name-only", "--diff-filter=ACM").Output()
+	// -z: NUL 구분 출력으로 비ASCII 경로의 C-스타일 인용(core.quotePath)을 회피.
+	out, err := exec.Command("git", "diff", "--staged", "--name-only", "--diff-filter=ACM", "-z").Output()
 	if err != nil {
 		return nil, fmt.Errorf("git diff --staged: %w", err)
 	}
-	var files []string
-	for _, f := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		f = strings.TrimSpace(f)
-		if f != "" {
-			files = append(files, f)
-		}
-	}
-	return files, nil
+	return gitdiff.SplitNullSeparated(out), nil
 }
 
 func runGitAdd(path string) error {

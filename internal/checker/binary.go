@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/gitdiff"
 	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/pathutil"
 )
@@ -74,7 +75,8 @@ func isLFSTracked(path string) bool {
 // getStagedBinaryFiles: git이 바이너리로 판별한 스테이지된 파일 목록 반환.
 // git diff --staged --numstat에서 바이너리 파일은 "-\t-\tpath" 형식으로 표시됨.
 func getStagedBinaryFiles() ([]string, error) {
-	cmd := exec.Command("git", "diff", "--staged", "--numstat", "--diff-filter=d")
+	// -z: NUL 구분 출력으로 비ASCII 경로의 C-스타일 인용(core.quotePath)을 회피.
+	cmd := exec.Command("git", "diff", "--staged", "--numstat", "-z", "--diff-filter=d")
 	out, err := cmd.Output()
 	if err != nil {
 		if len(out) == 0 {
@@ -82,15 +84,22 @@ func getStagedBinaryFiles() ([]string, error) {
 		}
 	}
 
+	// numstat -z 레코드: "added\tdeleted\t<path>" (바이너리는 added/deleted 가 "-").
+	// rename 은 경로가 비고 뒤따르는 두 NUL 필드가 (이전, 새) 경로.
+	fields := gitdiff.SplitNullSeparated(out)
 	var binaries []string
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if line == "" {
+	for i := 0; i < len(fields); i++ {
+		parts := strings.SplitN(fields[i], "\t", 3)
+		if len(parts) != 3 {
 			continue
 		}
-		// 바이너리 파일 형식: -\t-\tfilename
-		parts := strings.SplitN(line, "\t", 3)
-		if len(parts) == 3 && parts[0] == "-" && parts[1] == "-" {
-			binaries = append(binaries, parts[2])
+		path := parts[2]
+		if path == "" && i+2 < len(fields) {
+			path = fields[i+2] // rename: 새 경로 사용
+			i += 2
+		}
+		if parts[0] == "-" && parts[1] == "-" && path != "" {
+			binaries = append(binaries, path)
 		}
 	}
 	return binaries, nil

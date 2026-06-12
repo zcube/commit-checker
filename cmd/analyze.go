@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/zcube/commit-checker/internal/gitdiff"
 	"github.com/zcube/commit-checker/internal/i18n"
 )
 
@@ -166,16 +167,13 @@ func runAnalyze() error {
 }
 
 func getTrackedFiles() ([]string, error) {
-	cmd := exec.Command("git", "ls-files")
+	// -z: NUL 구분 출력으로 비ASCII 경로의 C-스타일 인용(core.quotePath)을 회피.
+	cmd := exec.Command("git", "ls-files", "-z")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
 	}
-	raw := strings.TrimSpace(string(out))
-	if raw == "" {
-		return nil, nil
-	}
-	return strings.Split(raw, "\n"), nil
+	return gitdiff.SplitNullSeparated(out), nil
 }
 
 func filterProgrammingLangs(langs []langInfo) []langInfo {

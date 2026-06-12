@@ -106,17 +106,12 @@ func resolveTreeRef(ref string) string {
 // listTreeFiles 는 treeRef 트리의 전체 파일 경로(저장소 루트 기준) 목록을 반환합니다.
 func listTreeFiles(treeRef string) []string {
 	// -r 은 블롭(파일)만 재귀 출력하므로 디렉터리 항목이 섞이지 않음.
-	out, err := exec.Command("git", "ls-tree", "-r", "--name-only", treeRef).Output()
+	// -z: NUL 구분 출력으로 비ASCII 경로의 C-스타일 인용(core.quotePath)을 회피.
+	out, err := exec.Command("git", "ls-tree", "-r", "--name-only", "-z", treeRef).Output()
 	if err != nil {
 		return nil
 	}
-	var files []string
-	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
-		if line != "" {
-			files = append(files, line)
-		}
-	}
-	return files
+	return gitdiff.SplitNullSeparated(out)
 }
 
 // checkFilenameOrder 는 새 파일의 이름이 같은 디렉터리의 기존 파일보다 뒤에 오는지 검사합니다.

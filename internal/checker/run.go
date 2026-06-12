@@ -29,18 +29,15 @@ import (
 // GetTrackedFiles: git ls-files로 추적된 전체 파일 목록 반환.
 // run 커맨드 진입 시 1회만 호출하고 각 Run* 검사 함수에 주입한다.
 func GetTrackedFiles() ([]string, error) {
-	cmd := exec.Command("git", "ls-files")
+	// -z: NUL 구분 출력으로 비ASCII 경로의 C-스타일 인용(core.quotePath)을 회피.
+	cmd := exec.Command("git", "ls-files", "-z")
 	out, err := cmd.Output()
 	if err != nil {
 		if len(out) == 0 {
 			return nil, err
 		}
 	}
-	raw := strings.TrimSpace(string(out))
-	if raw == "" {
-		return nil, nil
-	}
-	return strings.Split(raw, "\n"), nil
+	return gitdiff.SplitNullSeparated(out), nil
 }
 
 // forEachFileConcurrent: files를 병렬로 순회하며 fn이 반환한 위반 메시지를 수집.

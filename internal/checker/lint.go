@@ -131,16 +131,13 @@ func CheckLint(ctx context.Context, cfg *config.Config) ([]string, error) {
 
 // getStagedFiles: 스테이지된 파일 경로 목록 반환 (삭제된 파일 제외).
 func getStagedFiles() ([]string, error) {
-	cmd := exec.Command("git", "diff", "--staged", "--name-only", "--diff-filter=d")
+	// -z: NUL 구분 출력으로 비ASCII 경로의 C-스타일 인용(core.quotePath)을 회피.
+	cmd := exec.Command("git", "diff", "--staged", "--name-only", "--diff-filter=d", "-z")
 	out, err := cmd.Output()
 	if err != nil {
 		if len(out) == 0 {
 			return nil, err
 		}
 	}
-	raw := strings.TrimSpace(string(out))
-	if raw == "" {
-		return nil, nil
-	}
-	return strings.Split(raw, "\n"), nil
+	return gitdiff.SplitNullSeparated(out), nil
 }
