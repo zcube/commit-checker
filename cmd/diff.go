@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/zcube/commit-checker/internal/checker"
@@ -44,38 +43,7 @@ var diffCmd = &cobra.Command{
 			{Name: i18n.T("step.cache_dir_check", nil), Category: "cache_dir", Fn: func() ([]string, error) { return checker.CheckCacheDirStaged(cfg) }},
 		}
 
-		result, err := progress.RunWithProgress(steps, progress.Options{
-			Quiet:   globalQuiet || diffFormat == "json",
-			NoColor: globalNoColor,
-		})
-		if err != nil {
-			return err
-		}
-
-		if diffFormat == "json" {
-			jsonBytes, jsonErr := progress.FormatJSON(result)
-			if jsonErr != nil {
-				return jsonErr
-			}
-			fmt.Println(string(jsonBytes))
-			if len(result.AllErrors) > 0 {
-				os.Exit(1)
-			}
-			return nil
-		}
-
-		// 텍스트 출력
-		for _, e := range result.AllErrors {
-			fmt.Fprintln(os.Stderr, e)
-		}
-		if len(result.AllErrors) > 0 {
-			if summary := progress.SummaryLine(result.Steps); summary != "" {
-				fmt.Fprintln(os.Stderr, summary)
-			}
-			os.Exit(1)
-		}
-
-		return nil
+		return runStepsAndReport(steps, diffFormat)
 	},
 }
 
