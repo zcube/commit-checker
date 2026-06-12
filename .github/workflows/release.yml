@@ -109,9 +109,9 @@ jobs:
       - name: 체크섬 keyless 서명 (Sigstore)
         working-directory: dist
         run: |
+          # cosign v3+: 서명·인증서가 포함된 bundle 파일 생성
           cosign sign-blob --yes checksums.txt \
-            --output-signature checksums.txt.sig \
-            --output-certificate checksums.txt.pem
+            --bundle checksums.txt.sigstore.json
 
       - name: 체인지로그 추출
         id: changelog
@@ -160,10 +160,9 @@ jobs:
             # 체크섬 검증
             sha256sum -c checksums.txt --ignore-missing
 
-            # Sigstore 서명 검증 (cosign 필요)
+            # Sigstore 서명 검증 (cosign v3+ 필요)
             cosign verify-blob checksums.txt \
-              --signature checksums.txt.sig \
-              --certificate checksums.txt.pem \
+              --bundle checksums.txt.sigstore.json \
               --certificate-identity-regexp 'https://github.com/${{ github.repository }}/' \
               --certificate-oidc-issuer https://token.actions.githubusercontent.com
             ```
