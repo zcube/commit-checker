@@ -54,8 +54,9 @@ func CheckMsgCustomRules(content string, rules []config.CustomRule) []string {
 }
 
 // CheckDiffCustomRules: 스테이지된 diff의 추가된 줄에 커스텀 정규식 규칙을 적용합니다.
+// diffs 는 gitdiff.GetStagedDiff 결과를 커맨드 레벨에서 1회 조회해 전달합니다.
 // forbidden 규칙만 지원하며, 추가된 줄에서 패턴을 찾으면 오류를 반환합니다.
-func CheckDiffCustomRules(ctx context.Context, cfg *config.Config) ([]string, error) {
+func CheckDiffCustomRules(ctx context.Context, cfg *config.Config, diffs []gitdiff.FileDiff) ([]string, error) {
 	rules := cfg.CustomRules.Diff
 	if len(rules) == 0 {
 		return nil, nil
@@ -78,11 +79,6 @@ func CheckDiffCustomRules(ctx context.Context, cfg *config.Config) ([]string, er
 	}
 	if len(compiled) == 0 {
 		return nil, nil
-	}
-
-	diffs, err := gitdiff.GetStagedDiff()
-	if err != nil {
-		return nil, err
 	}
 
 	ignorePatterns := cfg.Exceptions.GlobalIgnore

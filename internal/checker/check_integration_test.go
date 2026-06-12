@@ -17,7 +17,7 @@ func TestCheckDiffCustomRules_NoRules(t *testing.T) {
 	stageFile(t, dir, "main.go", "package main\n\nfunc main() {}\n")
 
 	cfg := &config.Config{}
-	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestCheckDiffCustomRules_ForbiddenPattern_Detected(t *testing.T) {
 		{Name: "no-todo", Pattern: `TODO`, Message: "TODO를 제거하세요"},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestCheckDiffCustomRules_ForbiddenPattern_NoMatch(t *testing.T) {
 		{Name: "no-todo", Pattern: `TODO`, Message: "TODO를 제거하세요"},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestCheckDiffCustomRules_RequiredRulesSkipped(t *testing.T) {
 		{Name: "must-have", Pattern: `TICKET-\d+`, Required: true},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestCheckDiffCustomRules_GlobalIgnore(t *testing.T) {
 	}
 	cfg.Exceptions.GlobalIgnore = []string{"vendor/**"}
 
-	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestCheckDiffCustomRules_InvalidRegexSkipped(t *testing.T) {
 		{Name: "bad-regex", Pattern: `[invalid`},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestCheckDiffCustomRules_EmptyPatternSkipped(t *testing.T) {
 		{Name: "empty-pattern", Pattern: ""},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestCheckDiffCustomRules_DefaultMessage(t *testing.T) {
 		{Name: "no-fixme", Pattern: `FIXME`}, // 메시지 없음
 	}
 
-	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

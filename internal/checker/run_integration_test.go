@@ -13,6 +13,17 @@ import (
 func truePtr() *bool  { b := true; return &b }
 func falsePtr() *bool { b := false; return &b }
 
+// trackedFiles: 추적된 파일 목록을 1회 조회합니다.
+// run 커맨드가 커맨드 레벨에서 GetTrackedFiles 를 호출해 주입하는 것과 동일한 방식입니다.
+func trackedFiles(t *testing.T) []string {
+	t.Helper()
+	files, err := checker.GetTrackedFiles()
+	if err != nil {
+		t.Fatalf("GetTrackedFiles error: %v", err)
+	}
+	return files
+}
+
 // TestRunBinaryFiles_NoBinary: 바이너리 파일 없는 경우 오류 없음.
 func TestRunBinaryFiles_NoBinary(t *testing.T) {
 	dir := newGitRepo(t)
@@ -23,7 +34,7 @@ func TestRunBinaryFiles_NoBinary(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.BinaryFile.Enabled = truePtr()
 
-	errs, err := checker.RunBinaryFiles(t.Context(), cfg)
+	errs, err := checker.RunBinaryFiles(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunBinaryFiles error: %v", err)
 	}
@@ -36,7 +47,7 @@ func TestRunBinaryFiles_NoBinary(t *testing.T) {
 func TestRunBinaryFiles_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.BinaryFile.Enabled = falsePtr()
-	errs, err := checker.RunBinaryFiles(t.Context(), cfg)
+	errs, err := checker.RunBinaryFiles(t.Context(), cfg, trackedFiles(t))
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when disabled, got errs=%v err=%v", errs, err)
 	}
@@ -53,7 +64,7 @@ func TestRunEncoding_UTF8Files(t *testing.T) {
 	cfg.Encoding.Enabled = truePtr()
 	cfg.Encoding.RequireUTF8 = truePtr()
 
-	errs, err := checker.RunEncoding(t.Context(), cfg)
+	errs, err := checker.RunEncoding(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunEncoding error: %v", err)
 	}
@@ -66,7 +77,7 @@ func TestRunEncoding_UTF8Files(t *testing.T) {
 func TestRunEncoding_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Encoding.Enabled = falsePtr()
-	errs, err := checker.RunEncoding(t.Context(), cfg)
+	errs, err := checker.RunEncoding(t.Context(), cfg, trackedFiles(t))
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when disabled")
 	}
@@ -78,7 +89,7 @@ func TestRunUnicode_Disabled(t *testing.T) {
 	cfg.Encoding.Enabled = truePtr()
 	cfg.Encoding.NoInvisibleChars = falsePtr()
 	cfg.Encoding.NoAmbiguousChars = falsePtr()
-	errs, err := checker.RunUnicode(t.Context(), cfg)
+	errs, err := checker.RunUnicode(t.Context(), cfg, trackedFiles(t))
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when unicode checks disabled")
 	}
@@ -97,7 +108,7 @@ func TestRunUnicode_CleanFiles(t *testing.T) {
 	cfg.Encoding.NoAmbiguousChars = truePtr()
 	cfg.Encoding.Locale = "ko"
 
-	errs, err := checker.RunUnicode(t.Context(), cfg)
+	errs, err := checker.RunUnicode(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunUnicode error: %v", err)
 	}
@@ -118,7 +129,7 @@ func TestRunUnicode_InvisibleChar_Detected(t *testing.T) {
 	cfg.Encoding.Enabled = truePtr()
 	cfg.Encoding.NoInvisibleChars = truePtr()
 
-	errs, err := checker.RunUnicode(t.Context(), cfg)
+	errs, err := checker.RunUnicode(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunUnicode error: %v", err)
 	}
@@ -138,7 +149,7 @@ func TestRunLint_ValidYAML(t *testing.T) {
 	cfg.Lint.Enabled = truePtr()
 	cfg.Lint.YAML.Enabled = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -158,7 +169,7 @@ func TestRunLint_InvalidYAML(t *testing.T) {
 	cfg.Lint.Enabled = truePtr()
 	cfg.Lint.YAML.Enabled = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -171,7 +182,7 @@ func TestRunLint_InvalidYAML(t *testing.T) {
 func TestRunLint_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Lint.Enabled = falsePtr()
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when disabled")
 	}
@@ -188,7 +199,7 @@ func TestRunLint_ValidJSON(t *testing.T) {
 	cfg.Lint.Enabled = truePtr()
 	cfg.Lint.JSON.Enabled = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -208,7 +219,7 @@ func TestRunLint_InvalidJSON(t *testing.T) {
 	cfg.Lint.Enabled = truePtr()
 	cfg.Lint.JSON.Enabled = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -228,7 +239,7 @@ func TestRunLint_JSONC_WithComments(t *testing.T) {
 	cfg.Lint.Enabled = truePtr()
 	cfg.Lint.JSON.Enabled = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -248,7 +259,7 @@ func TestRunLint_JSONC_Invalid(t *testing.T) {
 	cfg.Lint.Enabled = truePtr()
 	cfg.Lint.JSON.Enabled = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -269,7 +280,7 @@ func TestRunLint_JSONCommentFilter(t *testing.T) {
 	cfg.Lint.JSON.Enabled = truePtr()
 	cfg.Lint.JSON.CommentFilter = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -290,7 +301,7 @@ func TestRunLint_YAMLCommentFilter_SkipLint(t *testing.T) {
 	cfg.Lint.YAML.Enabled = truePtr()
 	cfg.Lint.YAML.CommentFilter = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -311,7 +322,7 @@ func TestRunLint_YAMLCommentFilter_NoSkip(t *testing.T) {
 	cfg.Lint.YAML.Enabled = truePtr()
 	cfg.Lint.YAML.CommentFilter = truePtr()
 
-	errs, err := checker.RunLint(t.Context(), cfg)
+	errs, err := checker.RunLint(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunLint error: %v", err)
 	}
@@ -330,7 +341,7 @@ func TestRunEditorConfig_NoViolations(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.EditorConfig.Enabled = truePtr()
 
-	errs, err := checker.RunEditorConfig(t.Context(), cfg)
+	errs, err := checker.RunEditorConfig(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunEditorConfig error: %v", err)
 	}
@@ -342,7 +353,7 @@ func TestRunEditorConfig_NoViolations(t *testing.T) {
 func TestRunEditorConfig_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.EditorConfig.Enabled = falsePtr()
-	errs, err := checker.RunEditorConfig(t.Context(), cfg)
+	errs, err := checker.RunEditorConfig(t.Context(), cfg, trackedFiles(t))
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when disabled")
 	}
@@ -356,7 +367,7 @@ func TestRunCommentLanguage_NoFiles(t *testing.T) {
 	gitMust(t, dir, "git", "commit", "-m", "init")
 
 	cfg := koreanOnlyConfig()
-	errs, err := checker.RunCommentLanguage(t.Context(), cfg)
+	errs, err := checker.RunCommentLanguage(t.Context(), cfg, trackedFiles(t))
 	if err != nil {
 		t.Fatalf("RunCommentLanguage error: %v", err)
 	}
@@ -370,7 +381,7 @@ func TestRunCommentLanguage_Disabled(t *testing.T) {
 	disabled := false
 	cfg := &config.Config{}
 	cfg.CommentLanguage.Enabled = &disabled
-	errs, err := checker.RunCommentLanguage(t.Context(), cfg)
+	errs, err := checker.RunCommentLanguage(t.Context(), cfg, trackedFiles(t))
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when disabled")
 	}

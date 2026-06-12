@@ -13,7 +13,8 @@ import (
 
 // CheckCacheDirStaged 는 staged diff 에서 캐시/빌드 디렉터리(node_modules, dist 등) 안의 파일이
 // 커밋되려는 경우를 차단합니다. 검증기는 부모 디렉터리 인디케이터를 확인하여 false positive 를 줄입니다.
-func CheckCacheDirStaged(ctx context.Context, cfg *config.Config) ([]string, error) {
+// diffs 는 gitdiff.GetStagedDiff 결과를 커맨드 레벨에서 1회 조회해 전달합니다.
+func CheckCacheDirStaged(ctx context.Context, cfg *config.Config, diffs []gitdiff.FileDiff) ([]string, error) {
 	if !cfg.CacheDir.IsEnabled() {
 		return nil, nil
 	}
@@ -21,11 +22,6 @@ func CheckCacheDirStaged(ctx context.Context, cfg *config.Config) ([]string, err
 	repoRoot, err := cachedir.FindRepoRoot(".")
 	if err != nil {
 		return nil, nil
-	}
-
-	diffs, err := gitdiff.GetStagedDiff()
-	if err != nil {
-		return nil, err
 	}
 
 	ignoreDirs := toSet(cfg.CacheDir.IgnoreDirs)

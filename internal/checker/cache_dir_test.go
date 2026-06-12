@@ -20,7 +20,7 @@ func TestCheckCacheDirStaged_NodeModules(t *testing.T) {
 	_ = os.Chdir(dir)
 
 	cfg := &config.Config{}
-	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg)
+	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestCheckCacheDirStaged_RegularSrcFile(t *testing.T) {
 	_ = os.Chdir(dir)
 
 	cfg := &config.Config{}
-	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg)
+	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestCheckCacheDirStaged_BuildWithoutIndicator(t *testing.T) {
 	_ = os.Chdir(dir)
 
 	cfg := &config.Config{}
-	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg)
+	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestCheckCacheDirStaged_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.CacheDir.Enabled = &disabled
 
-	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg)
+	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestCheckCacheDirStaged_IgnoreDirs(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.CacheDir.IgnoreDirs = []string{"vendor"}
 
-	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg)
+	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestCheckCacheDirStaged_DeduplicatesPerDir(t *testing.T) {
 	_ = os.Chdir(dir)
 
 	cfg := &config.Config{}
-	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg)
+	errs, err := checker.CheckCacheDirStaged(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

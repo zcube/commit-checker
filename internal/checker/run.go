@@ -26,8 +26,9 @@ import (
 	"github.com/zcube/commit-checker/internal/pathutil"
 )
 
-// getTrackedFiles: git ls-files로 추적된 전체 파일 목록 반환.
-func getTrackedFiles() ([]string, error) {
+// GetTrackedFiles: git ls-files로 추적된 전체 파일 목록 반환.
+// run 커맨드 진입 시 1회만 호출하고 각 Run* 검사 함수에 주입한다.
+func GetTrackedFiles() ([]string, error) {
 	cmd := exec.Command("git", "ls-files")
 	out, err := cmd.Output()
 	if err != nil {
@@ -89,16 +90,12 @@ func forEachFileConcurrent(ctx context.Context, files []string, fn func(path str
 	return errs, nil
 }
 
-// RunBinaryFiles: 추적된 모든 파일에서 바이너리 파일을 검사.
+// RunBinaryFiles: 추적된 모든 파일(files)에서 바이너리 파일을 검사.
 // 스테이지 상태에 관계없이 워킹 트리의 파일을 직접 읽어 검사.
-func RunBinaryFiles(ctx context.Context, cfg *config.Config) ([]string, error) {
+// files 는 GetTrackedFiles 결과를 커맨드 레벨에서 1회 조회해 전달한다.
+func RunBinaryFiles(ctx context.Context, cfg *config.Config, files []string) ([]string, error) {
 	if !cfg.BinaryFile.IsEnabled() {
 		return nil, nil
-	}
-
-	files, err := getTrackedFiles()
-	if err != nil {
-		return nil, err
 	}
 
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore, cfg.BinaryFile.IgnoreFiles...)
@@ -121,15 +118,10 @@ func RunBinaryFiles(ctx context.Context, cfg *config.Config) ([]string, error) {
 	})
 }
 
-// RunEncoding: 추적된 모든 파일의 UTF-8 인코딩 유효성을 검사.
-func RunEncoding(ctx context.Context, cfg *config.Config) ([]string, error) {
+// RunEncoding: 추적된 모든 파일(files)의 UTF-8 인코딩 유효성을 검사.
+func RunEncoding(ctx context.Context, cfg *config.Config, files []string) ([]string, error) {
 	if !cfg.Encoding.IsEnabled() || !cfg.Encoding.IsRequireUTF8() {
 		return nil, nil
-	}
-
-	files, err := getTrackedFiles()
-	if err != nil {
-		return nil, err
 	}
 
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore, cfg.Encoding.IgnoreFiles...)
@@ -168,14 +160,9 @@ func RunEncoding(ctx context.Context, cfg *config.Config) ([]string, error) {
 }
 
 // RunLint: 추적된 모든 데이터 파일(YAML, JSON, XML)의 구문 오류를 검사.
-func RunLint(ctx context.Context, cfg *config.Config) ([]string, error) {
+func RunLint(ctx context.Context, cfg *config.Config, files []string) ([]string, error) {
 	if !cfg.Lint.IsEnabled() {
 		return nil, nil
-	}
-
-	files, err := getTrackedFiles()
-	if err != nil {
-		return nil, err
 	}
 
 	globalIgnore := cfg.Exceptions.GlobalIgnore
@@ -283,19 +270,14 @@ func RunLint(ctx context.Context, cfg *config.Config) ([]string, error) {
 	})
 }
 
-// RunEditorConfig: 추적된 모든 파일의 .editorconfig 규칙 준수 여부를 검사.
-func RunEditorConfig(ctx context.Context, cfg *config.Config) ([]string, error) {
+// RunEditorConfig: 추적된 모든 파일(files)의 .editorconfig 규칙 준수 여부를 검사.
+func RunEditorConfig(ctx context.Context, cfg *config.Config, files []string) ([]string, error) {
 	if !cfg.EditorConfig.IsEnabled() {
 		return nil, nil
 	}
 
 	if _, err := os.Stat(".editorconfig"); os.IsNotExist(err) {
 		return nil, nil
-	}
-
-	files, err := getTrackedFiles()
-	if err != nil {
-		return nil, err
 	}
 
 	return forEachFileConcurrent(ctx, files, func(path string) ([]string, error) {
@@ -332,16 +314,11 @@ func RunEditorConfig(ctx context.Context, cfg *config.Config) ([]string, error) 
 	})
 }
 
-// RunCommentLanguage: 추적된 모든 소스 파일의 주석 언어를 검사.
+// RunCommentLanguage: 추적된 모든 소스 파일(files)의 주석 언어를 검사.
 // check_mode 설정에 관계없이 항상 파일 전체를 검사.
-func RunCommentLanguage(ctx context.Context, cfg *config.Config) ([]string, error) {
+func RunCommentLanguage(ctx context.Context, cfg *config.Config, files []string) ([]string, error) {
 	if !cfg.CommentLanguage.IsEnabled() {
 		return nil, nil
-	}
-
-	files, err := getTrackedFiles()
-	if err != nil {
-		return nil, err
 	}
 
 	extensions := cfg.CommentLanguage.Extensions

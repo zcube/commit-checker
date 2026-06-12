@@ -21,6 +21,7 @@ import (
 var errNotInFromTree = errors.New("file not in from tree")
 
 // CheckAppendOnly 는 스테이지된 diff 에서 append-only 경로 위반을 검사합니다.
+// diffs 는 gitdiff.GetStagedDiff 결과를 커맨드 레벨에서 1회 조회해 전달합니다.
 // go-git 으로 HEAD 내용과 staged 내용을 직접 비교합니다.
 //
 // 허용:
@@ -32,14 +33,9 @@ var errNotInFromTree = errors.New("file not in from tree")
 //   - 기존 줄 수정·삭제
 //   - 파일 중간에 내용 삽입
 //   - filename_order=numeric: 기존 파일보다 앞에 오는 이름의 파일 추가
-func CheckAppendOnly(ctx context.Context, cfg *config.Config) ([]string, error) {
+func CheckAppendOnly(ctx context.Context, cfg *config.Config, diffs []gitdiff.FileDiff) ([]string, error) {
 	if !cfg.AppendOnly.IsEnabled() {
 		return nil, nil
-	}
-
-	diffs, err := gitdiff.GetStagedDiff()
-	if err != nil {
-		return nil, err
 	}
 
 	repo, err := gogit.PlainOpenWithOptions(".", &gogit.PlainOpenOptions{DetectDotGit: true})

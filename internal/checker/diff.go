@@ -17,15 +17,11 @@ import (
 )
 
 // CheckDiff 는 스테이지된 diff 에서 주석 언어 위반을 검사합니다.
+// diffs 는 gitdiff.GetStagedDiff 결과를 커맨드 레벨에서 1회 조회해 전달합니다.
 // 사람이 읽을 수 있는 오류 문자열 목록을 반환합니다 (빈 목록 = 위반 없음).
-func CheckDiff(ctx context.Context, cfg *config.Config) ([]string, error) {
+func CheckDiff(ctx context.Context, cfg *config.Config, diffs []gitdiff.FileDiff) ([]string, error) {
 	if !cfg.CommentLanguage.IsEnabled() {
 		return nil, nil
-	}
-
-	diffs, err := gitdiff.GetStagedDiff()
-	if err != nil {
-		return nil, err
 	}
 
 	// 유효 확장자 목록 결정: languages 가 extensions 보다 우선합니다.

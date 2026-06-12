@@ -33,18 +33,14 @@ func CheckUnicode(ctx context.Context, cfg *config.Config) ([]string, error) {
 	})
 }
 
-// RunUnicode: 추적된 모든 파일에서 비가시/모호한 유니코드 문자를 검사.
-func RunUnicode(ctx context.Context, cfg *config.Config) ([]string, error) {
+// RunUnicode: 추적된 모든 파일(files)에서 비가시/모호한 유니코드 문자를 검사.
+// files 는 GetTrackedFiles 결과를 커맨드 레벨에서 1회 조회해 전달한다.
+func RunUnicode(ctx context.Context, cfg *config.Config, files []string) ([]string, error) {
 	if !cfg.Encoding.IsEnabled() {
 		return nil, nil
 	}
 	if !cfg.Encoding.IsNoInvisibleChars() && !cfg.Encoding.IsNoAmbiguousChars() {
 		return nil, nil
-	}
-
-	files, err := getTrackedFiles()
-	if err != nil {
-		return nil, err
 	}
 
 	return checkUnicodeFiles(ctx, cfg, files, func(path string) (string, error) {

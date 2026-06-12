@@ -14,9 +14,21 @@ import (
 
 	"github.com/zcube/commit-checker/internal/checker"
 	"github.com/zcube/commit-checker/internal/config"
+	"github.com/zcube/commit-checker/internal/gitdiff"
 )
 
 // ---- helpers ----------------------------------------------------------------
+
+// stagedDiff fetches the staged diff once, mirroring how the diff command
+// queries it at command level and injects it into each checker.
+func stagedDiff(t *testing.T) []gitdiff.FileDiff {
+	t.Helper()
+	diffs, err := gitdiff.GetStagedDiff()
+	if err != nil {
+		t.Fatalf("GetStagedDiff error: %v", err)
+	}
+	return diffs
+}
 
 // newGitRepo creates a temporary directory initialised as a git repo and
 // changes the process CWD to it. On cleanup it restores the original CWD.
@@ -97,7 +109,7 @@ func TestCheckDiff_KoreanComment_Pass(t *testing.T) {
 // 한국어 주석입니다
 func main() {}
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -114,7 +126,7 @@ func TestCheckDiff_EnglishComment_Fail(t *testing.T) {
 // This comment is written in English only
 func main() {}
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -142,7 +154,7 @@ func Old() {}
 // This new comment is in English
 func New() {}
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -178,7 +190,7 @@ func New() {}
 `)
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.CheckMode = "full"
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -199,7 +211,7 @@ func main() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.Enabled = &f
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -213,7 +225,7 @@ func TestCheckDiff_UnsupportedExtension_Skipped(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "README.md", "# English readme\n\nThis is all English.\n")
 
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -238,7 +250,7 @@ func main() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.Languages = []string{"go"} // only Go
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -264,7 +276,7 @@ func Gen() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.IgnoreFiles = []string{"generated/**"}
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -284,7 +296,7 @@ func F() {}
 	cfg := koreanOnlyConfig()
 	cfg.Exceptions.GlobalIgnore = []string{"vendor/**"}
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -303,7 +315,7 @@ func TestCheckDiff_TechnicalComments_Skipped(t *testing.T) {
 // https://github.com/example/issue
 func main() {}
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -318,7 +330,7 @@ func TestCheckDiff_TypeScript_EnglishFails(t *testing.T) {
 	stageFile(t, dir, "service.ts", `// This TypeScript service handles requests
 const x = 1;
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -334,7 +346,7 @@ func TestCheckDiff_Python_EnglishFails(t *testing.T) {
 def process():
     pass
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -359,7 +371,7 @@ func main() {}
 		cfg.CommentLanguage.RequiredLanguage = lang
 	}
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -379,7 +391,7 @@ func main() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.RequiredLanguage = "any"
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -401,7 +413,7 @@ func A() {}
 // 이것은 한국어 — 통과해야 합니다
 func B() {}
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -427,7 +439,7 @@ func process() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.RequiredLanguage = "japanese"
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -445,7 +457,7 @@ func TestCheckDiff_Japanese_Locale_FailsKorean(t *testing.T) {
 func process() {}
 `)
 	// kana-only text has no CJK characters so it won't be mistaken for Chinese either
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -465,7 +477,7 @@ func process() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.RequiredLanguage = "chinese"
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -486,7 +498,7 @@ func process() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.RequiredLanguage = "chinese"
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -503,7 +515,7 @@ func TestCheckDiff_Chinese_FailsKorean(t *testing.T) {
 // 这是一个纯中文注释内容示例
 func process() {}
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -523,7 +535,7 @@ func process() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.RequiredLanguage = "japanese"
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -544,7 +556,7 @@ func process() {}
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.RequiredLanguage = "chinese"
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -564,7 +576,7 @@ def process():
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.RequiredLanguage = "japanese"
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -582,7 +594,7 @@ const handler = () => {};
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.RequiredLanguage = "chinese"
 
-	errs, err := checker.CheckDiff(t.Context(), cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -602,7 +614,7 @@ in English and should be flagged.
 */
 func Svc() {}
 `)
-	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig(), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}

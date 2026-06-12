@@ -24,7 +24,7 @@ func TestCheckAppendOnly_Disabled(t *testing.T) {
 	cfg.AppendOnly.Enabled = false
 	cfg.AppendOnly.Paths = []string{"migrations/**"}
 
-	errs, err := checker.CheckAppendOnly(t.Context(), cfg)
+	errs, err := checker.CheckAppendOnly(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestCheckAppendOnly_NewFile(t *testing.T) {
 	// 새 마이그레이션 파일 추가
 	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE users (id SERIAL PRIMARY KEY);\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestCheckAppendOnly_AppendAtEnd(t *testing.T) {
 		"CREATE TABLE users (id SERIAL PRIMARY KEY);\n"+
 			"ALTER TABLE users ADD COLUMN email TEXT;\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestCheckAppendOnly_DeleteFile(t *testing.T) {
 	seedCommit(t, dir, "migrations/001.sql", "CREATE TABLE users (id SERIAL PRIMARY KEY);\n")
 	gitMust(t, dir, "git", "rm", "migrations/001.sql")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestCheckAppendOnly_ModifyExisting(t *testing.T) {
 	seedCommit(t, dir, "migrations/001.sql", "CREATE TABLE users (id INT);\n")
 	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE users (id SERIAL);\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestCheckAppendOnly_DeleteLines(t *testing.T) {
 	// 두 번째 줄 제거
 	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE users (id SERIAL PRIMARY KEY);\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestCheckAppendOnly_InsertInMiddle(t *testing.T) {
 			"CREATE TABLE comments (id SERIAL PRIMARY KEY);\n"+
 			"CREATE TABLE posts (id SERIAL PRIMARY KEY);\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestCheckAppendOnly_PathNotMatched(t *testing.T) {
 	seedCommit(t, dir, "src/main.go", "package main\n")
 	stageFile(t, dir, "src/main.go", "package main\n\nfunc main() {}\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestCheckAppendOnly_GlobalIgnore(t *testing.T) {
 	cfg := appendOnlyConfig("migrations/**")
 	cfg.Exceptions.GlobalIgnore = []string{"migrations/001.sql"}
 
-	errs, err := checker.CheckAppendOnly(t.Context(), cfg)
+	errs, err := checker.CheckAppendOnly(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestCheckAppendOnly_MultipleViolations(t *testing.T) {
 	stageFile(t, dir, "migrations/001.sql", "MODIFIED A;\n")
 	stageFile(t, dir, "migrations/002.sql", "MODIFIED B;\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestCheckAppendOnly_FilenameOrder_NewFileAfter(t *testing.T) {
 	seedCommit(t, dir, "migrations/002.sql", "CREATE TABLE b (id INT);\n")
 	stageFile(t, dir, "migrations/003.sql", "CREATE TABLE c (id INT);\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestCheckAppendOnly_FilenameOrder_NewFileBefore(t *testing.T) {
 	seedCommit(t, dir, "migrations/002.sql", "CREATE TABLE b (id INT);\n")
 	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE a (id INT);\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestCheckAppendOnly_FilenameOrder_SameName_Modify(t *testing.T) {
 	// 같은 이름 파일 수정 시도 → 내용 검사에서 차단
 	stageFile(t, dir, "migrations/002.sql", "DROP TABLE b;\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -250,7 +250,7 @@ func TestCheckAppendOnly_FilenameOrder_NumericSort(t *testing.T) {
 	}
 	stageFile(t, dir, "migrations/010.sql", "-- 010\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -265,7 +265,7 @@ func TestCheckAppendOnly_FilenameOrder_FirstFile(t *testing.T) {
 	seedCommit(t, dir, "README.md", "init\n")
 	stageFile(t, dir, "migrations/001.sql", "CREATE TABLE a (id INT);\n")
 
-	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"))
+	errs, err := checker.CheckAppendOnly(t.Context(), appendOnlyNumericConfig("migrations/**"), stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestCheckAppendOnly_FilenameOrder_Disabled(t *testing.T) {
 	cfg := appendOnlyConfig("migrations/**")
 	cfg.AppendOnly.FilenameOrder = "none"
 
-	errs, err := checker.CheckAppendOnly(t.Context(), cfg)
+	errs, err := checker.CheckAppendOnly(t.Context(), cfg, stagedDiff(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
