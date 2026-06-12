@@ -19,7 +19,7 @@ Git 커밋 메시지와 소스 코드의 정책을 자동으로 검사하는 CLI
 | **이모지 금지** | 커밋 메시지 및 주석에서 이모지 사용 차단 (선택적) |
 | **바이너리 파일 정책** | 확장자별 block / allow / lfs 정책 (이미지 기본 허가, git LFS 검증 지원) |
 | **인코딩 검사** | UTF-8이 아닌 파일 커밋 차단 (chardet 기반) |
-| **데이터 파일 린트** | YAML, JSON (JSON5 지원), XML 구문 검사 |
+| **데이터 파일 린트** | YAML, JSON (JSON5/JSONC 지원), XML 구문 검사 |
 | **EditorConfig** | .editorconfig 규칙 준수 여부 검사 |
 | **Conventional Commits** | 커밋 메시지 형식 강제 (선택적) |
 | **append-only 경로** | 지정 경로에서 파일 삭제·내용 수정·중간 삽입 차단 (DB 마이그레이션 등) |
@@ -206,9 +206,11 @@ lint:
   enabled: true
   yaml:
     enabled: true
+    # comment_filter: true    # 파일 내 skip-lint 주석으로 검사 제외 허용
   json:
     enabled: true
     # allow_json5: true       # JSON5 주석/trailing comma 허용
+    # comment_filter: true    # .json을 JSONC 모드로 검사 (주석 제거 후 strict JSON)
   xml:
     enabled: true
 
@@ -283,6 +285,28 @@ binary_file:
 ```
 
 우선순위: `rules` 매칭 > 내장 이미지(`allow`) > `default_policy` (없으면 `block`).
+
+### 데이터 파일 린트
+
+YAML / JSON / XML 파일의 구문을 검사합니다.
+`.jsonc` 확장자 파일은 설정과 무관하게 항상 JSON5 모드(`//` 주석, trailing comma 허용)로 검사합니다.
+
+```yaml
+lint:
+  enabled: true
+  yaml:
+    enabled: true
+    comment_filter: true     # 파일 내 skip-lint 주석 지원
+  json:
+    enabled: true
+    # allow_json5: true      # JSON5 주석/trailing comma 허용
+    comment_filter: true     # .json 파일을 JSONC 모드로 검사
+  xml:
+    enabled: true
+```
+
+- `json.comment_filter: true` — `.json` 파일에서 `//`, `/* */` 주석을 제거한 뒤 strict JSON으로 검사합니다 (trailing comma 불허).
+- `yaml.comment_filter: true` — 파일 안에 `# commit-checker: skip-lint` 주석이 있으면 해당 파일의 검사를 비활성화합니다.
 
 ### append-only 경로
 

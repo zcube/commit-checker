@@ -12,18 +12,18 @@ Works with [lefthook](https://github.com/evilmartians/lefthook), husky, or any G
 | **Comment language** | Verify comments are written in the required language (Korean/English/Japanese/Chinese) |
 | **Allowed words** | Register technical terms and proper nouns to prevent false positives |
 | **Co-authored-by** | Block AI co-author trailers (with email allow-list support) |
-| **Unicode spaces** | Block invisible/non-standard Unicode space characters (NBSP, ZWSP, BiDi, etc.) |
+| **Unicode spaces** | Block invisible/non-standard Unicode space characters (NBSP, EM SPACE, ZWSP, BiDi, etc.) |
 | **Ambiguous chars** | Block Unicode characters that look like ASCII (e.g., Cyrillic A vs Latin A) |
 | **File Unicode check** | Detect invisible/ambiguous Unicode characters in source and markdown files |
 | **Invalid UTF-8** | Block invalid byte sequences |
 | **Emoji ban** | Block emojis in commit messages and comments (optional) |
 | **Binary file policy** | Per-extension block / allow / lfs policy (images allowed by default, git-LFS verification) |
 | **Encoding check** | Block non-UTF-8 encoded files (chardet-based) |
-| **Data file lint** | YAML, JSON (with JSON5 support), XML syntax validation |
+| **Data file lint** | YAML, JSON (with JSON5/JSONC support), XML syntax validation |
 | **EditorConfig** | Validate files against .editorconfig rules |
 | **Conventional Commits** | Enforce commit message format (optional) |
 | **Append-only paths** | Block file deletion, content modification, and mid-file insertion (e.g. DB migrations) |
-| **Cache / build dirs** | Block commits inside `node_modules`, `dist`, `build`, `target`, `__pycache__`, `.venv`, etc. (parent-indicator validation) |
+| **Cache / build dirs** | Block commits inside node_modules, dist, build, target, __pycache__, .venv, etc. (parent-indicator validation) |
 | **clean command** | Remove untracked files inside cache/build dirs (tracked files preserved) |
 | **Repository analysis** | Detect development languages and warn about missing lint configs |
 | **Auto-fix** | Batch-fix unicode/encoding violations across git history |
@@ -48,7 +48,7 @@ Requires Go 1.22+. Verify with `commit-checker version`.
 
 ### Binary download
 
-Download from [GitHub Releases](https://github.com/zcube/commit-checker/releases):
+Download the file for your platform from [GitHub Releases](https://github.com/zcube/commit-checker/releases).
 
 ```bash
 # Linux (amd64)
@@ -57,6 +57,10 @@ sudo mv commit-checker /usr/local/bin/
 
 # macOS (Apple Silicon)
 curl -L https://github.com/zcube/commit-checker/releases/latest/download/commit-checker_darwin_arm64.tar.gz | tar xz
+sudo mv commit-checker /usr/local/bin/
+
+# macOS (Intel)
+curl -L https://github.com/zcube/commit-checker/releases/latest/download/commit-checker_darwin_amd64.tar.gz | tar xz
 sudo mv commit-checker /usr/local/bin/
 ```
 
@@ -78,9 +82,14 @@ docker run --rm -v "$(pwd):/repo" -w /repo \
 ### 1. Install lefthook
 
 ```bash
-brew install lefthook        # macOS
-npm install --save-dev lefthook  # npm
-go install github.com/evilmartians/lefthook@latest  # go
+# macOS
+brew install lefthook
+
+# npm
+npm install --save-dev lefthook
+
+# go install
+go install github.com/evilmartians/lefthook@latest
 ```
 
 ### 2. Install commit-checker
@@ -91,10 +100,12 @@ go install github.com/zcube/commit-checker@latest
 
 ### 3. Create lefthook.yml
 
+Create `lefthook.yml` in your project root:
+
 ```yaml
 pre-commit:
   commands:
-    commit-checker:
+    comment-language:
       run: commit-checker diff
 
 commit-msg:
@@ -110,6 +121,27 @@ lefthook install
 ```
 
 Checks run automatically on every `git commit`.
+
+### 5. Check all existing files (initial adoption)
+
+When commit-checker is adopted in an existing repository, files committed before the
+hooks were installed are never checked. To check every file once at adoption time,
+use the `run` command:
+
+```bash
+commit-checker run
+```
+
+It checks all files tracked by `git ls-files`, regardless of staged state.
+To fix violations automatically, combine it with the `fix` command:
+
+```bash
+# Preview changes
+commit-checker fix --dry-run
+
+# Apply the fixes
+commit-checker fix
+```
 
 ### husky (Node.js projects)
 
@@ -140,10 +172,14 @@ Use `.commit-checker.schema.json` for IDE autocompletion in VS Code.
 
 comment_language:
   enabled: true
-  required_language: english   # korean | english | japanese | chinese | any
+  required_language: english  # korean | english | japanese | chinese | any
   min_length: 5
-  check_mode: diff             # diff | full
-  no_emoji: false              # true to ban emojis in comments
+  check_mode: diff            # diff | full
+  no_emoji: false             # true to ban emojis in comments
+  extensions:
+    - .go
+    - .ts
+    - .py
 
   # Allowed words: English terms to ignore during language detection
   allowed_words:
@@ -158,31 +194,26 @@ comment_language:
 
 binary_file:
   enabled: true
-  # default_policy: block         # block | allow | lfs (default: block)
-  # rules:                        # per-extension policy (first match wins)
+  # default_policy: block       # block | allow | lfs (default: block)
+  # rules:                      # per-extension policy rules
   #   - extensions: [.psd, .ai]
-  #     policy: lfs
+  #     policy: lfs              # allow PSD etc. only when tracked by LFS
   #   - extensions: [.mp4, .mov]
   #     policy: lfs
-  # Built-in image extensions (.png .jpg .jpeg .gif .webp .bmp .ico .tiff
-  # .tif .heic .heif .avif) default to "allow" if no rule matches.
-
-append_only:                     # optional — DB migrations, audit logs, …
-  enabled: false
-  # paths:
-  #   - "migrations/**"
-  #   - "db/migrations/**"
-  # filename_order: numeric        # default. Use "none" to disable order check.
-
-cache_dir:                       # block commits inside node_modules, dist, build, …
-  enabled: true
-  # ignore_dirs:
-  #   - vendor                     # for projects that intentionally vendor
+  # ignore_files:
+  #   - "**/*.png"
 
 lint:
   enabled: true
+  yaml:
+    enabled: true
+    # comment_filter: true    # opt out per file via in-file skip-lint comment
   json:
-    allow_json5: false         # true to allow JSON5 comments/trailing commas
+    enabled: true
+    # allow_json5: true       # allow JSON5 comments/trailing commas
+    # comment_filter: true    # check .json in JSONC mode (strict JSON after stripping comments)
+  xml:
+    enabled: true
 
 encoding:
   enabled: true
@@ -201,11 +232,151 @@ commit_message:
   no_unicode_spaces: true
   no_ambiguous_chars: true
   no_bad_runes: true
-  no_emoji: false              # true to ban emojis in commit messages
+  no_emoji: false             # true to ban emojis in commit messages
   locale: en
+  conventional_commit:
+    enabled: false
+  language_check:
+    enabled: false
+    required_language: english
+
+append_only:
+  enabled: false
+  # paths:
+  #   - "migrations/**"
+  #   - "db/migrations/**"
+
+cache_dir:
+  enabled: true                # enabled by default
+  # ignore_dirs:
+  #   - vendor                 # e.g. Go projects that intentionally commit vendor
 ```
 
 Defaults apply when the config file is absent.
+
+### Binary file policy
+
+Three policies can be assigned per extension:
+
+| Policy | Behaviour |
+|---|---|
+| `block` | Reject (default) |
+| `allow` | Accept |
+| `lfs` | Accept only when tracked by git LFS (checks `filter=lfs` in `.gitattributes`) |
+
+Built-in image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`, `.tiff`,
+`.tif`, `.heic`, `.heif`, `.avif`) default to **`allow`** when no rule matches.
+
+```yaml
+binary_file:
+  enabled: true
+  default_policy: block          # unmatched binaries: block by default
+  rules:
+    # To force LFS for images:
+    - extensions: [.png, .jpg, .jpeg, .gif, .webp]
+      policy: lfs
+    # Design source files like PSD/AI:
+    - extensions: [.psd, .ai, .sketch]
+      policy: lfs
+    # Videos:
+    - extensions: [.mp4, .mov, .webm]
+      policy: lfs
+  ignore_files:
+    - "assets/icons/**"          # skip the policy check entirely
+```
+
+Resolution order: `rules` match > built-in image (`allow`) > `default_policy` (or `block`).
+
+### Data file lint
+
+Validates the syntax of YAML / JSON / XML files.
+Files with the `.jsonc` extension are always checked in JSON5 mode
+(`//` comments and trailing commas allowed), regardless of configuration.
+
+```yaml
+lint:
+  enabled: true
+  yaml:
+    enabled: true
+    comment_filter: true     # support in-file skip-lint comment
+  json:
+    enabled: true
+    # allow_json5: true      # allow JSON5 comments/trailing commas
+    comment_filter: true     # check .json files in JSONC mode
+  xml:
+    enabled: true
+```
+
+- `json.comment_filter: true` — strips `//` and `/* */` comments from `.json` files, then validates as strict JSON (trailing commas are not allowed).
+- `yaml.comment_filter: true` — a `# commit-checker: skip-lint` comment anywhere in a file disables linting for that file.
+
+### Append-only paths
+
+Specify paths whose committed content must never change, such as DB migration files.
+Violations only raise errors; data is preserved.
+
+```yaml
+append_only:
+  enabled: true
+  paths:
+    - "migrations/**"
+    - "db/migrations/**"
+  # filename_order: none   # defaults to numeric; set to none to disable order check
+```
+
+Allowed changes:
+- Adding new files (only names sorting after existing files; disable with `filename_order: none`)
+- Appending content at the end of existing files
+
+Blocked changes:
+- Deleting files
+- Modifying or deleting existing lines
+- Inserting content in the middle of a file
+- Adding new files that sort before existing files or share a name (allowed with `filename_order: none`)
+
+File name order uses natural numeric sorting, so `9 < 10` (default).
+
+### Build artifact / cache directories
+
+Block build artifact or cache directories such as `node_modules`, `dist`, `build`,
+`target`, `__pycache__`, `.venv` from being committed or staged in git.
+
+**Parent-indicator validation** reduces false positives:
+
+| Directory | Indicator |
+|---|---|
+| `node_modules` | parent has `package.json` / lockfile |
+| `dist` | parent has `package.json` / `go.mod` / `Cargo.toml` |
+| `build` | parent has `package.json` / `Cargo.toml` / `build.gradle` / `pubspec.yaml` / `CMakeLists.txt`, or `CMakeCache.txt` inside |
+| `target` | parent has `Cargo.toml` / `pom.xml` / `build.sbt` |
+| `vendor` | parent has `go.mod` / `Cargo.toml` / `Gemfile`, etc. |
+| `__pycache__` | parent has `.py` files |
+| `.venv` etc. | `pyvenv.cfg` inside (any name) |
+
+Supported directories: `node_modules`, `dist`, `out`, `build`, `target`, `vendor`,
+`.gradle`, `.next`, `.nuxt`, `.output`, `.svelte-kit`, `.yarn`, `.bun`,
+`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.turbo`,
+`.parcel-cache`, `.venv` (+pyvenv virtualenvs), `.tox`, `.nox`, `.embuild`, `.dart_tool`.
+
+```yaml
+cache_dir:
+  enabled: true               # enabled by default
+  ignore_dirs:                # directories committed intentionally
+    - vendor                  # e.g. Go vendor directory
+```
+
+#### clean command
+
+Remove untracked files inside cache/build directories. **Tracked files are
+never deleted** (based on `git ls-files --others`).
+
+```bash
+# List found items only (dry-run)
+commit-checker clean
+
+# Actually delete untracked files
+commit-checker clean --yes
+```
 
 ### Allowed words dictionary
 
@@ -218,6 +389,7 @@ comment_language:
     - TypeScript
     - JavaScript
     - API
+    - URL
 
   # Local file (one word per line, # comments supported)
   allowed_words_file: .commit-checker-words.txt
@@ -229,11 +401,14 @@ comment_language:
   allowed_words_cache:
     enabled: true
     ttl: 24h                  # Cache TTL
+    # dir: ~/.cache/commit-checker  # Cache directory (default)
 ```
 
 All three sources (inline, file, URL) are merged.
 
 ### Per-file language rules
+
+Specify exception paths such as i18n/locale files:
 
 ```yaml
 comment_language:
@@ -242,10 +417,27 @@ comment_language:
     - pattern: "locales/**"
       language: any
     - pattern: "i18n/**"
-      language: any
+      language: english
+    - pattern: "locale/ja/**"
+      language: ja
 ```
 
 ### In-source directives
+
+Override language rules per file or per region:
+
+```go
+// commit-checker:ignore
+// This English comment is intentional (next comment only)
+
+// commit-checker:file-lang=english  <- applies to the whole file
+
+// commit-checker:disable:lang=english
+// This block is intentionally in English
+// commit-checker:enable
+```
+
+Supported directives:
 
 | Directive | Description |
 |---|---|
@@ -272,107 +464,22 @@ commit-checker clean         Remove untracked files inside cache/build directori
 commit-checker version       Print version info
 ```
 
-### Binary file policy
-
-Per-extension policy with three options:
-
-| Policy | Behaviour |
-|---|---|
-| `block` | Reject (default for non-images) |
-| `allow` | Accept |
-| `lfs` | Accept only when tracked by git LFS (`.gitattributes` `filter=lfs`) |
-
-Built-in image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`,
-`.ico`, `.tiff`, `.tif`, `.heic`, `.heif`, `.avif`) default to `allow` when no
-rule matches.
-
-```yaml
-binary_file:
-  enabled: true
-  default_policy: block
-  rules:
-    - extensions: [.png, .jpg, .jpeg, .gif, .webp]   # force LFS for images
-      policy: lfs
-    - extensions: [.psd, .ai, .sketch]
-      policy: lfs
-    - extensions: [.mp4, .mov, .webm]
-      policy: lfs
-  ignore_files:
-    - "assets/icons/**"
-```
-
-Resolution order: `rules` match → built-in image (`allow`) → `default_policy` → `block`.
-
-### Append-only paths
-
-Block any change to existing content under specified paths (deletion, modification,
-mid-file insertion). Useful for DB migration directories.
-
-```yaml
-append_only:
-  enabled: true
-  paths:
-    - "migrations/**"
-    - "db/migrations/**"
-  # filename_order: numeric is default; use "none" to disable order check.
-```
-
-`filename_order: numeric` requires new files to sort *after* the largest existing
-file by natural numeric order (`9 < 10`). Same-directory pattern-matched files are
-compared.
-
-### Build artifact / cache directories
-
-Detect and block commits inside well-known cache/build directories using
-parent-indicator validation:
-
-| Directory | Indicator (parent dir contains) |
-|---|---|
-| `node_modules` | `package.json` / lockfile |
-| `dist` | `package.json` / `go.mod` / `Cargo.toml` |
-| `build` | `package.json` / `Cargo.toml` / `build.gradle` / `pubspec.yaml` / `CMakeLists.txt`, or `CMakeCache.txt` inside |
-| `target` | `Cargo.toml` / `pom.xml` / `build.sbt` |
-| `vendor` | `go.mod` / `Cargo.toml` / `Gemfile` / `composer.json` / `package.json` |
-| `__pycache__` | `.py` files |
-| `.venv` (any name) | `pyvenv.cfg` inside |
-
-Other supported names: `.gradle`, `.next`, `.nuxt`, `.output`, `.svelte-kit`,
-`.yarn`, `.bun`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.turbo`,
-`.parcel-cache`, `.tox`, `.nox`, `.embuild`, `.dart_tool`.
-
-```yaml
-cache_dir:
-  enabled: true
-  ignore_dirs:
-    - vendor
-```
-
-#### clean command
-
-Remove untracked files inside cache/build directories. **Tracked files are
-never deleted** (uses `git ls-files --others`).
-
-```bash
-commit-checker clean         # dry-run: list found dirs only
-commit-checker clean --yes   # actually delete untracked files
-```
-
 ### diff command (CI-friendly `from..to`)
 
 `commit-checker diff` accepts the same positional argument forms as `git diff`.
-Without arguments, it checks staged changes (current default for pre-commit hooks).
+Without arguments, it checks staged changes (HEAD ↔ index) as before.
 
 ```bash
 commit-checker diff                      # default: staged (pre-commit)
 commit-checker diff --staged             # explicit (alias: --cached)
-commit-checker diff HEAD                 # HEAD ↔ working tree
+commit-checker diff HEAD                 # HEAD ↔ working tree (all uncommitted)
 commit-checker diff origin/main          # origin/main ↔ working tree
 commit-checker diff A B                  # A ↔ B
 commit-checker diff A..B                 # A ↔ B (range)
 commit-checker diff A...B                # merge-base(A,B) ↔ B
 ```
 
-Typical CI usage:
+Typical CI usage (GitHub Actions, GitLab CI, etc.):
 
 ```yaml
 # GitHub Actions: check the PR diff
@@ -385,25 +492,36 @@ Typical CI usage:
 ### init command
 
 ```bash
-commit-checker init              # Auto-detect system locale
-commit-checker init --lang en    # Specify locale
-commit-checker init --force      # Overwrite existing file
+# Generate the default config file (auto-detects system locale)
+commit-checker init
+
+# Generate with a specific locale
+commit-checker init --lang en
+
+# Overwrite an existing file
+commit-checker init --force
 ```
 
 ### run command
 
 ```bash
-commit-checker run    # Check all tracked files regardless of staged state
+# Check all tracked files (regardless of staged state)
+commit-checker run
 ```
 
-Unlike `diff`, this checks all files tracked by `git ls-files`.
+Unlike `diff`, this checks all files tracked by `git ls-files`, regardless of staged state.
 
 ### fix command
 
 ```bash
-commit-checker fix --dry-run              # Preview changes
-commit-checker fix --range HEAD~5..HEAD   # Fix last 5 commits
-commit-checker fix --mine --dry-run       # Fix only my commits
+# Preview changes
+commit-checker fix --dry-run
+
+# Fix the last 5 commits
+commit-checker fix --range HEAD~5..HEAD
+
+# Fix only my commits
+commit-checker fix --mine --dry-run
 ```
 
 ### migrate command
@@ -422,6 +540,7 @@ Comments and formatting are preserved.
 ### analyze command
 
 ```bash
+# Analyze the current repository
 commit-checker analyze
 ```
 
