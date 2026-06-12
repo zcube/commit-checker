@@ -38,6 +38,7 @@ func applyDefaults(cfg *Config) {
 		cfg.CommentLanguage.Extensions = []string{
 			".go", ".ts", ".tsx", ".js", ".jsx", ".mjs",
 			".java", ".kt", ".py", ".c", ".cpp", ".cs", ".swift", ".rs",
+			".hcl", ".tf", ".tfvars",
 			"dockerfile",
 		}
 	}

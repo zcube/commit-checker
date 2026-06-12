@@ -81,7 +81,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["go", "typescript", "javascript", "java", "kotlin", "python", "c", "cpp", "csharp", "swift", "rust", "dockerfile", "markdown"]
+            "enum": ["go", "typescript", "javascript", "java", "kotlin", "python", "c", "cpp", "csharp", "swift", "rust", "dockerfile", "markdown", "hcl"]
           },
           "examples": [["go", "typescript", "python"]],
           "uniqueItems": true
@@ -93,7 +93,7 @@
             "type": "string",
             "pattern": "^(\\.[a-zA-Z0-9]+|dockerfile)$"
           },
-          "default": [".go", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".java", ".kt", ".py", ".c", ".cpp", ".cs", ".swift", ".rs", "dockerfile"],
+          "default": [".go", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".java", ".kt", ".py", ".c", ".cpp", ".cs", ".swift", ".rs", ".hcl", ".tf", ".tfvars", "dockerfile"],
           "examples": [[".go", ".ts", ".py"]]
         },
         "skip_directives": {

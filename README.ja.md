@@ -179,6 +179,7 @@ comment_language:
     - .go
     - .ts
     - .py
+    - .tf
 
   # 許可単語: 言語検査で無視する英語単語のリスト
   allowed_words:
@@ -586,6 +587,7 @@ commit-checker analyze
 | Rust | `.rs` |
 | Dockerfile | `Dockerfile` `Dockerfile.*` `*.dockerfile` |
 | Markdown | `.md` `.markdown` |
+| HCL (Terraform) | `.hcl` `.tf` `.tfvars` |
 
 ## i18n対応
 

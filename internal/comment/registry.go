@@ -23,6 +23,7 @@ func init() {
 		// Shell: # 줄 주석만
 		NewHashStyleParser([]string{".sh", ".bash", ".zsh", ".fish", ".ksh"}, false),
 		&HTMLParser{},
+		&HCLParser{},
 	}
 }
 
@@ -54,6 +55,7 @@ var languageExtensions = map[string][]string{
 	"shell":      {".sh", ".bash", ".zsh", ".fish", ".ksh"},
 	"php":        {".php", ".phtml"},
 	"html":       {".html", ".htm", ".svg"},
+	"hcl":        {".hcl", ".tf", ".tfvars"},
 }
 
 // ExtensionsForLanguages 는 주어진 언어 이름들의 파일 확장자 합집합을 반환합니다.

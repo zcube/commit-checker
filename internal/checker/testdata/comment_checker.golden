@@ -10,4 +10,5 @@ sample.md: comments=2 strings=0 imports=0 lang=PASS
 sample.py: comments=3 strings=3 imports=0 lang=PASS
 sample.rs: comments=7 strings=2 imports=0 lang=PASS
 sample.swift: comments=8 strings=2 imports=0 lang=PASS
+sample.tf: comments=4 strings=6 imports=0 lang=PASS
 sample.ts: comments=4 strings=2 imports=4 lang=PASS

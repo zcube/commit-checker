@@ -363,6 +363,9 @@ func TestGetParser_AllLanguages(t *testing.T) {
 		{"app.dockerfile", false},
 		{"README.md", false},
 		{"docs.markdown", false},
+		{"main.tf", false},
+		{"terraform.tfvars", false},
+		{"config.hcl", false},
 		{"unknown.xyz", true},
 	}
 

@@ -180,6 +180,7 @@ comment_language:
     - .go
     - .ts
     - .py
+    - .tf
 
   # Allowed words: English terms to ignore during language detection
   allowed_words:
@@ -588,6 +589,7 @@ are missing. Also checks for `.editorconfig`, `.gitattributes`, `.gitignore`.
 | Rust | `.rs` |
 | Dockerfile | `Dockerfile` `Dockerfile.*` `*.dockerfile` |
 | Markdown | `.md` `.markdown` |
+| HCL (Terraform) | `.hcl` `.tf` `.tfvars` |
 
 ## i18n Support
 
