@@ -234,8 +234,10 @@ func TestHCLParser_HeredocIndented(t *testing.T) {
 	}
 }
 
-func TestHCLParser_HeredocPlainRequiresUnindentedLabel(t *testing.T) {
-	// << 형식은 들여쓰기된 라벨로 닫히지 않음
+func TestHCLParser_HeredocPlainAllowsIndentedLabel(t *testing.T) {
+	// hashicorp/hcl v2 hclsyntax 토크나이저는 << 형식에서도 닫는 라벨 앞 공백을 허용
+	// (업스트림 스캐너가 라벨 줄을 TrimSpace 후 비교 — 실제 Terraform 동작과 동일).
+	// 종전 수제 파서는 << 형식에서 들여쓰기된 라벨을 무시했으나 이는 비표준 동작이었음.
 	src := `locals {
   doc = <<EOT
 body
@@ -250,12 +252,12 @@ EOT
 		t.Fatalf("expected 1 string, got %d: %+v", len(r.strings), r.strings)
 	}
 	h := r.strings[0]
-	// 들여쓰기된 "  EOT" 는 본문에 포함되고 5번째 줄의 EOT 에서 닫힘
-	if !strings.Contains(h.Text, "  EOT") {
-		t.Errorf("들여쓰기된 라벨이 본문에 포함되어야 함: %q", h.Text)
+	// 들여쓰기된 "  EOT" (4번째 줄)에서 heredoc 이 닫히므로 본문은 "body" 뿐
+	if h.Text != "body" {
+		t.Errorf("heredoc 본문 = %q, want %q", h.Text, "body")
 	}
-	if h.EndLine != 5 {
-		t.Errorf("heredoc EndLine = %d, want 5", h.EndLine)
+	if h.EndLine != 4 {
+		t.Errorf("heredoc EndLine = %d, want 4", h.EndLine)
 	}
 	if len(r.comments) != 1 || r.comments[0].Line != 7 {
 		t.Errorf("heredoc 이후 주석 줄 번호 불일치: %+v", r.comments)
