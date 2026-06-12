@@ -72,6 +72,32 @@ func TestGetStagedDiff_한글파일명(t *testing.T) {
 	}
 }
 
+// TestGetStagedDiff_따옴표파일명: git 은 `"` 포함 경로를 core.quotepath 설정과
+// 무관하게 항상 C-스타일로 인용하므로, GetStagedDiff 의 quotepath=false 주입만으로는
+// 부족하고 ParseDiff 의 unquote 처리가 필요하다.
+func TestGetStagedDiff_따옴표파일명(t *testing.T) {
+	dir := newQuotePathRepo(t)
+	writeFile(t, dir, "with\"quote.txt", "x\n")
+	gitMust(t, dir, "git", "add", ".")
+
+	diffs, err := gitdiff.GetStagedDiff()
+	if err != nil {
+		t.Fatalf("GetStagedDiff error: %v", err)
+	}
+	found := false
+	for _, d := range diffs {
+		if d.Path == "with\"quote.txt" {
+			found = true
+		}
+		if strings.HasPrefix(d.Path, "\"") {
+			t.Errorf("C-스타일 인용된 경로가 파싱됨: %q", d.Path)
+		}
+	}
+	if !found {
+		t.Errorf("diff 에서 따옴표 포함 경로를 원형으로 찾지 못함: %+v", diffs)
+	}
+}
+
 // TestCheckAppendOnly_한글파일명_FilenameOrder: ls-tree 기반 파일명 순서 검사가
 // 한글 파일명에서도 기존 파일을 인식해야 함.
 func TestCheckAppendOnly_한글파일명_FilenameOrder(t *testing.T) {

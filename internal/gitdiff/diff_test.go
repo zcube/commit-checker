@@ -113,6 +113,76 @@ func TestParseDiff_Symlink(t *testing.T) {
 	}
 }
 
+// TestParseDiff_QuotedPath: git 이 C-스타일로 인용한 diff 헤더 경로가
+// 원형으로 복원되어야 함. git 은 `"`·백슬래시·제어문자 포함 경로를
+// core.quotepath 설정과 무관하게 항상 인용한다.
+func TestParseDiff_QuotedPath(t *testing.T) {
+	t.Run("따옴표 포함 파일명", func(t *testing.T) {
+		raw := "diff --git \"a/with\\\"quote.txt\" \"b/with\\\"quote.txt\"\n" +
+			"new file mode 100644\n" +
+			"index 0000000..abc1234\n" +
+			"--- /dev/null\n" +
+			"+++ \"b/with\\\"quote.txt\"\n" +
+			"@@ -0,0 +1 @@\n" +
+			"+x\n"
+		diffs := gitdiff.ParseDiff(raw)
+		if len(diffs) != 1 {
+			t.Fatalf("expected 1 diff, got %d", len(diffs))
+		}
+		if diffs[0].Path != `with"quote.txt` {
+			t.Errorf("Path = %q, want %q", diffs[0].Path, `with"quote.txt`)
+		}
+	})
+
+	t.Run("옥탈 이스케이프 한글 파일명", func(t *testing.T) {
+		// "한글.md" 의 UTF-8 옥탈 표현 (core.quotepath=true 출력 형태)
+		raw := "diff --git \"a/\\355\\225\\234\\352\\270\\200.md\" \"b/\\355\\225\\234\\352\\270\\200.md\"\n" +
+			"index abc1234..def5678 100644\n" +
+			"--- \"a/\\355\\225\\234\\352\\270\\200.md\"\n" +
+			"+++ \"b/\\355\\225\\234\\352\\270\\200.md\"\n" +
+			"@@ -1 +1,2 @@\n" +
+			" # 제목\n" +
+			"+본문\n"
+		diffs := gitdiff.ParseDiff(raw)
+		if len(diffs) != 1 {
+			t.Fatalf("expected 1 diff, got %d", len(diffs))
+		}
+		if diffs[0].Path != "한글.md" {
+			t.Errorf("Path = %q, want %q", diffs[0].Path, "한글.md")
+		}
+		if !diffs[0].AddedLines[2] {
+			t.Errorf("line 2 should be added; addedLines=%v", diffs[0].AddedLines)
+		}
+	})
+
+	t.Run("인용된 삭제 파일 (+++ /dev/null, diff --git 헤더에서 추출)", func(t *testing.T) {
+		raw := "diff --git \"a/del\\\"eted.txt\" \"b/del\\\"eted.txt\"\n" +
+			"deleted file mode 100644\n" +
+			"index abc1234..0000000\n" +
+			"--- \"a/del\\\"eted.txt\"\n" +
+			"+++ /dev/null\n" +
+			"@@ -1 +0,0 @@\n" +
+			"-x\n"
+		diffs := gitdiff.ParseDiff(raw)
+		if len(diffs) != 1 {
+			t.Fatalf("expected 1 diff, got %d", len(diffs))
+		}
+		if diffs[0].Path != `del"eted.txt` {
+			t.Errorf("Path = %q, want %q", diffs[0].Path, `del"eted.txt`)
+		}
+		if !diffs[0].IsDeleted {
+			t.Error("expected IsDeleted=true")
+		}
+	})
+
+	t.Run("비인용 경로는 기존 동작 유지", func(t *testing.T) {
+		diffs := gitdiff.ParseDiff(sampleDiff)
+		if len(diffs) != 2 || diffs[0].Path != "foo.go" || diffs[1].Path != "bar.go" {
+			t.Errorf("unquoted paths broken: %+v", diffs)
+		}
+	})
+}
+
 func TestHasExtension(t *testing.T) {
 	exts := []string{".go", ".ts", ".java"}
 	cases := []struct {

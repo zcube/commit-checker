@@ -286,16 +286,14 @@ func ParseDiff(diff string) []FileDiff {
 			current = &FileDiff{AddedLines: make(map[int]bool)}
 			currentNewLine = 0
 			// "diff --git a/foo b/foo" 에서 경로 추출 (삭제 파일 포함 모든 케이스 처리)
-			if parts := strings.SplitN(line, " b/", 2); len(parts) == 2 {
-				current.Path = parts[1]
-			}
+			current.Path = parseDiffGitNewPath(line)
 
 		case current == nil:
 			continue
 
-		case strings.HasPrefix(line, "+++ b/"):
-			// 정확한 경로로 덮어씀 (rename 등 대비)
-			current.Path = strings.TrimPrefix(line, "+++ b/")
+		case strings.HasPrefix(line, "+++ b/"), strings.HasPrefix(line, `+++ "b/`):
+			// 정확한 경로로 덮어씀 (rename 등 대비). 인용된 경로("b/...")는 원형으로 복원.
+			current.Path = strings.TrimPrefix(unquoteGitPath(strings.TrimPrefix(line, "+++ ")), "b/")
 
 		case line == "+++ /dev/null":
 			current.IsDeleted = true
@@ -351,6 +349,43 @@ func ParseDiff(diff string) []FileDiff {
 		_ = err
 	}
 	return result
+}
+
+// unquoteGitPath 는 git C-스타일 인용 경로("\303\244.txt" 등)를 원형으로 복원합니다.
+// git 은 `"`·백슬래시·제어문자가 포함된 경로를 core.quotepath 설정과 무관하게
+// 항상 C-스타일로 인용하므로, quotepath=false 를 주입해도 이 처리가 필요합니다.
+// git 의 이스케이프(\ooo 옥탈, \", \\, \t, \n 등)는 Go 문자열 리터럴 문법과
+// 호환되므로 strconv.Unquote 를 활용합니다.
+// 인용되지 않았거나 복원에 실패하면 입력을 그대로 반환합니다.
+func unquoteGitPath(p string) string {
+	if len(p) < 2 || !strings.HasPrefix(p, `"`) || !strings.HasSuffix(p, `"`) {
+		return p
+	}
+	unquoted, err := strconv.Unquote(p)
+	if err != nil {
+		return p
+	}
+	return unquoted
+}
+
+// parseDiffGitNewPath 는 `diff --git a/old b/new` 헤더에서 새 경로(b/ 쪽)를 추출합니다.
+// 인용된 헤더(`diff --git "a/x" "b/y"`)는 인용 해제 후 b/ 접두사를 제거하며,
+// 경로를 찾지 못하면 빈 문자열을 반환합니다 (이후 "+++ b/" 줄에서 덮어씀).
+func parseDiffGitNewPath(line string) string {
+	rest := strings.TrimPrefix(line, "diff --git ")
+	// 인용된 새 경로: 줄 끝의 ` "b/...` 구간. 인용 내부의 `"` 는 항상 `\"` 로
+	// 이스케이프되므로 ` "b/` 시퀀스는 새 경로의 시작에서만 등장합니다.
+	if i := strings.Index(rest, ` "b/`); i >= 0 {
+		quoted := rest[i+1:]
+		if p := unquoteGitPath(quoted); p != quoted {
+			return strings.TrimPrefix(p, "b/")
+		}
+	}
+	// 비인용 새 경로: 기존 동작 유지 (` b/` 기준 분리)
+	if parts := strings.SplitN(rest, " b/", 2); len(parts) == 2 {
+		return parts[1]
+	}
+	return ""
 }
 
 // parseHunkHeader 는 @@ -old[,count] +new[,count] @@ 를 파싱하여 새 파일 시작 줄 번호를 반환합니다.
