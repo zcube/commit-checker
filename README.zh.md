@@ -237,7 +237,7 @@ git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
 git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```
 
-- 加上 `--global` 可一次性应用到所有仓库（适合个人全局策略）。
+- 加上 `--global` 可一次性应用到所有仓库（适合个人全局策略）。包含全局配置文件、按目录策略、按仓库 opt-out 的完整指南请参阅 [全局安装](#全局安装) 一节。
 - 确认注册：`git hook list pre-commit`
 - 同一事件的多个钩子按配置顺序执行，现有的 `.git/hooks/` 脚本（如 lefthook）最后执行，因此可以共存。
 - 注意：`.git/config` 不会被提交，团队级强制仍更适合使用 lefthook 等管理器。基于配置的钩子适合个人配置和全局策略。
@@ -270,6 +270,78 @@ exec commit-checker push --range "$2..$3"
 ```
 
 新分支（old 全为 0）会输出警告并跳过检查。
+
+## 全局安装
+
+只需注册一次钩子和配置，commit-checker 即可在所有仓库中运行。
+
+### 全局钩子 + 全局配置
+
+```bash
+# 注册全局钩子（Git 2.54+）
+git config set --global hook.commit-checker-diff.command "commit-checker diff"
+git config set --global --append hook.commit-checker-diff.event pre-commit
+git config set --global hook.commit-checker-msg.command "commit-checker msg"
+git config set --global --append hook.commit-checker-msg.event commit-msg
+```
+
+全局配置文件按以下顺序查找，使用**第一个存在的文件**：
+
+| 顺序 | 位置 |
+|---|---|
+| 1 | `$COMMIT_CHECKER_GLOBAL_CONFIG` 环境变量（显式指定，文件不存在时警告并忽略） |
+| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yml` |
+| 3 | OS 标准配置目录 — Linux `~/.config/commit-checker/config.yml`、macOS `~/Library/Application Support/commit-checker/config.yml`、Windows `%AppData%\commit-checker\config.yml` |
+| 4 | `~/.commit-checker.yml`（legacy，向后兼容） |
+
+```yaml
+# ~/.config/commit-checker/config.yml — 简单的全局配置示例
+comment_language:
+  locale: zh
+commit_message:
+  no_ai_coauthor: true
+  locale: zh
+```
+
+### 按目录的策略（gitdir include）
+
+支持与 git 的 `[includeIf "gitdir:..."]` 对应的条件 include。
+可以在全局配置的同一处，为公司仓库（`~/work/`）和个人仓库管理不同的策略：
+
+```yaml
+# ~/.config/commit-checker/config.yml
+include:
+  - path: ~/.config/commit-checker/base.yml   # 无条件 → 始终包含（通用共享基础）
+  - path: ~/.config/commit-checker/work.yml
+    gitdir: ~/work/                            # 仅 ~/work/ 下的仓库
+comment_language:
+  locale: zh
+```
+
+- 优先级：正文 > 后面的 include > 前面的 include — include 提供基础值，正文覆盖它。
+- `gitdir`：`~` 会展开为主目录，以 `/` 结尾时匹配整个子目录树（与 git 相同）。
+- 全局配置和项目配置中均可使用。include 的嵌套会被忽略，远程 preset 中的 include 出于安全考虑也会被忽略。
+
+### 按仓库的控制（override·opt-out·opt-in）
+
+**override** — 仓库的 `.commit-checker.yml` 会覆盖全局值。
+优先级为项目 `.commit-checker.yml` > preset（URL） > 全局配置，
+标量值由项目覆盖，列表则会合并。
+
+**opt-out** — 要在特定仓库中关闭所有检查，只需在项目 `.commit-checker.yml` 中添加一行：
+
+```yaml
+enabled: false
+```
+
+**opt-in 运营** — 将全局钩子的 command 注册为 `commit-checker diff --require-config`，
+则只检查存在项目配置文件的仓库。在没有配置文件的仓库中
+不执行任何操作并以退出码 0 结束：
+
+```bash
+git config set --global hook.commit-checker-diff.command "commit-checker diff --require-config"
+git config set --global hook.commit-checker-msg.command "commit-checker msg --require-config"
+```
 
 ## 配置
 

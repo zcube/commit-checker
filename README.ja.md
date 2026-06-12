@@ -237,7 +237,7 @@ git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
 git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```
 
-- `--global` を付けるとすべてのリポジトリに一括適用されます（個人のグローバルポリシーに便利）。
+- `--global` を付けるとすべてのリポジトリに一括適用されます（個人のグローバルポリシーに便利）。グローバル設定ファイル・ディレクトリ別ポリシー・リポジトリ別 opt-out を含む完全なガイドは [グローバルインストール](#グローバルインストール) セクションを参照してください。
 - 登録確認: `git hook list pre-commit`
 - 同じイベントの複数のフックは設定順に実行され、既存の `.git/hooks/` スクリプト（lefthookなど）は最後に実行されるため共存できます。
 - 注意: `.git/config` はコミットされないため、チーム全体への強制には引き続きlefthookのようなマネージャーが適しています。設定ベースのフックは個人設定・グローバルポリシーに適しています。
@@ -270,6 +270,78 @@ exec commit-checker push --range "$2..$3"
 ```
 
 新規ブランチ（old がすべて0）は警告を出力して検査をスキップします。
+
+## グローバルインストール
+
+フックと設定を一度登録するだけで、すべてのリポジトリで commit-checker が動作します。
+
+### グローバルフック + グローバル設定
+
+```bash
+# グローバルフックの登録（Git 2.54+）
+git config set --global hook.commit-checker-diff.command "commit-checker diff"
+git config set --global --append hook.commit-checker-diff.event pre-commit
+git config set --global hook.commit-checker-msg.command "commit-checker msg"
+git config set --global --append hook.commit-checker-msg.event commit-msg
+```
+
+グローバル設定ファイルは以下の順に探索され、**最初に存在するファイル**が使用されます:
+
+| 順序 | 場所 |
+|---|---|
+| 1 | `$COMMIT_CHECKER_GLOBAL_CONFIG` 環境変数（明示指定、ファイルがなければ警告して無視） |
+| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yml` |
+| 3 | OS標準の設定ディレクトリ — Linux `~/.config/commit-checker/config.yml`、macOS `~/Library/Application Support/commit-checker/config.yml`、Windows `%AppData%\commit-checker\config.yml` |
+| 4 | `~/.commit-checker.yml`（legacy、後方互換） |
+
+```yaml
+# ~/.config/commit-checker/config.yml — シンプルなグローバル設定の例
+comment_language:
+  locale: ja
+commit_message:
+  no_ai_coauthor: true
+  locale: ja
+```
+
+### ディレクトリ別ポリシー（gitdir include）
+
+git の `[includeIf "gitdir:..."]` に対応する条件付き include をサポートします。
+会社のリポジトリ（`~/work/`）と個人のリポジトリで異なるポリシーを、グローバル設定の一箇所で管理できます:
+
+```yaml
+# ~/.config/commit-checker/config.yml
+include:
+  - path: ~/.config/commit-checker/base.yml   # 条件なし → 常に含める（汎用の共有ベース）
+  - path: ~/.config/commit-checker/work.yml
+    gitdir: ~/work/                            # ~/work/ 配下のリポジトリのみ
+comment_language:
+  locale: ja
+```
+
+- 優先順位: 本文 > 後の include > 前の include — include がベースを提供し、本文が上書きします。
+- `gitdir`: `~` はホームディレクトリに展開され、`/` で終わる場合はサブディレクトリ全体にマッチします（git と同じ）。
+- グローバル設定・プロジェクト設定の両方で使用できます。include のネストは無視され、リモート preset の include はセキュリティ上無視されます。
+
+### リポジトリ別制御（override・opt-out・opt-in）
+
+**override** — リポジトリの `.commit-checker.yml` がグローバル値を上書きします。
+優先順位はプロジェクト `.commit-checker.yml` > preset（URL） > グローバル設定で、
+スカラー値はプロジェクトが上書きし、リストはマージされます。
+
+**opt-out** — 特定のリポジトリですべての検査を無効にするには、プロジェクトの `.commit-checker.yml` に1行だけ追加します:
+
+```yaml
+enabled: false
+```
+
+**opt-in 運用** — グローバルフックの command を `commit-checker diff --require-config` で登録すると、
+プロジェクト設定ファイルのあるリポジトリだけが検査されます。設定ファイルのないリポジトリでは
+何もせず終了コード 0 で終了します:
+
+```bash
+git config set --global hook.commit-checker-diff.command "commit-checker diff --require-config"
+git config set --global hook.commit-checker-msg.command "commit-checker msg --require-config"
+```
 
 ## 設定
 

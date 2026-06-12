@@ -237,7 +237,7 @@ git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
 git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```
 
-- `--global` 을 붙이면 모든 리포지터리에 일괄 적용됩니다 (개인 전역 정책에 유용).
+- `--global` 을 붙이면 모든 리포지터리에 일괄 적용됩니다 (개인 전역 정책에 유용). 전역 설정 파일·디렉터리별 정책·리포별 opt-out 까지 포함한 전체 가이드는 [전역 설치](#전역-설치) 섹션을 참고하세요.
 - 등록 확인: `git hook list pre-commit`
 - 같은 이벤트의 훅 여러 개는 설정 순서대로 실행되고, 기존 `.git/hooks/` 스크립트(lefthook 등)는 마지막에 실행되므로 공존할 수 있습니다.
 - 주의: `.git/config` 는 커밋되지 않으므로 팀 전체 강제에는 lefthook 같은 매니저가 여전히 적합합니다. 설정 기반 훅은 개인 설정·전역 정책에 알맞습니다.
@@ -270,6 +270,78 @@ exec commit-checker push --range "$2..$3"
 ```
 
 신규 브랜치(old 가 모두 0)는 경고를 출력하고 검사를 건너뜁니다.
+
+## 전역 설치
+
+훅과 설정을 한 번만 등록하면 모든 리포지터리에서 commit-checker 가 동작합니다.
+
+### 전역 훅 + 전역 설정
+
+```bash
+# 전역 훅 등록 (Git 2.54+)
+git config set --global hook.commit-checker-diff.command "commit-checker diff"
+git config set --global --append hook.commit-checker-diff.event pre-commit
+git config set --global hook.commit-checker-msg.command "commit-checker msg"
+git config set --global --append hook.commit-checker-msg.event commit-msg
+```
+
+전역 설정 파일은 아래 순서로 탐색하며 **첫 번째로 존재하는 파일**을 사용합니다:
+
+| 순서 | 위치 |
+|---|---|
+| 1 | `$COMMIT_CHECKER_GLOBAL_CONFIG` 환경 변수 (명시 지정, 파일이 없으면 경고 후 무시) |
+| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yml` |
+| 3 | OS 표준 설정 디렉터리 — Linux `~/.config/commit-checker/config.yml`, macOS `~/Library/Application Support/commit-checker/config.yml`, Windows `%AppData%\commit-checker\config.yml` |
+| 4 | `~/.commit-checker.yml` (legacy, 하위 호환) |
+
+```yaml
+# ~/.config/commit-checker/config.yml — 간단한 전역 설정 예시
+comment_language:
+  locale: ko
+commit_message:
+  no_ai_coauthor: true
+  locale: ko
+```
+
+### 디렉터리별 정책 (gitdir include)
+
+git 의 `[includeIf "gitdir:..."]` 에 대응하는 조건부 include 를 지원합니다.
+회사 리포지터리(`~/work/`)와 개인 리포지터리에 서로 다른 정책을 전역 설정 한 곳에서 관리할 수 있습니다:
+
+```yaml
+# ~/.config/commit-checker/config.yml
+include:
+  - path: ~/.config/commit-checker/base.yml   # 조건 없음 → 항상 포함 (범용 공유)
+  - path: ~/.config/commit-checker/work.yml
+    gitdir: ~/work/                            # ~/work/ 아래 리포에서만
+comment_language:
+  locale: ko
+```
+
+- 우선순위: 본문 > 나중 include > 앞 include — include 는 베이스를 제공하고 본문이 덮어씁니다.
+- `gitdir`: `~` 는 홈 디렉터리로 확장되고, `/` 로 끝나면 하위 디렉터리 전체에 매칭됩니다 (git 과 동일).
+- 전역·프로젝트 설정 모두에서 사용할 수 있습니다. include 의 중첩은 무시되고, 원격 preset 의 include 는 보안상 무시됩니다.
+
+### 리포별 제어 (override·opt-out·opt-in)
+
+**override** — 리포지터리의 `.commit-checker.yml` 이 전역 값을 덮어씁니다.
+우선순위는 프로젝트 `.commit-checker.yml` > preset(URL) > 전역 설정이며,
+스칼라 값은 프로젝트가 덮어쓰고 목록은 병합됩니다.
+
+**opt-out** — 특정 리포지터리에서 모든 검사를 끄려면 프로젝트 `.commit-checker.yml` 에 한 줄만 추가합니다:
+
+```yaml
+enabled: false
+```
+
+**opt-in 운영** — 전역 훅 command 를 `commit-checker diff --require-config` 로 등록하면
+프로젝트 설정 파일이 있는 리포지터리만 검사합니다. 설정 파일이 없는 리포지터리에서는
+아무것도 하지 않고 종료 코드 0 으로 끝납니다:
+
+```bash
+git config set --global hook.commit-checker-diff.command "commit-checker diff --require-config"
+git config set --global hook.commit-checker-msg.command "commit-checker msg --require-config"
+```
 
 ## 설정
 

@@ -238,7 +238,7 @@ git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
 git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```
 
-- Add `--global` to apply the hooks to every repository at once (useful for a personal global policy).
+- Add `--global` to apply the hooks to every repository at once (useful for a personal global policy). See the [Global Installation](#global-installation) section for the full guide, including the global config file, per-directory policies, and per-repository opt-out.
 - Verify registration: `git hook list pre-commit`
 - Multiple hooks for the same event run in configuration order, and existing `.git/hooks/` scripts (e.g. lefthook) run last, so they can coexist.
 - Note: `.git/config` is not committed, so a manager like lefthook is still the better fit for team-wide enforcement. Config-based hooks suit personal setups and global policies.
@@ -271,6 +271,78 @@ exec commit-checker push --range "$2..$3"
 ```
 
 New branches (where old is all zeros) print a warning and are skipped.
+
+## Global Installation
+
+Register the hooks and the configuration once, and commit-checker runs in every repository.
+
+### Global hooks + global config
+
+```bash
+# Register global hooks (Git 2.54+)
+git config set --global hook.commit-checker-diff.command "commit-checker diff"
+git config set --global --append hook.commit-checker-diff.event pre-commit
+git config set --global hook.commit-checker-msg.command "commit-checker msg"
+git config set --global --append hook.commit-checker-msg.event commit-msg
+```
+
+The global config file is resolved in the following order; the **first existing file** is used:
+
+| Order | Location |
+|---|---|
+| 1 | `$COMMIT_CHECKER_GLOBAL_CONFIG` environment variable (explicit; warns and is ignored when the file is missing) |
+| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yml` |
+| 3 | OS standard config directory — Linux `~/.config/commit-checker/config.yml`, macOS `~/Library/Application Support/commit-checker/config.yml`, Windows `%AppData%\commit-checker\config.yml` |
+| 4 | `~/.commit-checker.yml` (legacy, backward compatibility) |
+
+```yaml
+# ~/.config/commit-checker/config.yml — minimal global config example
+comment_language:
+  locale: en
+commit_message:
+  no_ai_coauthor: true
+  locale: en
+```
+
+### Per-directory policies (gitdir include)
+
+Conditional includes corresponding to git's `[includeIf "gitdir:..."]` are supported.
+Different policies for work repositories (`~/work/`) and personal ones can be managed in one global place:
+
+```yaml
+# ~/.config/commit-checker/config.yml
+include:
+  - path: ~/.config/commit-checker/base.yml   # no condition → always included (shared base)
+  - path: ~/.config/commit-checker/work.yml
+    gitdir: ~/work/                            # only for repos under ~/work/
+comment_language:
+  locale: en
+```
+
+- Precedence: main body > later includes > earlier includes — includes provide the base and the body overrides it.
+- `gitdir`: `~` expands to the home directory, and a trailing `/` matches the entire subtree (same as git).
+- Available in both global and project configs. Nested includes are ignored, and includes in remote presets are ignored for security.
+
+### Per-repository control (override·opt-out·opt-in)
+
+**override** — a repository's `.commit-checker.yml` overrides the global values.
+The precedence is project `.commit-checker.yml` > preset (URL) > global config;
+scalar values are overridden by the project and lists are merged.
+
+**opt-out** — to disable every check in a specific repository, add a single line to the project `.commit-checker.yml`:
+
+```yaml
+enabled: false
+```
+
+**opt-in operation** — register the global hook command as `commit-checker diff --require-config`,
+and only repositories that have a project config file are checked. In repositories without one,
+nothing happens and the exit code is 0:
+
+```bash
+git config set --global hook.commit-checker-diff.command "commit-checker diff --require-config"
+git config set --global hook.commit-checker-msg.command "commit-checker msg --require-config"
+```
 
 ## Configuration
 
