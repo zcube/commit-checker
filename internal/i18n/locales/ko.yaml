@@ -9,6 +9,12 @@ diff.binary_file_error:
   other: "{{.Path}}: 바이너리 파일 감지 — 컴파일된 실행파일 및 바이너리 파일은 커밋하면 안 됩니다"
 diff.binary_file_lfs_required:
   other: "{{.Path}}: 이 바이너리 파일은 git LFS 로 추적되어야 합니다 — `.gitattributes` 에 `filter=lfs` 를 추가하거나 `git lfs track` 명령을 사용하세요"
+diff.protected_path_added:
+  other: "{{.Path}}: 보호된 경로에 파일을 추가할 수 없습니다"
+diff.protected_path_modified:
+  other: "{{.Path}}: 보호된 경로의 파일을 변경할 수 없습니다"
+diff.protected_path_deleted:
+  other: "{{.Path}}: 보호된 경로의 파일을 삭제할 수 없습니다"
 diff.append_only_deleted:
   other: "{{.Path}}: append-only 경로에서 파일 삭제는 허용되지 않습니다"
 diff.append_only_modified:
@@ -317,6 +323,8 @@ step.comment_language_check:
   other: "주석 언어 검사"
 step.custom_rules_check:
   other: "커스텀 규칙 검사"
+step.protected_paths_check:
+  other: "보호 경로 검사"
 step.append_only_check:
   other: "append-only 경로 검사"
 step.cache_dir_check:
@@ -389,6 +397,8 @@ guide.cache_dir:
   other: "'commit-checker clean' 으로 캐시·빌드 산출물을 정리하고 해당 디렉터리를 .gitignore에 추가하세요."
 guide.custom_rules:
   other: "각 규칙 메시지가 요구하는 대로 해당 패턴을 수정하거나 제거하세요."
+guide.protected_paths:
+  other: "보호된 경로의 변경을 스테이징에서 제거하세요 (git restore --staged <파일>). 의도된 변경이라면 설정의 protected_paths.paths 패턴을 조정하세요."
 guide.append_only:
   other: "append-only 경로의 기존 내용 변경을 되돌리세요. 새 내용은 파일 끝에 추가하거나, 기존 파일들보다 뒤에 정렬되는 이름의 새 파일로 추가하세요."
 guide.commit_message:

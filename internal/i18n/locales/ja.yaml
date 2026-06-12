@@ -9,6 +9,12 @@ diff.binary_file_error:
   other: "{{.Path}}: バイナリファイル検出 — コンパイル済み実行ファイルやバイナリファイルはコミットすべきではありません"
 diff.binary_file_lfs_required:
   other: "{{.Path}}: このバイナリファイルは git LFS で追跡される必要があります — `.gitattributes` に `filter=lfs` を追加するか `git lfs track` を実行してください"
+diff.protected_path_added:
+  other: "{{.Path}}: 保護されたパスにファイルを追加できません"
+diff.protected_path_modified:
+  other: "{{.Path}}: 保護されたパスのファイルを変更できません"
+diff.protected_path_deleted:
+  other: "{{.Path}}: 保護されたパスのファイルを削除できません"
 diff.append_only_deleted:
   other: "{{.Path}}: append-onlyパスでのファイル削除は許可されていません"
 diff.append_only_modified:
@@ -317,6 +323,8 @@ step.comment_language_check:
   other: "コメント言語検査"
 step.custom_rules_check:
   other: "カスタムルール検査"
+step.protected_paths_check:
+  other: "保護パス検査"
 step.append_only_check:
   other: "append-onlyパス検査"
 step.cache_dir_check:
@@ -389,6 +397,8 @@ guide.cache_dir:
   other: "'commit-checker clean' でキャッシュ・ビルド成果物を整理し、該当ディレクトリを .gitignore に追加してください。"
 guide.custom_rules:
   other: "各ルールのメッセージが要求するとおりに、該当パターンを修正または削除してください。"
+guide.protected_paths:
+  other: "保護されたパスへの変更をステージングから取り除いてください (git restore --staged <ファイル>)。意図した変更であれば、設定の protected_paths.paths パターンを調整してください。"
 guide.append_only:
   other: "append-only パスの既存内容への変更を元に戻してください。新しい内容はファイル末尾に追加するか、既存ファイルより後にソートされる名前の新規ファイルとして追加してください。"
 guide.commit_message:

@@ -36,6 +36,7 @@ type Config struct {
 	EditorConfig    EditorConfigConfig    `yaml:"editorconfig"`
 	Exceptions      ExceptionsConfig      `yaml:"exceptions"`
 	CustomRules     CustomRulesConfig     `yaml:"custom_rules"`
+	ProtectedPaths  ProtectedPathsConfig  `yaml:"protected_paths"`
 	AppendOnly      AppendOnlyConfig      `yaml:"append_only"`
 	CacheDir        CacheDirConfig        `yaml:"cache_dir"`
 	Guide           GuideConfig           `yaml:"guide"`

@@ -614,6 +614,25 @@
       }
     },
 
+    "protected_paths": {
+      "description": "glob 패턴에 매칭되는 경로의 모든 변경(추가·수정·삭제)을 금지하는 보호 경로 설정.\nappend_only보다 강한 \"완전 동결\" 정책. 잠긴 레거시 디렉터리, 자동 생성 파일, 릴리스된 마이그레이션 등에 사용.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "보호 경로 검사 활성화 여부 (기본값: false). paths가 비어 있으면 검사하지 않음.",
+          "type": "boolean",
+          "default": false
+        },
+        "paths": {
+          "description": "보호 경로 규칙을 적용할 glob 패턴 목록",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["legacy/**", "generated/**"]]
+        }
+      }
+    },
+
     "append_only": {
       "description": "특정 경로에서 파일 삭제·내용 수정·중간 삽입을 금지하는 append-only 설정.\nDB 마이그레이션 디렉터리 등 한 번 커밋한 내용을 변경해서는 안 되는 경우에 사용.",
       "type": "object",

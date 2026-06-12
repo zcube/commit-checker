@@ -65,6 +65,12 @@ func mergeConfigs(global, project *Config) Config {
 	result.CustomRules.CommitMessage = append(global.CustomRules.CommitMessage, result.CustomRules.CommitMessage...)
 	result.CustomRules.Diff = append(global.CustomRules.Diff, result.CustomRules.Diff...)
 
+	// 보호 경로 설정 병합: enabled 는 한쪽이라도 켜져 있으면 유지, paths 는 합치기
+	if !result.ProtectedPaths.Enabled {
+		result.ProtectedPaths.Enabled = global.ProtectedPaths.Enabled
+	}
+	result.ProtectedPaths.Paths = append(global.ProtectedPaths.Paths, result.ProtectedPaths.Paths...)
+
 	// 개선 가이드 설정 병합
 	mergeBoolPtr(&result.Guide.Enabled, global.Guide.Enabled)
 

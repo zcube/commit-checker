@@ -441,6 +441,18 @@ type AppendOnlyConfig struct {
 	FilenameOrder string `yaml:"filename_order"`
 }
 
+// ProtectedPathsConfig: glob 패턴에 매칭되는 경로의 모든 변경을 금지하는 보호 경로 설정.
+// append_only 보다 강한 "완전 동결" 정책으로, 추가·수정·삭제를 전부 차단합니다.
+// 잠긴 레거시 디렉터리, 자동 생성 파일, 릴리스된 마이그레이션 등에 사용합니다.
+type ProtectedPathsConfig struct {
+	// Enabled: 보호 경로 검사 활성화 여부 (기본값: false).
+	Enabled bool `yaml:"enabled"`
+
+	// Paths: 보호 경로 규칙을 적용할 glob 패턴 목록.
+	// 예: ["legacy/**", "generated/**"]
+	Paths []string `yaml:"paths"`
+}
+
 // CacheDirConfig: 빌드 산출물·캐시 디렉터리(node_modules, dist, build, target, __pycache__ 등)
 // 안의 파일이 git 에 커밋되거나 스테이지되는지 검사하는 설정.
 // pkg/cachedir 의 검증기를 사용하여 부모 디렉터리 인디케이터(go.mod, package.json 등) 기반으로 판별합니다.

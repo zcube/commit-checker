@@ -425,6 +425,11 @@ func (c *EditorConfigConfig) IsEnabled() bool {
 	return *c.Enabled
 }
 
+// IsEnabled: 보호 경로 검사 활성화 여부 반환.
+func (c *ProtectedPathsConfig) IsEnabled() bool {
+	return c.Enabled && len(c.Paths) > 0
+}
+
 // IsEnabled: append-only 검사 활성화 여부 반환.
 func (c *AppendOnlyConfig) IsEnabled() bool {
 	return c.Enabled && len(c.Paths) > 0

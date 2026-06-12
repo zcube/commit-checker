@@ -9,6 +9,12 @@ diff.binary_file_error:
   other: "{{.Path}}: 检测到二进制文件 — 编译后的可执行文件和二进制文件不应被提交"
 diff.binary_file_lfs_required:
   other: "{{.Path}}: 此二进制文件必须由 git LFS 追踪 — 在 `.gitattributes` 添加 `filter=lfs` 或运行 `git lfs track`"
+diff.protected_path_added:
+  other: "{{.Path}}: 不能向受保护路径添加文件"
+diff.protected_path_modified:
+  other: "{{.Path}}: 不能修改受保护路径中的文件"
+diff.protected_path_deleted:
+  other: "{{.Path}}: 不能删除受保护路径中的文件"
 diff.append_only_deleted:
   other: "{{.Path}}: append-only路径中不允许删除文件"
 diff.append_only_modified:
@@ -315,6 +321,8 @@ step.comment_language_check:
   other: "注释语言检查"
 step.custom_rules_check:
   other: "自定义规则检查"
+step.protected_paths_check:
+  other: "受保护路径检查"
 step.append_only_check:
   other: "append-only路径检查"
 step.cache_dir_check:
@@ -387,6 +395,8 @@ guide.cache_dir:
   other: "运行 'commit-checker clean' 清理缓存和构建产物，并将相应目录添加到 .gitignore。"
 guide.custom_rules:
   other: "请按照各规则消息的要求修改或删除相应的模式。"
+guide.protected_paths:
+  other: "请将受保护路径的更改从暂存区移除 (git restore --staged <文件>)。如果是有意更改，请调整配置中的 protected_paths.paths 模式。"
 guide.append_only:
   other: "撤销对 append-only 路径中现有内容的更改。新内容请追加到文件末尾，或放入名称排序在现有文件之后的新文件中。"
 guide.commit_message:

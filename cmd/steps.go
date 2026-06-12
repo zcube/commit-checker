@@ -84,6 +84,12 @@ var checkStepDefs = []checkStepDef{
 		diffFn:   checker.CheckDiffCustomRules,
 	},
 	{
+		// diff 전용: 보호 경로는 staged 변경(추가·수정·삭제)을 전부 차단
+		nameKey:  "step.protected_paths_check",
+		category: "protected_paths",
+		diffFn:   checker.CheckProtectedPaths,
+	},
+	{
 		// diff 전용: append-only 는 비교 기준(from) ↔ staged 비교가 필요
 		nameKey:  "step.append_only_check",
 		category: "append_only",

@@ -9,6 +9,12 @@ diff.binary_file_error:
   other: "{{.Path}}: binary file detected — compiled executables and binary files should not be committed"
 diff.binary_file_lfs_required:
   other: "{{.Path}}: this binary file must be tracked by git LFS — add `filter=lfs` to `.gitattributes` or run `git lfs track`"
+diff.protected_path_added:
+  other: "{{.Path}}: cannot add files to a protected path"
+diff.protected_path_modified:
+  other: "{{.Path}}: cannot modify files in a protected path"
+diff.protected_path_deleted:
+  other: "{{.Path}}: cannot delete files in a protected path"
 diff.append_only_deleted:
   other: "{{.Path}}: file deletion is not allowed in an append-only path"
 diff.append_only_modified:
@@ -317,6 +323,8 @@ step.comment_language_check:
   other: "Comment language check"
 step.custom_rules_check:
   other: "Custom rules check"
+step.protected_paths_check:
+  other: "Protected path check"
 step.append_only_check:
   other: "Append-only path check"
 step.cache_dir_check:
@@ -389,6 +397,8 @@ guide.cache_dir:
   other: "Run 'commit-checker clean' to remove cache/build artifacts and add those directories to .gitignore."
 guide.custom_rules:
   other: "Fix or remove the matched patterns as required by each rule's message."
+guide.protected_paths:
+  other: "Unstage the changes to protected paths (git restore --staged <file>). If the change is intentional, adjust the protected_paths.paths patterns in the config."
 guide.append_only:
   other: "Revert changes to existing content in append-only paths. Add new content at the end of the file, or in a new file whose name sorts after the existing files."
 guide.commit_message:
