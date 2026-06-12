@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
+	"os/exec"
+	"path"
 	"strings"
 	"unicode"
 
-	gogit "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/zcube/commit-checker/internal/config"
 	"github.com/zcube/commit-checker/internal/gitdiff"
 	"github.com/zcube/commit-checker/internal/i18n"
@@ -22,7 +20,7 @@ var errNotInFromTree = errors.New("file not in from tree")
 
 // CheckAppendOnly 는 스테이지된 diff 에서 append-only 경로 위반을 검사합니다.
 // diffs 는 gitdiff.GetStagedDiff 결과를 커맨드 레벨에서 1회 조회해 전달합니다.
-// go-git 으로 HEAD 내용과 staged 내용을 직접 비교합니다.
+// git CLI 로 HEAD 내용과 staged 내용을 직접 비교합니다.
 //
 // 허용:
 //   - 새 파일 추가 (filename_order 옵션 적용 시 이름 순서도 검사)
@@ -38,21 +36,14 @@ func CheckAppendOnly(ctx context.Context, cfg *config.Config, diffs []gitdiff.Fi
 		return nil, nil
 	}
 
-	repo, err := gogit.PlainOpenWithOptions(".", &gogit.PlainOpenOptions{DetectDotGit: true})
-	if err != nil {
-		return nil, err
-	}
-
 	// "from" tree 결정: spec.From 이 비어있으면 HEAD 사용.
 	spec := gitdiff.CurrentSpec()
 	fromRef := spec.From
 	if fromRef == "" {
 		fromRef = "HEAD"
 	}
-	tree, err := treeAt(repo, fromRef)
-	if err != nil {
-		return nil, err
-	}
+	// 빈 저장소이거나 ref 해석에 실패하면 빈 문자열 (비교 기준 없음 → 내용 검사 생략).
+	treeRef := resolveTreeRef(fromRef)
 
 	ignorePatterns := cfg.Exceptions.GlobalIgnore
 
@@ -78,14 +69,14 @@ func CheckAppendOnly(ctx context.Context, cfg *config.Config, diffs []gitdiff.Fi
 
 		if d.IsNew {
 			if cfg.AppendOnly.IsFilenameOrderNumeric() {
-				if msg := checkFilenameOrder(tree, d.Path, cfg.AppendOnly.Paths); msg != "" {
+				if msg := checkFilenameOrder(treeRef, d.Path, cfg.AppendOnly.Paths); msg != "" {
 					errs = append(errs, msg)
 				}
 			}
 			continue
 		}
 
-		violation, checkErr := checkFileContent(tree, d.Path)
+		violation, checkErr := checkFileContent(treeRef, d.Path)
 		if checkErr != nil {
 			// from tree 에 없는 파일(rename 등)은 비교 대상이 없으므로 건너뜀
 			if errors.Is(checkErr, errNotInFromTree) {
@@ -103,31 +94,56 @@ func CheckAppendOnly(ctx context.Context, cfg *config.Config, diffs []gitdiff.Fi
 	return errs, nil
 }
 
+// resolveTreeRef 는 ref 가 커밋으로 해석되면 ref 를 그대로 반환합니다.
+// HEAD 가 없는 빈 저장소이거나 ref 해석에 실패하면 "" 를 반환합니다.
+func resolveTreeRef(ref string) string {
+	if err := exec.Command("git", "rev-parse", "--verify", "--quiet", ref+"^{commit}").Run(); err != nil {
+		return ""
+	}
+	return ref
+}
+
+// listTreeFiles 는 treeRef 트리의 전체 파일 경로(저장소 루트 기준) 목록을 반환합니다.
+func listTreeFiles(treeRef string) []string {
+	// -r 은 블롭(파일)만 재귀 출력하므로 디렉터리 항목이 섞이지 않음.
+	out, err := exec.Command("git", "ls-tree", "-r", "--name-only", treeRef).Output()
+	if err != nil {
+		return nil
+	}
+	var files []string
+	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+		if line != "" {
+			files = append(files, line)
+		}
+	}
+	return files
+}
+
 // checkFilenameOrder 는 새 파일의 이름이 같은 디렉터리의 기존 파일보다 뒤에 오는지 검사합니다.
 // patterns 에 매칭되는 파일만 비교 대상으로 삼습니다.
 // 위반 시 i18n 처리된 에러 문자열을 반환합니다.
-func checkFilenameOrder(tree *object.Tree, newPath string, patterns []string) string {
-	if tree == nil {
+func checkFilenameOrder(treeRef, newPath string, patterns []string) string {
+	if treeRef == "" {
 		return ""
 	}
 
-	newDir := filepath.Dir(newPath)
-	newBase := filepath.Base(newPath)
+	// git 이 출력하는 경로는 항상 '/' 구분이므로 path 패키지로 처리.
+	newDir := path.Dir(newPath)
+	newBase := path.Base(newPath)
 
 	maxExisting := ""
-	_ = tree.Files().ForEach(func(f *object.File) error {
-		if filepath.Dir(f.Name) != newDir {
-			return nil
+	for _, name := range listTreeFiles(treeRef) {
+		if path.Dir(name) != newDir {
+			continue
 		}
-		if !pathutil.MatchesAny(f.Name, patterns) {
-			return nil
+		if !pathutil.MatchesAny(name, patterns) {
+			continue
 		}
-		base := filepath.Base(f.Name)
+		base := path.Base(name)
 		if maxExisting == "" || naturalLess(maxExisting, base) {
 			maxExisting = base
 		}
-		return nil
-	})
+	}
 
 	if maxExisting == "" {
 		return ""
@@ -136,44 +152,32 @@ func checkFilenameOrder(tree *object.Tree, newPath string, patterns []string) st
 	if !naturalLess(maxExisting, newBase) {
 		return i18n.T("diff.append_only_filename_order", map[string]any{
 			"Path":    newPath,
-			"MaxFile": filepath.Join(newDir, maxExisting),
+			"MaxFile": path.Join(newDir, maxExisting),
 		})
 	}
 	return ""
 }
 
-// treeAt 는 주어진 ref 의 커밋 트리를 반환합니다.
-// HEAD 가 없는 빈 저장소이거나 ref 해석에 실패하면 nil, nil 을 반환합니다.
-func treeAt(repo *gogit.Repository, ref string) (*object.Tree, error) {
-	hash, err := repo.ResolveRevision(plumbing.Revision(ref))
-	if err != nil {
-		return nil, nil
-	}
-	commit, err := repo.CommitObject(*hash)
-	if err != nil {
-		return nil, err
-	}
-	return commit.Tree()
-}
-
 // checkFileContent 는 HEAD 내용과 staged 내용을 비교하여 위반 i18n 키를 반환합니다.
 // 위반 없으면 "" 를 반환합니다.
-func checkFileContent(headTree *object.Tree, path string) (string, error) {
-	if headTree == nil {
+func checkFileContent(treeRef, filePath string) (string, error) {
+	if treeRef == "" {
 		return "", nil
 	}
 
-	headFile, err := headTree.File(path)
-	if err != nil {
+	// "<ref>:<경로>" 의 경로는 저장소 루트 기준 (cwd 무관).
+	objSpec := treeRef + ":" + filePath
+	if err := exec.Command("git", "cat-file", "-e", objSpec).Run(); err != nil {
 		return "", errNotInFromTree
 	}
 
-	headContent, err := headFile.Contents()
+	out, err := exec.Command("git", "cat-file", "blob", objSpec).Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("git cat-file %s: %w", objSpec, err)
 	}
+	headContent := string(out)
 
-	stagedContent, err := gitdiff.GetStagedContent(path)
+	stagedContent, err := gitdiff.GetStagedContent(filePath)
 	if err != nil {
 		return "", err
 	}
