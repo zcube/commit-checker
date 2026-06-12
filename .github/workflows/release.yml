@@ -83,6 +83,9 @@ jobs:
     name: GitHub Release
     needs: binaries
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # Release 생성 및 assets 업로드
+      id-token: write   # cosign keyless 서명 (Sigstore OIDC)
 
     steps:
       - uses: actions/checkout@v6
@@ -99,6 +102,16 @@ jobs:
       - name: SHA256 체크섬 생성
         working-directory: dist
         run: sha256sum * > checksums.txt
+
+      - name: cosign 설치
+        uses: sigstore/cosign-installer@v4
+
+      - name: 체크섬 keyless 서명 (Sigstore)
+        working-directory: dist
+        run: |
+          cosign sign-blob --yes checksums.txt \
+            --output-signature checksums.txt.sig \
+            --output-certificate checksums.txt.pem
 
       - name: 체인지로그 추출
         id: changelog
@@ -139,6 +152,20 @@ jobs:
             ### Docker
             ```bash
             docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ```
+
+            ## 무결성 검증
+
+            ```bash
+            # 체크섬 검증
+            sha256sum -c checksums.txt --ignore-missing
+
+            # Sigstore 서명 검증 (cosign 필요)
+            cosign verify-blob checksums.txt \
+              --signature checksums.txt.sig \
+              --certificate checksums.txt.pem \
+              --certificate-identity-regexp 'https://github.com/${{ github.repository }}/' \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com
             ```
           files: dist/*
           draft: false
