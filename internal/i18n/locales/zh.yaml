@@ -340,6 +340,8 @@ flag.migrate_dry_run:
   other: "预览更改而不修改文件"
 flag.no_guide:
   other: "禁用违规时的改进指南输出"
+flag.require_config:
+  other: "当项目配置文件不存在时静默跳过检查（用于全局钩子 opt-in 安装）"
 flag.only:
   other: "仅运行指定类别的检查 (逗号分隔; 即使在配置中禁用也会强制执行)"
 flag.only_invalid:

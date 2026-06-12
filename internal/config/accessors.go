@@ -10,6 +10,15 @@ import (
 	"github.com/zcube/commit-checker/internal/logger"
 )
 
+// IsEnabled: commit-checker 전체 활성화 여부 반환 (기본값: true).
+// false 이면 모든 훅 진입 커맨드(run/diff/msg/push)가 검사 없이 성공 종료합니다.
+func (c *Config) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
 // GetLocale 은 정규화된 언어 식별자를 반환합니다 (Locale > Language 순).
 func (r *FileLanguageRule) GetLocale() string {
 	if v := langdetect.NormalizeLocale(r.Locale); v != "" {

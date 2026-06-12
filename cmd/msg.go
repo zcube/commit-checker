@@ -16,9 +16,18 @@ var msgCmd = &cobra.Command{
 	Use:  "msg <commit-msg-file>",
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// --require-config: 프로젝트 설정 파일이 없으면 아무 출력 없이 성공 종료 (전역 opt-in 설치)
+		if requireConfigSkip() {
+			return nil
+		}
+
 		cfg, err := config.Load(configFile)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
+		}
+		// enabled: false — 리포 단위 opt-out: 모든 검사를 건너뛰고 성공 종료
+		if !cfg.IsEnabled() {
+			return nil
 		}
 
 		content, err := os.ReadFile(args[0])

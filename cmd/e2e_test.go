@@ -55,17 +55,39 @@ func moduleRootDir() string {
 
 type testRepo struct {
 	dir string
-	t   *testing.T
+	// home: 바이너리 실행 시 HOME 으로 사용하는 격리된 임시 디렉터리.
+	// 개발 머신의 전역 설정(legacy ~/.commit-checker.yml, XDG 경로)이
+	// e2e 결과에 영향을 주지 않도록 차단한다.
+	home string
+	t    *testing.T
 }
 
 func newTestRepo(t *testing.T) *testRepo {
 	t.Helper()
 	dir := t.TempDir()
-	r := &testRepo{dir: dir, t: t}
+	r := &testRepo{dir: dir, home: t.TempDir(), t: t}
 	r.git("init")
 	r.git("config", "user.email", "test@commit-checker.test")
 	r.git("config", "user.name", "E2E Test")
 	return r
+}
+
+// xdgConfigDir: 격리된 HOME 아래에서 XDG_CONFIG_HOME 으로 쓰는 경로.
+func (r *testRepo) xdgConfigDir() string {
+	return filepath.Join(r.home, "xdg-config")
+}
+
+// writeGlobalConfig: 격리된 XDG 경로($XDG_CONFIG_HOME/commit-checker/config.yml)에
+// 전역 설정 파일을 기록한다 (전역 설정 시나리오 테스트용).
+func (r *testRepo) writeGlobalConfig(content string) {
+	r.t.Helper()
+	path := filepath.Join(r.xdgConfigDir(), "commit-checker", "config.yml")
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		r.t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		r.t.Fatal(err)
+	}
 }
 
 func (r *testRepo) git(args ...string) string {
@@ -112,10 +134,17 @@ func (r *testRepo) writeConfig(content string) {
 
 // run executes the commit-checker binary in the repo directory.
 // Returns (stdout+stderr, exit_code).
+// HOME/XDG_CONFIG_HOME/COMMIT_CHECKER_GLOBAL_CONFIG 는 격리된 경로로 덮어써
+// 개발 머신의 전역 설정이 결과에 영향을 주지 않게 한다.
 func (r *testRepo) run(args ...string) (string, int) {
 	r.t.Helper()
 	cmd := exec.Command(binaryPath, args...)
 	cmd.Dir = r.dir
+	cmd.Env = append(os.Environ(),
+		"HOME="+r.home,
+		"XDG_CONFIG_HOME="+r.xdgConfigDir(),
+		"COMMIT_CHECKER_GLOBAL_CONFIG=",
+	)
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
@@ -808,4 +837,78 @@ func findStr(s, sub string) bool {
 		}
 	}
 	return false
+}
+
+// ---- 전역 설정 / opt-in / opt-out e2e 테스트 ---------------------------------
+
+// TestE2E_Diff_GlobalConfigXDG_NoProjectConfig: 프로젝트 설정이 없어도
+// XDG 경로($XDG_CONFIG_HOME/commit-checker/config.yml)의 전역 정책이 적용되는지 검증.
+func TestE2E_Diff_GlobalConfigXDG_NoProjectConfig(t *testing.T) {
+	r := newTestRepo(t)
+	// 전역 정책: 주석 언어를 english 로 요구
+	r.writeGlobalConfig("comment_language:\n  locale: en\n")
+	r.stage("main.go", `package main
+
+// 한국어 주석은 전역 영어 정책 위반입니다
+func main() {}
+`)
+	out, code := r.run("diff")
+	if code != 1 {
+		t.Errorf("전역(XDG) 영어 정책이 적용되어 exit 1 을 기대, got %d\noutput: %s", code, out)
+	}
+}
+
+// TestE2E_Diff_EnabledFalse_Exit0: 프로젝트 설정의 enabled: false 한 줄로
+// 모든 검사가 비활성화(opt-out)되어 위반이 있어도 성공 종료하는지 검증.
+func TestE2E_Diff_EnabledFalse_Exit0(t *testing.T) {
+	r := newTestRepo(t)
+	// 전역 정책이 있어도 리포 단위 opt-out 이 우선
+	r.writeGlobalConfig("comment_language:\n  locale: ko\n")
+	r.writeConfig("enabled: false\n")
+	r.stage("main.go", `package main
+
+// This comment is written in English only
+func main() {}
+`)
+	out, code := r.run("diff")
+	if code != 0 {
+		t.Errorf("enabled: false 이면 exit 0 을 기대, got %d\noutput: %s", code, out)
+	}
+	if out != "" {
+		t.Errorf("enabled: false 이면 아무 출력이 없어야 함: %q", out)
+	}
+}
+
+// TestE2E_Diff_RequireConfig_NoConfig_Exit0: --require-config 가 켜져 있고
+// 프로젝트 설정 파일이 없으면 아무 출력 없이 exit 0 (전역 opt-in 설치 시나리오).
+func TestE2E_Diff_RequireConfig_NoConfig_Exit0(t *testing.T) {
+	r := newTestRepo(t)
+	r.stage("main.go", `package main
+
+// This comment is written in English only
+func main() {}
+`)
+	out, code := r.run("diff", "--require-config")
+	if code != 0 {
+		t.Errorf("--require-config + 설정 없음이면 exit 0 을 기대, got %d\noutput: %s", code, out)
+	}
+	if out != "" {
+		t.Errorf("--require-config 건너뜀 시 아무 출력이 없어야 함: %q", out)
+	}
+}
+
+// TestE2E_Diff_RequireConfig_WithConfig_정상검사: --require-config 라도
+// 프로젝트 설정 파일이 있으면 정상적으로 검사를 수행.
+func TestE2E_Diff_RequireConfig_WithConfig_정상검사(t *testing.T) {
+	r := newTestRepo(t)
+	r.writeConfig("comment_language:\n  locale: ko\n")
+	r.stage("main.go", `package main
+
+// This comment is written in English only
+func main() {}
+`)
+	out, code := r.run("diff", "--require-config")
+	if code != 1 {
+		t.Errorf("설정 파일이 있으면 정상 검사로 exit 1 을 기대, got %d\noutput: %s", code, out)
+	}
 }

@@ -343,6 +343,8 @@ flag.migrate_dry_run:
   other: "ファイルを変更せずに変更内容をプレビュー"
 flag.no_guide:
   other: "違反時の改善ガイド出力を無効化"
+flag.require_config:
+  other: "プロジェクト設定ファイルがない場合は出力なしで検査をスキップ（グローバルフックの opt-in インストール用）"
 flag.only:
   other: "指定したカテゴリの検査のみ実行 (カンマ区切り; 設定で無効でも強制実行)"
 flag.only_invalid:

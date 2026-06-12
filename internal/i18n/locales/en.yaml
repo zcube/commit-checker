@@ -343,6 +343,8 @@ flag.migrate_dry_run:
   other: "preview changes without modifying the file"
 flag.no_guide:
   other: "disable the remediation guide output on violations"
+flag.require_config:
+  other: "skip checks silently when no project config file exists (for global hook opt-in installs)"
 flag.only:
   other: "run only the specified check categories, comma-separated (forces them on even if disabled in config)"
 flag.only_invalid:

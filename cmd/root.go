@@ -17,6 +17,7 @@ var configFile string
 var globalQuiet bool
 var globalNoColor bool
 var globalNoGuide bool
+var globalRequireConfig bool
 
 var rootCmd = &cobra.Command{
 	Use:          "commit-checker",
@@ -50,6 +51,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&globalQuiet, "quiet", "q", false, i18n.T("flag.quiet", nil))
 	rootCmd.PersistentFlags().BoolVar(&globalNoColor, "no-color", false, i18n.T("flag.no_color", nil))
 	rootCmd.PersistentFlags().BoolVar(&globalNoGuide, "no-guide", false, i18n.T("flag.no_guide", nil))
+	rootCmd.PersistentFlags().BoolVar(&globalRequireConfig, "require-config", false, i18n.T("flag.require_config", nil))
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		logger.SetQuiet(globalQuiet)
 		if globalNoColor {
@@ -57,4 +59,15 @@ func init() {
 		}
 		return nil
 	}
+}
+
+// requireConfigSkip: --require-config 가 켜져 있고 프로젝트 설정 파일(configFile)이
+// 존재하지 않으면 true 를 반환합니다. 훅 진입 커맨드(run/diff/msg/push)는 이 경우
+// 아무 출력 없이 성공 종료하여, 전역 훅 설치 시 설정 파일이 있는 리포만 검사(opt-in)합니다.
+func requireConfigSkip() bool {
+	if !globalRequireConfig {
+		return false
+	}
+	_, err := os.Stat(configFile)
+	return err != nil
 }

@@ -10,6 +10,16 @@ import (
 	"github.com/zcube/commit-checker/internal/config"
 )
 
+// setGlobalHome: HOME 을 tmpHome 으로 바꾸고, 상위 우선순위 전역 경로
+// (COMMIT_CHECKER_GLOBAL_CONFIG, XDG_CONFIG_HOME)는 빈 임시 경로로 격리하여
+// legacy 경로(~/.commit-checker.yml)의 전역 설정만 보이도록 한다.
+func setGlobalHome(t *testing.T, tmpHome string) {
+	t.Helper()
+	t.Setenv("HOME", tmpHome)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpHome, "xdg-empty"))
+	t.Setenv("COMMIT_CHECKER_GLOBAL_CONFIG", "")
+}
+
 func writeConfig(t *testing.T, content string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -579,7 +589,7 @@ comment_language:
 	); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("HOME", tmpHome)
+	setGlobalHome(t, tmpHome)
 
 	cfg, err := config.Load(path)
 	if err != nil {
@@ -620,7 +630,7 @@ custom_rules:
 	); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("HOME", tmpHome)
+	setGlobalHome(t, tmpHome)
 
 	cfg, err := config.Load(path)
 	if err != nil {
@@ -809,7 +819,7 @@ func TestLoad_Preset_OverridesGlobal(t *testing.T) {
 	if err := os.WriteFile(globalCfg, []byte("comment_language:\n  required_language: japanese\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("HOME", tmpHome)
+	setGlobalHome(t, tmpHome)
 
 	path := writeConfig(t, `
 preset:
@@ -838,7 +848,7 @@ func TestLoad_Preset_ThreeWayPriority(t *testing.T) {
 	if err := os.WriteFile(globalCfg, []byte("comment_language:\n  min_length: 1\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("HOME", tmpHome)
+	setGlobalHome(t, tmpHome)
 
 	path := writeConfig(t, `
 preset:

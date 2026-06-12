@@ -7,6 +7,9 @@ package config
 func mergeConfigs(global, project *Config) Config {
 	result := *project
 
+	// 최상위 enabled 병합: 프로젝트 값이 우선 (리포 단위 opt-out)
+	mergeBoolPtr(&result.Enabled, global.Enabled)
+
 	// 주석 언어 검사 설정 병합
 	mergeBoolPtr(&result.CommentLanguage.Enabled, global.CommentLanguage.Enabled)
 	mergeBoolPtr(&result.CommentLanguage.NoEmoji, global.CommentLanguage.NoEmoji)

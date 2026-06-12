@@ -11,10 +11,14 @@ import (
 	"testing"
 )
 
-// isolateHome: HOME 을 임시 디렉터리로 바꿔 전역 설정(~/.commit-checker.yml)의 영향을 차단.
+// isolateHome: HOME/XDG_CONFIG_HOME/COMMIT_CHECKER_GLOBAL_CONFIG 를 임시 값으로 바꿔
+// 전역 설정(legacy ~/.commit-checker.yml, XDG 경로, 환경 변수 경로)의 영향을 차단.
 func isolateHome(t *testing.T) {
 	t.Helper()
-	t.Setenv("HOME", t.TempDir())
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmp, "xdg-config"))
+	t.Setenv("COMMIT_CHECKER_GLOBAL_CONFIG", "")
 }
 
 // setConfigFile: 패키지 전역 configFile 을 설정하고 테스트 종료 시 복원.
