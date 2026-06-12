@@ -249,6 +249,9 @@ cache_dir:
   enabled: true                # 默认启用
   # ignore_dirs:
   #   - vendor                 # 有意提交 vendor 目录的 Go 项目等
+
+# guide:
+#   enabled: false             # 禁用违规时的改进指南输出（默认启用）
 ```
 
 没有配置文件时将应用默认值。
@@ -447,6 +450,28 @@ comment_language:
 | `commit-checker:file-lang=<L>` | 将整个文件的所需语言设为L |
 
 `<L>` 的取值: `korean` `english` `japanese` `chinese` `any`（或 `ko` `en` `ja` `zh`）
+
+### 改进指南
+
+检查失败时，会在违规列表和摘要行之后，按**失败的类别**各输出一次修复指南。
+指南是 AI 代理读取输出后可立即执行的命令式修复指示:
+
+```
+config/bad.json:3: invalid character '}' looking for beginning of value
+
+改进指南（AI 代理：请按照以下说明修复上述违规项）：
+  [lint] 修复报告的文件:行中的语法错误。需要注释的 JSON 文件请考虑使用 .jsonc 扩展名或设置 lint.json.comment_filter: true。
+```
+
+默认启用，可通过配置关闭:
+
+```yaml
+guide:
+  enabled: false
+```
+
+使用全局标志 `--no-guide` 可不受配置影响直接禁用。
+`--format json` 的输出中会以 `"guides": {"<category>": "<text>"}` 字段包含指南，禁用时该字段会被省略。
 
 ## 命令
 

@@ -249,6 +249,9 @@ cache_dir:
   enabled: true                # 기본 활성화
   # ignore_dirs:
   #   - vendor                 # vendor 디렉터리를 의도적으로 커밋하는 Go 프로젝트 등
+
+# guide:
+#   enabled: false             # 위반 시 개선 가이드 출력 비활성화 (기본 활성)
 ```
 
 설정 파일이 없으면 기본값이 적용됩니다.
@@ -447,6 +450,28 @@ comment_language:
 | `commit-checker:file-lang=<L>` | 파일 전체의 필요 언어를 L로 설정 |
 
 `<L>` 값: `korean` `english` `japanese` `chinese` `any` (또는 `ko` `en` `ja` `zh`)
+
+### 개선 가이드
+
+검사 실패 시 위반 목록과 요약 줄 뒤에 **실패한 카테고리별 수정 가이드**를 카테고리당 1회 출력합니다.
+가이드는 AI 에이전트가 출력을 읽고 바로 실행할 수 있는 명령형 수정 지시입니다:
+
+```
+config/bad.json:3: invalid character '}' looking for beginning of value
+
+개선 가이드 (AI 에이전트: 아래 지시에 따라 위 위반 사항을 수정하세요):
+  [lint] 보고된 파일:라인의 구문 오류를 수정하세요. 주석이 필요한 JSON 파일은 .jsonc 확장자 사용 또는 lint.json.comment_filter: true 설정을 고려하세요.
+```
+
+기본 활성화되어 있으며 설정으로 끌 수 있습니다:
+
+```yaml
+guide:
+  enabled: false
+```
+
+전역 플래그 `--no-guide` 를 사용하면 설정과 무관하게 비활성화됩니다.
+`--format json` 출력에는 `"guides": {"<category>": "<text>"}` 필드로 포함되며, 비활성화 시 필드가 생략됩니다.
 
 ## 커맨드
 

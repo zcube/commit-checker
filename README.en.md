@@ -250,6 +250,9 @@ cache_dir:
   enabled: true                # enabled by default
   # ignore_dirs:
   #   - vendor                 # e.g. Go projects that intentionally commit vendor
+
+# guide:
+#   enabled: false             # disable the remediation guide output on violations (enabled by default)
 ```
 
 Defaults apply when the config file is absent.
@@ -449,6 +452,28 @@ Supported directives:
 | `commit-checker:file-lang=<L>` | Set required language for the entire file |
 
 `<L>` values: `korean` `english` `japanese` `chinese` `any` (or `ko` `en` `ja` `zh`)
+
+### Remediation guide
+
+When a check fails, a **per-category fix guide** is printed once per failed category, after the violation list and the summary line.
+The guides are imperative fix instructions that AI agents can read from the output and act on immediately:
+
+```
+config/bad.json:3: invalid character '}' looking for beginning of value
+
+Remediation guide (AI agents: follow the instructions below to fix the violations above):
+  [lint] Fix the syntax errors at the reported file:line locations. For JSON files that need comments, consider using the .jsonc extension or setting lint.json.comment_filter: true.
+```
+
+Enabled by default; it can be turned off in the config:
+
+```yaml
+guide:
+  enabled: false
+```
+
+The global `--no-guide` flag disables it regardless of the config.
+With `--format json`, the guides are included as a `"guides": {"<category>": "<text>"}` field, which is omitted when disabled.
 
 ## Commands
 
