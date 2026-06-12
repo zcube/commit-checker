@@ -28,7 +28,7 @@ func TestCheckBinaryFiles_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.BinaryFile.Enabled = &f
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestCheckBinaryFiles_DetectsBinary(t *testing.T) {
 	writeBinaryFile(t, dir, "app.exe")
 	gitMust(t, dir, "git", "add", "app.exe")
 
-	errs, err := checker.CheckBinaryFiles(binaryCheckConfig())
+	errs, err := checker.CheckBinaryFiles(t.Context(), binaryCheckConfig())
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestCheckBinaryFiles_TextFilePass(t *testing.T) {
 	writeFile(t, dir, "readme.txt", "this is a text file\n")
 	gitMust(t, dir, "git", "add", "readme.txt")
 
-	errs, err := checker.CheckBinaryFiles(binaryCheckConfig())
+	errs, err := checker.CheckBinaryFiles(t.Context(), binaryCheckConfig())
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestCheckBinaryFiles_IgnoreFiles(t *testing.T) {
 	cfg := binaryCheckConfig()
 	cfg.BinaryFile.IgnoreFiles = []string{"**/*.png"}
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestCheckBinaryFiles_GlobalIgnore(t *testing.T) {
 	cfg := binaryCheckConfig()
 	cfg.Exceptions.GlobalIgnore = []string{"vendor/**"}
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestCheckBinaryFiles_MultipleBinaries(t *testing.T) {
 	writeBinaryFile(t, dir, "bin/client")
 	gitMust(t, dir, "git", "add", "bin/")
 
-	errs, err := checker.CheckBinaryFiles(binaryCheckConfig())
+	errs, err := checker.CheckBinaryFiles(t.Context(), binaryCheckConfig())
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestCheckBinaryFiles_MixedIgnore(t *testing.T) {
 	cfg := binaryCheckConfig()
 	cfg.BinaryFile.IgnoreFiles = []string{"**/*.png"}
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestCheckBinaryFiles_DefaultEnabled(t *testing.T) {
 
 	cfg := &config.Config{} // Enabled is nil, default should be true
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -185,7 +185,7 @@ func writeBinaryFile(t *testing.T, dir, relPath string) {
 func TestCheckBinaryFiles_NoStagedChanges(t *testing.T) {
 	_ = newGitRepo(t)
 
-	errs, err := checker.CheckBinaryFiles(binaryCheckConfig())
+	errs, err := checker.CheckBinaryFiles(t.Context(), binaryCheckConfig())
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestCheckBinaryFiles_ImageDefaultAllow(t *testing.T) {
 	}
 	gitMust(t, dir, "git", "add", "photo.png")
 
-	errs, err := checker.CheckBinaryFiles(binaryCheckConfig())
+	errs, err := checker.CheckBinaryFiles(t.Context(), binaryCheckConfig())
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestCheckBinaryFiles_ImageRuleBlock(t *testing.T) {
 		{Extensions: []string{".png"}, Policy: "block"},
 	}
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -304,7 +304,7 @@ func TestCheckBinaryFiles_LfsPolicy_NotTracked(t *testing.T) {
 	defer func() { _ = os.Chdir(cwd) }()
 	_ = os.Chdir(dir)
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -339,7 +339,7 @@ func TestCheckBinaryFiles_LfsPolicy_Tracked(t *testing.T) {
 	defer func() { _ = os.Chdir(cwd) }()
 	_ = os.Chdir(dir)
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -357,7 +357,7 @@ func TestCheckBinaryFiles_DefaultPolicyAllow(t *testing.T) {
 	cfg := binaryCheckConfig()
 	cfg.BinaryFile.DefaultPolicy = "allow"
 
-	errs, err := checker.CheckBinaryFiles(cfg)
+	errs, err := checker.CheckBinaryFiles(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}
@@ -380,7 +380,7 @@ func TestCheckBinaryFiles_DeletedBinaryIgnored(t *testing.T) {
 	cmd.Dir = dir
 	_ = cmd.Run()
 
-	errs, err := checker.CheckBinaryFiles(binaryCheckConfig())
+	errs, err := checker.CheckBinaryFiles(t.Context(), binaryCheckConfig())
 	if err != nil {
 		t.Fatalf("CheckBinaryFiles error: %v", err)
 	}

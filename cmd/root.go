@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
@@ -21,7 +23,11 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	if err := fang.Execute(context.Background(), rootCmd,
+	// SIGINT(Ctrl-C)/SIGTERM 시 진행 중인 검사를 취소할 수 있도록 시그널 연동 context 생성
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := fang.Execute(ctx, rootCmd,
 		fang.WithVersion(version.Version),
 		fang.WithCommit(version.Commit),
 	); err != nil {

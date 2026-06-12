@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -32,18 +33,18 @@ var diffCmd = &cobra.Command{
 		}
 
 		steps := []progress.Step{
-			{Name: i18n.T("step.binary_detection", nil), Category: "binary", Fn: func() ([]string, error) { return checker.CheckBinaryFiles(cfg) }},
-			{Name: i18n.T("step.encoding_check", nil), Category: "encoding", Fn: func() ([]string, error) { return checker.CheckEncoding(cfg) }},
-			{Name: i18n.T("step.unicode_check", nil), Category: "unicode", Fn: func() ([]string, error) { return checker.CheckUnicode(cfg) }},
-			{Name: i18n.T("step.lint_check", nil), Category: "lint", Fn: func() ([]string, error) { return checker.CheckLint(cfg) }},
-			{Name: i18n.T("step.editorconfig_check", nil), Category: "editorconfig", Fn: func() ([]string, error) { return checker.CheckEditorConfig(cfg) }},
-			{Name: i18n.T("step.comment_language_check", nil), Category: "comment_language", Fn: func() ([]string, error) { return checker.CheckDiff(cfg) }},
-			{Name: i18n.T("step.custom_rules_check", nil), Category: "custom_rules", Fn: func() ([]string, error) { return checker.CheckDiffCustomRules(cfg) }},
-			{Name: i18n.T("step.append_only_check", nil), Category: "append_only", Fn: func() ([]string, error) { return checker.CheckAppendOnly(cfg) }},
-			{Name: i18n.T("step.cache_dir_check", nil), Category: "cache_dir", Fn: func() ([]string, error) { return checker.CheckCacheDirStaged(cfg) }},
+			{Name: i18n.T("step.binary_detection", nil), Category: "binary", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckBinaryFiles(ctx, cfg) }},
+			{Name: i18n.T("step.encoding_check", nil), Category: "encoding", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckEncoding(ctx, cfg) }},
+			{Name: i18n.T("step.unicode_check", nil), Category: "unicode", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckUnicode(ctx, cfg) }},
+			{Name: i18n.T("step.lint_check", nil), Category: "lint", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckLint(ctx, cfg) }},
+			{Name: i18n.T("step.editorconfig_check", nil), Category: "editorconfig", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckEditorConfig(ctx, cfg) }},
+			{Name: i18n.T("step.comment_language_check", nil), Category: "comment_language", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckDiff(ctx, cfg) }},
+			{Name: i18n.T("step.custom_rules_check", nil), Category: "custom_rules", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckDiffCustomRules(ctx, cfg) }},
+			{Name: i18n.T("step.append_only_check", nil), Category: "append_only", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckAppendOnly(ctx, cfg) }},
+			{Name: i18n.T("step.cache_dir_check", nil), Category: "cache_dir", Fn: func(ctx context.Context) ([]string, error) { return checker.CheckCacheDirStaged(ctx, cfg) }},
 		}
 
-		return runStepsAndReport(steps, diffFormat)
+		return runStepsAndReport(cmd.Context(), steps, diffFormat)
 	},
 }
 

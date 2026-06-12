@@ -17,7 +17,7 @@ func TestCheckDiffCustomRules_NoRules(t *testing.T) {
 	stageFile(t, dir, "main.go", "package main\n\nfunc main() {}\n")
 
 	cfg := &config.Config{}
-	errs, err := checker.CheckDiffCustomRules(cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestCheckDiffCustomRules_ForbiddenPattern_Detected(t *testing.T) {
 		{Name: "no-todo", Pattern: `TODO`, Message: "TODO를 제거하세요"},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestCheckDiffCustomRules_ForbiddenPattern_NoMatch(t *testing.T) {
 		{Name: "no-todo", Pattern: `TODO`, Message: "TODO를 제거하세요"},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestCheckDiffCustomRules_RequiredRulesSkipped(t *testing.T) {
 		{Name: "must-have", Pattern: `TICKET-\d+`, Required: true},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestCheckDiffCustomRules_GlobalIgnore(t *testing.T) {
 	}
 	cfg.Exceptions.GlobalIgnore = []string{"vendor/**"}
 
-	errs, err := checker.CheckDiffCustomRules(cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestCheckDiffCustomRules_InvalidRegexSkipped(t *testing.T) {
 		{Name: "bad-regex", Pattern: `[invalid`},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestCheckDiffCustomRules_EmptyPatternSkipped(t *testing.T) {
 		{Name: "empty-pattern", Pattern: ""},
 	}
 
-	errs, err := checker.CheckDiffCustomRules(cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestCheckDiffCustomRules_DefaultMessage(t *testing.T) {
 		{Name: "no-fixme", Pattern: `FIXME`}, // 메시지 없음
 	}
 
-	errs, err := checker.CheckDiffCustomRules(cfg)
+	errs, err := checker.CheckDiffCustomRules(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestCheckEditorConfig_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.EditorConfig.Enabled = falsePtr()
 
-	errs, err := checker.CheckEditorConfig(cfg)
+	errs, err := checker.CheckEditorConfig(t.Context(), cfg)
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when disabled, got errs=%v err=%v", errs, err)
 	}
@@ -177,7 +177,7 @@ func TestCheckEditorConfig_NoEditorconfig(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.EditorConfig.Enabled = truePtr()
 
-	errs, err := checker.CheckEditorConfig(cfg)
+	errs, err := checker.CheckEditorConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestCheckEditorConfig_NoViolations(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.EditorConfig.Enabled = truePtr()
 
-	errs, err := checker.CheckEditorConfig(cfg)
+	errs, err := checker.CheckEditorConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestCheckEditorConfig_MissingFinalNewline(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.EditorConfig.Enabled = truePtr()
 
-	errs, err := checker.CheckEditorConfig(cfg)
+	errs, err := checker.CheckEditorConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -235,7 +235,7 @@ func TestCheckEditorConfig_TrailingWhitespace(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.EditorConfig.Enabled = truePtr()
 
-	errs, err := checker.CheckEditorConfig(cfg)
+	errs, err := checker.CheckEditorConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -255,7 +255,7 @@ func TestCheckEditorConfig_GlobalIgnore(t *testing.T) {
 	cfg.EditorConfig.Enabled = truePtr()
 	cfg.Exceptions.GlobalIgnore = []string{"vendor/**"}
 
-	errs, err := checker.CheckEditorConfig(cfg)
+	errs, err := checker.CheckEditorConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -275,7 +275,7 @@ func TestCheckEditorConfig_IgnoreFiles(t *testing.T) {
 	cfg.EditorConfig.Enabled = truePtr()
 	cfg.EditorConfig.IgnoreFiles = []string{"generated/**"}
 
-	errs, err := checker.CheckEditorConfig(cfg)
+	errs, err := checker.CheckEditorConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -290,7 +290,7 @@ func TestCheckUnicode_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Encoding.Enabled = falsePtr()
 
-	errs, err := checker.CheckUnicode(cfg)
+	errs, err := checker.CheckUnicode(t.Context(), cfg)
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when disabled, got errs=%v err=%v", errs, err)
 	}
@@ -302,7 +302,7 @@ func TestCheckUnicode_BothChecksDisabled(t *testing.T) {
 	cfg.Encoding.NoInvisibleChars = falsePtr()
 	cfg.Encoding.NoAmbiguousChars = falsePtr()
 
-	errs, err := checker.CheckUnicode(cfg)
+	errs, err := checker.CheckUnicode(t.Context(), cfg)
 	if err != nil || len(errs) != 0 {
 		t.Errorf("expected nil when both checks disabled, got errs=%v err=%v", errs, err)
 	}
@@ -318,7 +318,7 @@ func TestCheckUnicode_CleanFile(t *testing.T) {
 	cfg.Encoding.NoAmbiguousChars = truePtr()
 	cfg.Encoding.Locale = "ko"
 
-	errs, err := checker.CheckUnicode(cfg)
+	errs, err := checker.CheckUnicode(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -336,7 +336,7 @@ func TestCheckUnicode_InvisibleChar_Detected(t *testing.T) {
 	cfg.Encoding.Enabled = truePtr()
 	cfg.Encoding.NoInvisibleChars = truePtr()
 
-	errs, err := checker.CheckUnicode(cfg)
+	errs, err := checker.CheckUnicode(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -354,7 +354,7 @@ func TestCheckUnicode_GlobalIgnore(t *testing.T) {
 	cfg.Encoding.NoInvisibleChars = truePtr()
 	cfg.Exceptions.GlobalIgnore = []string{"vendor/**"}
 
-	errs, err := checker.CheckUnicode(cfg)
+	errs, err := checker.CheckUnicode(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -372,7 +372,7 @@ func TestCheckUnicode_IgnoreFiles(t *testing.T) {
 	cfg.Encoding.NoInvisibleChars = truePtr()
 	cfg.Encoding.IgnoreFiles = []string{"generated/**"}
 
-	errs, err := checker.CheckUnicode(cfg)
+	errs, err := checker.CheckUnicode(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -14,7 +15,7 @@ import (
 )
 
 // CheckUnicode: 스테이지된 파일에서 비가시/모호한 유니코드 문자를 검사.
-func CheckUnicode(cfg *config.Config) ([]string, error) {
+func CheckUnicode(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.Encoding.IsEnabled() {
 		return nil, nil
 	}
@@ -27,13 +28,13 @@ func CheckUnicode(cfg *config.Config) ([]string, error) {
 		return nil, err
 	}
 
-	return checkUnicodeFiles(cfg, files, func(path string) (string, error) {
+	return checkUnicodeFiles(ctx, cfg, files, func(path string) (string, error) {
 		return gitdiff.GetStagedContent(path)
 	})
 }
 
 // RunUnicode: 추적된 모든 파일에서 비가시/모호한 유니코드 문자를 검사.
-func RunUnicode(cfg *config.Config) ([]string, error) {
+func RunUnicode(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.Encoding.IsEnabled() {
 		return nil, nil
 	}
@@ -46,7 +47,7 @@ func RunUnicode(cfg *config.Config) ([]string, error) {
 		return nil, err
 	}
 
-	return checkUnicodeFiles(cfg, files, func(path string) (string, error) {
+	return checkUnicodeFiles(ctx, cfg, files, func(path string) (string, error) {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return "", err
@@ -55,7 +56,7 @@ func RunUnicode(cfg *config.Config) ([]string, error) {
 	})
 }
 
-func checkUnicodeFiles(cfg *config.Config, files []string, readContent func(string) (string, error)) ([]string, error) {
+func checkUnicodeFiles(ctx context.Context, cfg *config.Config, files []string, readContent func(string) (string, error)) ([]string, error) {
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore, cfg.Encoding.IgnoreFiles...)
 	checkInvisible := cfg.Encoding.IsNoInvisibleChars()
 	checkAmbiguous := cfg.Encoding.IsNoAmbiguousChars()
@@ -67,6 +68,10 @@ func checkUnicodeFiles(cfg *config.Config, files []string, readContent func(stri
 
 	var errs []string
 	for _, path := range files {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			continue
 		}

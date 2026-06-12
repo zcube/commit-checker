@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -31,7 +32,7 @@ var errNotInFromTree = errors.New("file not in from tree")
 //   - 기존 줄 수정·삭제
 //   - 파일 중간에 내용 삽입
 //   - filename_order=numeric: 기존 파일보다 앞에 오는 이름의 파일 추가
-func CheckAppendOnly(cfg *config.Config) ([]string, error) {
+func CheckAppendOnly(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.AppendOnly.IsEnabled() {
 		return nil, nil
 	}
@@ -61,6 +62,10 @@ func CheckAppendOnly(cfg *config.Config) ([]string, error) {
 
 	var errs []string
 	for _, d := range diffs {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if !pathutil.MatchesAny(d.Path, cfg.AppendOnly.Paths) {
 			continue
 		}

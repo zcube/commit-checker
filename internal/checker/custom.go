@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -54,7 +55,7 @@ func CheckMsgCustomRules(content string, rules []config.CustomRule) []string {
 
 // CheckDiffCustomRules: 스테이지된 diff의 추가된 줄에 커스텀 정규식 규칙을 적용합니다.
 // forbidden 규칙만 지원하며, 추가된 줄에서 패턴을 찾으면 오류를 반환합니다.
-func CheckDiffCustomRules(cfg *config.Config) ([]string, error) {
+func CheckDiffCustomRules(ctx context.Context, cfg *config.Config) ([]string, error) {
 	rules := cfg.CustomRules.Diff
 	if len(rules) == 0 {
 		return nil, nil
@@ -88,6 +89,10 @@ func CheckDiffCustomRules(cfg *config.Config) ([]string, error) {
 
 	var errs []string
 	for _, diff := range diffs {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if diff.IsDeleted {
 			continue
 		}

@@ -37,7 +37,7 @@ func main() {
 	cfg := checkStringsConfig()
 	cfg.CommentLanguage.CheckStrings = &f
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -56,7 +56,7 @@ func main() {
 	_ = msg
 }
 `)
-	errs, err := checker.CheckDiff(checkStringsConfig())
+	errs, err := checker.CheckDiff(t.Context(), checkStringsConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -75,7 +75,7 @@ func main() {
 	_ = msg
 }
 `)
-	errs, err := checker.CheckDiff(checkStringsConfig())
+	errs, err := checker.CheckDiff(t.Context(), checkStringsConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestCheckStrings_Python_EnglishString_NoLangError(t *testing.T) {
     msg = "Welcome to the application system"
     return msg
 `)
-	errs, err := checker.CheckDiff(checkStringsConfig())
+	errs, err := checker.CheckDiff(t.Context(), checkStringsConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestCheckStrings_TypeScript_EnglishString_NoLangError(t *testing.T) {
 	stageFile(t, dir, "service.ts", `const msg = "This English message will be shown to users";
 export { msg };
 `)
-	errs, err := checker.CheckDiff(checkStringsConfig())
+	errs, err := checker.CheckDiff(t.Context(), checkStringsConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -125,7 +125,7 @@ func main() {
 	_ = code
 }
 `)
-	errs, err := checker.CheckDiff(checkStringsConfig())
+	errs, err := checker.CheckDiff(t.Context(), checkStringsConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}

@@ -22,7 +22,7 @@ func TestCheckLint_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Lint.Enabled = &f
 
-	errs, err := checker.CheckLint(cfg)
+	errs, err := checker.CheckLint(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestCheckLint_ValidYAML(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "config.yaml", "key: value\nlist:\n  - item1\n")
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestCheckLint_InvalidYAML(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "bad.yaml", "key: [invalid: yaml: here")
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestCheckLint_ValidJSON(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "config.json", `{"key": "value"}`)
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestCheckLint_InvalidJSON(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "bad.json", `{key: value}`)
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestCheckLint_JSON5Allowed(t *testing.T) {
 	tr := true
 	cfg.Lint.JSON.AllowJSON5 = &tr
 
-	errs, err := checker.CheckLint(cfg)
+	errs, err := checker.CheckLint(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestCheckLint_JSON5Disallowed(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "config.json", "{\n// comment\n\"key\": \"value\"\n}")
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestCheckLint_JSONC_WithComments(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "config.jsonc", "{\n// comment\n\"key\": \"value\"\n}")
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestCheckLint_JSONC_TrailingComma(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "config.jsonc", "{\n// comment\n\"key\": \"value\",\n}")
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestCheckLint_JSONC_Invalid(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "bad.jsonc", `{key: value}`)
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestCheckLint_JSONCommentFilter(t *testing.T) {
 	tr := true
 	cfg.Lint.JSON.CommentFilter = &tr
 
-	errs, err := checker.CheckLint(cfg)
+	errs, err := checker.CheckLint(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestCheckLint_JSONCommentFilter_TrailingCommaRejected(t *testing.T) {
 	tr := true
 	cfg.Lint.JSON.CommentFilter = &tr
 
-	errs, err := checker.CheckLint(cfg)
+	errs, err := checker.CheckLint(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestCheckLint_YAMLCommentFilter_SkipLint(t *testing.T) {
 	tr := true
 	cfg.Lint.YAML.CommentFilter = &tr
 
-	errs, err := checker.CheckLint(cfg)
+	errs, err := checker.CheckLint(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -220,7 +220,7 @@ func TestCheckLint_ValidXML(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "config.xml", `<?xml version="1.0"?><root><item>value</item></root>`)
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestCheckLint_InvalidXML(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "bad.xml", `<root><unclosed>`)
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -251,7 +251,7 @@ func TestCheckLint_IgnoreFiles(t *testing.T) {
 	cfg := lintConfig()
 	cfg.Lint.JSON.IgnoreFiles = []string{"generated.json"}
 
-	errs, err := checker.CheckLint(cfg)
+	errs, err := checker.CheckLint(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestCheckLint_YAMLDisabled(t *testing.T) {
 	f := false
 	cfg.Lint.YAML.Enabled = &f
 
-	errs, err := checker.CheckLint(cfg)
+	errs, err := checker.CheckLint(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}
@@ -282,7 +282,7 @@ func TestCheckLint_YAMLDisabled(t *testing.T) {
 func TestCheckLint_NoStagedChanges(t *testing.T) {
 	_ = newGitRepo(t)
 
-	errs, err := checker.CheckLint(lintConfig())
+	errs, err := checker.CheckLint(t.Context(), lintConfig())
 	if err != nil {
 		t.Fatalf("CheckLint error: %v", err)
 	}

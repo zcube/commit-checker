@@ -22,7 +22,7 @@ func TestCheckEncoding_ValidUTF8(t *testing.T) {
 	dir := newGitRepo(t)
 	stageFile(t, dir, "main.go", "package main\n\n// 한국어 주석\nfunc main() {}\n")
 
-	errs, err := checker.CheckEncoding(encodingConfig())
+	errs, err := checker.CheckEncoding(t.Context(), encodingConfig())
 	if err != nil {
 		t.Fatalf("CheckEncoding error: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestCheckEncoding_InvalidUTF8(t *testing.T) {
 	}
 	gitMust(t, dir, "git", "add", "legacy.txt")
 
-	errs, err := checker.CheckEncoding(encodingConfig())
+	errs, err := checker.CheckEncoding(t.Context(), encodingConfig())
 	if err != nil {
 		t.Fatalf("CheckEncoding error: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestCheckEncoding_Disabled(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Encoding.Enabled = &f
 
-	errs, err := checker.CheckEncoding(cfg)
+	errs, err := checker.CheckEncoding(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckEncoding error: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestCheckEncoding_IgnoreFiles(t *testing.T) {
 	cfg := encodingConfig()
 	cfg.Encoding.IgnoreFiles = []string{"legacy.txt"}
 
-	errs, err := checker.CheckEncoding(cfg)
+	errs, err := checker.CheckEncoding(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckEncoding error: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestCheckEncoding_BinarySkipped(t *testing.T) {
 	writeBinaryFile(t, dir, "app.exe")
 	gitMust(t, dir, "git", "add", "app.exe")
 
-	errs, err := checker.CheckEncoding(encodingConfig())
+	errs, err := checker.CheckEncoding(t.Context(), encodingConfig())
 	if err != nil {
 		t.Fatalf("CheckEncoding error: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestCheckEncoding_BinarySkipped(t *testing.T) {
 func TestCheckEncoding_NoStagedChanges(t *testing.T) {
 	_ = newGitRepo(t)
 
-	errs, err := checker.CheckEncoding(encodingConfig())
+	errs, err := checker.CheckEncoding(t.Context(), encodingConfig())
 	if err != nil {
 		t.Fatalf("CheckEncoding error: %v", err)
 	}

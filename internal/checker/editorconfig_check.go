@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"os"
 
 	"github.com/zcube/commit-checker/internal/config"
@@ -12,7 +13,7 @@ import (
 
 // CheckEditorConfig: 스테이지된 파일을 .editorconfig 규칙에 따라 검증.
 // editorconfig-core-go/v2 패키지를 사용하여 정확한 규칙 매칭을 수행.
-func CheckEditorConfig(cfg *config.Config) ([]string, error) {
+func CheckEditorConfig(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.EditorConfig.IsEnabled() {
 		return nil, nil
 	}
@@ -29,6 +30,10 @@ func CheckEditorConfig(cfg *config.Config) ([]string, error) {
 
 	var errs []string
 	for _, path := range files {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if pathutil.MatchesAny(path, cfg.Exceptions.GlobalIgnore) {
 			continue
 		}

@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -17,7 +18,7 @@ import (
 
 // CheckDiff 는 스테이지된 diff 에서 주석 언어 위반을 검사합니다.
 // 사람이 읽을 수 있는 오류 문자열 목록을 반환합니다 (빈 목록 = 위반 없음).
-func CheckDiff(cfg *config.Config) ([]string, error) {
+func CheckDiff(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.CommentLanguage.IsEnabled() {
 		return nil, nil
 	}
@@ -48,6 +49,10 @@ func CheckDiff(cfg *config.Config) ([]string, error) {
 	var errs []string
 
 	for _, diff := range diffs {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if diff.IsDeleted {
 			continue
 		}

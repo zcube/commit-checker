@@ -1,6 +1,7 @@
 package progress
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,7 +17,7 @@ import (
 type Step struct {
 	Name     string
 	Category string // 기계가 읽을 수 있는 카테고리 (JSON 출력 등)
-	Fn       func() ([]string, error)
+	Fn       func(ctx context.Context) ([]string, error)
 }
 
 // StepResult: 단계 실행 결과.
@@ -40,14 +41,15 @@ type Options struct {
 }
 
 // RunWithProgress: 검사 단계를 순차 실행하고 결과를 반환.
-func RunWithProgress(steps []Step, opts Options) (RunResult, error) {
+// ctx 취소 시 남은 단계를 건너뛰고 ctx.Err()를 반환.
+func RunWithProgress(ctx context.Context, steps []Step, opts Options) (RunResult, error) {
 	if opts.Quiet {
-		return runPlainSilent(steps)
+		return runPlainSilent(ctx, steps)
 	}
 	if !isTTY() {
-		return runPlain(steps, os.Stderr)
+		return runPlain(ctx, steps, os.Stderr)
 	}
-	return runTUI(steps, opts)
+	return runTUI(ctx, steps, opts)
 }
 
 func isTTY() bool {
@@ -59,18 +61,22 @@ func isTTY() bool {
 }
 
 // runPlainSilent: 출력 없이 조용히 실행.
-func runPlainSilent(steps []Step) (RunResult, error) {
-	return runPlain(steps, io.Discard)
+func runPlainSilent(ctx context.Context, steps []Step) (RunResult, error) {
+	return runPlain(ctx, steps, io.Discard)
 }
 
 // runPlain: TTY가 아닐 때 단순 텍스트로 진행 표시.
-func runPlain(steps []Step, w io.Writer) (RunResult, error) {
+func runPlain(ctx context.Context, steps []Step, w io.Writer) (RunResult, error) {
 	result := RunResult{
 		Steps: make([]StepResult, len(steps)),
 	}
 	for i, s := range steps {
+		// 취소되었으면 남은 단계를 실행하지 않고 중단
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return result, ctxErr
+		}
 		_, _ = fmt.Fprintf(w, "  %s ...\n", s.Name)
-		errs, err := s.Fn()
+		errs, err := s.Fn(ctx)
 		result.Steps[i] = StepResult{
 			Name:     s.Name,
 			Category: s.Category,
@@ -165,6 +171,8 @@ type stepResult struct {
 }
 
 type model struct {
+	ctx      context.Context // 단계 실행에 전달되는 취소 가능 context
+	cancel   context.CancelFunc
 	steps    []Step
 	spinner  spinner.Model
 	results  []stepResult
@@ -175,13 +183,15 @@ type model struct {
 	stepErrs [][]string // 단계별 오류 메시지
 }
 
-func newModel(steps []Step, opts Options) model {
+func newModel(ctx context.Context, cancel context.CancelFunc, steps []Step, opts Options) model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	if !opts.NoColor {
 		s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	}
 	return model{
+		ctx:      ctx,
+		cancel:   cancel,
 		steps:    steps,
 		spinner:  s,
 		results:  make([]stepResult, len(steps)),
@@ -195,7 +205,7 @@ func (m model) Init() tea.Cmd {
 
 func (m model) runStep(idx int) tea.Cmd {
 	return func() tea.Msg {
-		errs, err := m.steps[idx].Fn()
+		errs, err := m.steps[idx].Fn(m.ctx)
 		return stepDoneMsg{idx: idx, errs: errs, err: err}
 	}
 }
@@ -204,6 +214,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
+			// 진행 중인 단계도 중단되도록 context 취소
+			m.cancel()
 			m.fatalErr = fmt.Errorf("interrupted")
 			return m, tea.Quit
 		}
@@ -227,6 +239,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		next := msg.idx + 1
 		m.current = next
 		if next >= len(m.steps) {
+			m.done = true
+			return m, tea.Quit
+		}
+		// 취소되었으면 다음 단계를 실행하지 않고 중단
+		if ctxErr := m.ctx.Err(); ctxErr != nil {
+			m.fatalErr = ctxErr
 			m.done = true
 			return m, tea.Quit
 		}
@@ -267,13 +285,17 @@ func (m model) View() string {
 	return b.String()
 }
 
-func runTUI(steps []Step, opts Options) (RunResult, error) {
-	m := newModel(steps, opts)
+func runTUI(ctx context.Context, steps []Step, opts Options) (RunResult, error) {
+	// Ctrl-C 키 입력 시 진행 중인 단계를 취소할 수 있도록 자식 context 생성
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	m := newModel(ctx, cancel, steps, opts)
 	p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
 	finalModel, err := p.Run()
 	if err != nil {
 		// bubbletea 자체 에러 시 plain 으로 폴백
-		return runPlain(steps, os.Stderr)
+		return runPlain(ctx, steps, os.Stderr)
 	}
 	final := finalModel.(model)
 	if final.fatalErr != nil {

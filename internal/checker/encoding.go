@@ -1,6 +1,8 @@
 package checker
 
 import (
+	"context"
+
 	"github.com/zcube/commit-checker/internal/config"
 	ecmod "github.com/zcube/commit-checker/internal/editorconfig"
 	"github.com/zcube/commit-checker/internal/encoding"
@@ -11,7 +13,7 @@ import (
 
 // CheckEncoding: 스테이지된 텍스트 파일의 UTF-8 인코딩 유효성 검사.
 // chardet으로 인코딩을 감지하며, .editorconfig의 charset 설정이 latin1 등이면 건너뜀.
-func CheckEncoding(cfg *config.Config) ([]string, error) {
+func CheckEncoding(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.Encoding.IsEnabled() || !cfg.Encoding.IsRequireUTF8() {
 		return nil, nil
 	}
@@ -25,6 +27,10 @@ func CheckEncoding(cfg *config.Config) ([]string, error) {
 
 	var errs []string
 	for _, path := range files {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			continue
 		}

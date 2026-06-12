@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -9,9 +10,9 @@ import (
 
 // runStepsAndReport: 검사 step 들을 실행하고 결과를 format 에 맞게 출력.
 // json 이면 JSON 출력 후 오류가 있으면 exit(1), 아니면 오류를 stderr 로 출력하고
-// 요약 라인과 함께 exit(1).
-func runStepsAndReport(steps []progress.Step, format string) error {
-	result, err := progress.RunWithProgress(steps, progress.Options{
+// 요약 라인과 함께 exit(1). ctx 취소 시 실행을 중단하고 에러를 반환.
+func runStepsAndReport(ctx context.Context, steps []progress.Step, format string) error {
+	result, err := progress.RunWithProgress(ctx, steps, progress.Options{
 		Quiet:   globalQuiet || format == "json",
 		NoColor: globalNoColor,
 	})

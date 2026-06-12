@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,7 @@ import (
 )
 
 // CheckLint: 스테이지된 데이터 파일(YAML, JSON, XML)의 구문 오류를 검사.
-func CheckLint(cfg *config.Config) ([]string, error) {
+func CheckLint(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.Lint.IsEnabled() {
 		return nil, nil
 	}
@@ -27,6 +28,10 @@ func CheckLint(cfg *config.Config) ([]string, error) {
 	var errs []string
 
 	for _, path := range files {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if pathutil.MatchesAny(path, globalIgnore) {
 			continue
 		}

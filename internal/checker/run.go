@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -44,17 +45,26 @@ func getTrackedFiles() ([]string, error) {
 // forEachFileConcurrent: files를 병렬로 순회하며 fn이 반환한 위반 메시지를 수집.
 // 동시 실행 수는 runtime.NumCPU()*2로 제한하며, 메시지는 고루틴 완료 순서대로
 // 수집된다(기존 동작과 동일하게 별도 정렬하지 않음).
-func forEachFileConcurrent(files []string, fn func(path string) ([]string, error)) ([]string, error) {
+// ctx 취소 시 새 작업 제출을 멈추고 ctx.Err()를 반환해 조기 중단한다.
+func forEachFileConcurrent(ctx context.Context, files []string, fn func(path string) ([]string, error)) ([]string, error) {
 	var (
 		mu   sync.Mutex
 		errs []string
 	)
-	g := new(errgroup.Group)
+	g, gctx := errgroup.WithContext(ctx)
 	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for _, path := range files {
+		// 취소되었으면 남은 파일은 제출하지 않음
+		if gctx.Err() != nil {
+			break
+		}
 		g.Go(func() error {
-			sem <- struct{}{}
+			select {
+			case sem <- struct{}{}:
+			case <-gctx.Done():
+				return gctx.Err()
+			}
 			defer func() { <-sem }()
 
 			msgs, err := fn(path)
@@ -72,12 +82,16 @@ func forEachFileConcurrent(files []string, fn func(path string) ([]string, error
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
+	// 부모 ctx 취소로 루프를 빠져나온 경우 취소 에러를 그대로 전달
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	return errs, nil
 }
 
 // RunBinaryFiles: 추적된 모든 파일에서 바이너리 파일을 검사.
 // 스테이지 상태에 관계없이 워킹 트리의 파일을 직접 읽어 검사.
-func RunBinaryFiles(cfg *config.Config) ([]string, error) {
+func RunBinaryFiles(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.BinaryFile.IsEnabled() {
 		return nil, nil
 	}
@@ -89,7 +103,7 @@ func RunBinaryFiles(cfg *config.Config) ([]string, error) {
 
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore, cfg.BinaryFile.IgnoreFiles...)
 
-	return forEachFileConcurrent(files, func(path string) ([]string, error) {
+	return forEachFileConcurrent(ctx, files, func(path string) ([]string, error) {
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			return nil, nil
 		}
@@ -108,7 +122,7 @@ func RunBinaryFiles(cfg *config.Config) ([]string, error) {
 }
 
 // RunEncoding: 추적된 모든 파일의 UTF-8 인코딩 유효성을 검사.
-func RunEncoding(cfg *config.Config) ([]string, error) {
+func RunEncoding(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.Encoding.IsEnabled() || !cfg.Encoding.IsRequireUTF8() {
 		return nil, nil
 	}
@@ -120,7 +134,7 @@ func RunEncoding(cfg *config.Config) ([]string, error) {
 
 	ignorePatterns := append(cfg.Exceptions.GlobalIgnore, cfg.Encoding.IgnoreFiles...)
 
-	return forEachFileConcurrent(files, func(path string) ([]string, error) {
+	return forEachFileConcurrent(ctx, files, func(path string) ([]string, error) {
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			return nil, nil
 		}
@@ -154,7 +168,7 @@ func RunEncoding(cfg *config.Config) ([]string, error) {
 }
 
 // RunLint: 추적된 모든 데이터 파일(YAML, JSON, XML)의 구문 오류를 검사.
-func RunLint(cfg *config.Config) ([]string, error) {
+func RunLint(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.Lint.IsEnabled() {
 		return nil, nil
 	}
@@ -166,7 +180,7 @@ func RunLint(cfg *config.Config) ([]string, error) {
 
 	globalIgnore := cfg.Exceptions.GlobalIgnore
 
-	return forEachFileConcurrent(files, func(path string) ([]string, error) {
+	return forEachFileConcurrent(ctx, files, func(path string) ([]string, error) {
 		if pathutil.MatchesAny(path, globalIgnore) {
 			return nil, nil
 		}
@@ -270,7 +284,7 @@ func RunLint(cfg *config.Config) ([]string, error) {
 }
 
 // RunEditorConfig: 추적된 모든 파일의 .editorconfig 규칙 준수 여부를 검사.
-func RunEditorConfig(cfg *config.Config) ([]string, error) {
+func RunEditorConfig(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.EditorConfig.IsEnabled() {
 		return nil, nil
 	}
@@ -284,7 +298,7 @@ func RunEditorConfig(cfg *config.Config) ([]string, error) {
 		return nil, err
 	}
 
-	return forEachFileConcurrent(files, func(path string) ([]string, error) {
+	return forEachFileConcurrent(ctx, files, func(path string) ([]string, error) {
 		if pathutil.MatchesAny(path, cfg.Exceptions.GlobalIgnore) {
 			return nil, nil
 		}
@@ -320,7 +334,7 @@ func RunEditorConfig(cfg *config.Config) ([]string, error) {
 
 // RunCommentLanguage: 추적된 모든 소스 파일의 주석 언어를 검사.
 // check_mode 설정에 관계없이 항상 파일 전체를 검사.
-func RunCommentLanguage(cfg *config.Config) ([]string, error) {
+func RunCommentLanguage(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.CommentLanguage.IsEnabled() {
 		return nil, nil
 	}
@@ -345,7 +359,7 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 		cfg.Exceptions.CommentLanguageIgnore...)
 	ignorePatterns = append(ignorePatterns, cfg.CommentLanguage.IgnoreFiles...)
 
-	return forEachFileConcurrent(files, func(filePath string) ([]string, error) {
+	return forEachFileConcurrent(ctx, files, func(filePath string) ([]string, error) {
 		if !gitdiff.HasExtension(filePath, extensions) {
 			return nil, nil
 		}

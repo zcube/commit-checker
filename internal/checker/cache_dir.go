@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/zcube/commit-checker/internal/config"
@@ -12,7 +13,7 @@ import (
 
 // CheckCacheDirStaged 는 staged diff 에서 캐시/빌드 디렉터리(node_modules, dist 등) 안의 파일이
 // 커밋되려는 경우를 차단합니다. 검증기는 부모 디렉터리 인디케이터를 확인하여 false positive 를 줄입니다.
-func CheckCacheDirStaged(cfg *config.Config) ([]string, error) {
+func CheckCacheDirStaged(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.CacheDir.IsEnabled() {
 		return nil, nil
 	}
@@ -32,6 +33,10 @@ func CheckCacheDirStaged(cfg *config.Config) ([]string, error) {
 	var errs []string
 	seen := make(map[string]bool)
 	for _, d := range diffs {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if d.IsDeleted {
 			continue
 		}
@@ -62,7 +67,7 @@ func CheckCacheDirStaged(cfg *config.Config) ([]string, error) {
 
 // CheckCacheDirCommitted 는 추적 중인 파일들 중 캐시/빌드 디렉터리에 들어 있는 파일을 보고합니다.
 // run 커맨드용으로, 이미 커밋된 캐시 산출물을 감사합니다.
-func CheckCacheDirCommitted(cfg *config.Config) ([]string, error) {
+func CheckCacheDirCommitted(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.CacheDir.IsEnabled() {
 		return nil, nil
 	}
@@ -81,6 +86,10 @@ func CheckCacheDirCommitted(cfg *config.Config) ([]string, error) {
 
 	var errs []string
 	for _, dir := range cacheDirs {
+		// 취소 시 남은 디렉터리 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if ignoreDirs[filepath.Base(dir)] {
 			continue
 		}

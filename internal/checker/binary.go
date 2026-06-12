@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"os/exec"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 
 // CheckBinaryFiles: 스테이지된 diff에서 바이너리 파일을 검사.
 // 위반 없으면 빈 슬라이스 반환.
-func CheckBinaryFiles(cfg *config.Config) ([]string, error) {
+func CheckBinaryFiles(ctx context.Context, cfg *config.Config) ([]string, error) {
 	if !cfg.BinaryFile.IsEnabled() {
 		return nil, nil
 	}
@@ -25,6 +26,10 @@ func CheckBinaryFiles(cfg *config.Config) ([]string, error) {
 
 	var errs []string
 	for _, path := range files {
+		// 취소 시 남은 파일 검사를 중단
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			continue
 		}

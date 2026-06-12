@@ -27,7 +27,7 @@ const Hello = "Hello"
 		{Pattern: "locales/**", Language: "any"},
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -49,7 +49,7 @@ const Greeting = "Hello"
 		{Pattern: "i18n/**", Language: "english"},
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -72,7 +72,7 @@ const Greeting = "Hello"
 		{Pattern: "i18n/**", Language: "english"},
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -94,7 +94,7 @@ const Key = "value"
 		{Pattern: "translations/**", Language: "en"},
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -116,7 +116,7 @@ const Hello = "こんにちは"
 		{Pattern: "locale/ja/**", Language: "japanese"},
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -138,7 +138,7 @@ const Hello = "你好"
 		{Pattern: "locale/zh/**", Language: "chinese"},
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -162,7 +162,7 @@ const Key = "value"
 		{Pattern: "i18n/en/**", Language: "english"}, // would also match but loses
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -184,7 +184,7 @@ func Handle() {}
 		{Pattern: "i18n/**", Language: "english"},
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -207,7 +207,7 @@ func skipThis() {}
 // 이 한국어 주석은 체크됩니다
 func checkThis() {}
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -232,7 +232,7 @@ func before() {}
 // 한국어 재개 — 체크됨
 func after() {}
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -254,7 +254,7 @@ func TestCheckDiff_Directive_Disable_WithLang(t *testing.T) {
 // 여기서 한국어로 돌아옴
 func resumeKorean() {}
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestCheckDiff_Directive_FileLang(t *testing.T) {
 // All comments here are intentionally in English
 func process() {}
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -293,7 +293,7 @@ func TestCheckDiff_Directive_FileLang_Korean_Fails(t *testing.T) {
 // 이 파일은 영어를 요구하므로 한국어는 실패해야 합니다
 func process() {}
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -312,7 +312,7 @@ const x = 1;
 // 이 한국어 주석은 체크됩니다
 const y = 2;
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -332,7 +332,7 @@ func TestCheckDiff_Directive_Python_Disable(t *testing.T) {
 def process():
     pass
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -352,7 +352,7 @@ func TestCheckDiff_Directive_FileLang_Japanese(t *testing.T) {
 // ユーザー処理のロジック
 func process() {}
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -371,7 +371,7 @@ func TestCheckDiff_Directive_FileLang_Chinese(t *testing.T) {
 // 这是一个中文注释的示例内容
 func process() {}
 `)
-	errs, err := checker.CheckDiff(koreanOnlyConfig())
+	errs, err := checker.CheckDiff(t.Context(), koreanOnlyConfig())
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
@@ -402,7 +402,7 @@ const B = "b"
 		{Pattern: "i18n/**", Language: "english"},
 	}
 
-	errs, err := checker.CheckDiff(cfg)
+	errs, err := checker.CheckDiff(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("CheckDiff error: %v", err)
 	}
