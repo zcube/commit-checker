@@ -1,6 +1,4 @@
 # diff checker messages
-diff.parse_warning:
-  other: "warning: could not fully parse {{.Path}}: {{.Error}}"
 diff.comment_language_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}} must be written in {{.Language}} (detected: {{.Detected}}): {{.Text}}"
 diff.kind_comment:

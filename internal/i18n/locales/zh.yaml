@@ -1,6 +1,4 @@
 # diff 检查消息
-diff.parse_warning:
-  other: "警告: 解析 {{.Path}} 时发生部分错误: {{.Error}}"
 diff.comment_language_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}必须使用{{.Language}}编写 (检测到: {{.Detected}}): {{.Text}}"
 diff.kind_comment:

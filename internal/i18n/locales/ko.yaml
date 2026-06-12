@@ -1,6 +1,4 @@
 # diff 검사 메시지
-diff.parse_warning:
-  other: "경고: {{.Path}} 파싱 중 일부 오류 발생: {{.Error}}"
 diff.comment_language_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}은(는) {{.Language}}(으)로 작성되어야 합니다 (감지됨: {{.Detected}}): {{.Text}}"
 diff.kind_comment:

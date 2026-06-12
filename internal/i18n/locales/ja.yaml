@@ -1,6 +1,4 @@
 # diff チェックメッセージ
-diff.parse_warning:
-  other: "警告: {{.Path}} の解析中にエラーが発生しました: {{.Error}}"
 diff.comment_language_error:
   other: "{{.Path}}:{{.Line}}: {{.Kind}}は{{.Language}}で記述する必要があります (検出: {{.Detected}}): {{.Text}}"
 diff.kind_comment:

@@ -2,10 +2,46 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/zcube/commit-checker/blob/main/.commit-checker.schema.json",
   "title": "commit-checker configuration",
-  "description": "Configuration schema for commit-checker (.commit-checker.yml)",
+  "description": "Configuration schema for commit-checker (.commit-checker.yml) — schema v1.2.0 (locale 통일: required_language → locale)",
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "preset": {
+      "description": "원격 URL에서 불러올 기본 설정 프리셋. 해당 URL에서 .commit-checker.yml 형식의 YAML을 가져와 기본 설정으로 사용하며, 로컬 설정이 프리셋 설정을 override함.\n우선순위: 프로젝트 설정 > 프리셋 > 전역 설정(~/.commit-checker.yml).\n프리셋 안에 preset.url을 다시 지정할 수 없음 (중첩 프리셋 미지원).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "description": "프리셋 설정 파일을 가져올 HTTP/HTTPS URL.",
+          "type": "string",
+          "format": "uri",
+          "examples": ["https://example.com/presets/.commit-checker.yml"]
+        },
+        "cache": {
+          "description": "URL에서 가져온 프리셋의 로컬 캐싱 설정.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "캐싱 활성화 여부 (기본값: false)",
+              "type": "boolean",
+              "default": false
+            },
+            "ttl": {
+              "description": "캐시 유효 기간 (기본값: 24h). Go time.ParseDuration 형식.",
+              "type": "string",
+              "default": "24h",
+              "examples": ["1h", "30m", "24h", "168h"]
+            },
+            "dir": {
+              "description": "캐시 디렉터리 경로 (기본값: ~/.cache/commit-checker)",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+
     "comment_language": {
       "description": "코드 주석의 언어를 검사하는 설정",
       "type": "object",
@@ -17,7 +53,8 @@
           "default": true
         },
         "required_language": {
-          "description": "주석에 사용해야 하는 자연어 (기본값: korean). locale이 설정된 경우 override됨.",
+          "description": "[deprecated — v1.2.0부터 locale 사용 권장] 주석에 사용해야 하는 자연어 (기본값: korean). locale이 설정된 경우 override됨. 하위 호환을 위해 유지되며 'commit-checker migrate'로 locale로 변환 가능.",
+          "deprecated": true,
           "type": "string",
           "enum": ["korean", "english", "japanese", "chinese", "any"],
           "default": "korean"
@@ -131,12 +168,17 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["pattern", "language"],
+            "required": ["pattern"],
             "properties": {
               "pattern": {
                 "description": "파일 경로에 매칭할 glob 패턴. '**' 지원.",
                 "type": "string",
                 "examples": ["locales/**", "i18n/**", "locale/ja/**"]
+              },
+              "locale": {
+                "description": "이 패턴에 매칭된 파일에서 요구할 자연어. BCP-47 코드(ko, en, ja, zh) 또는 legacy 언어명(korean, english 등) 또는 'any' 사용 가능.",
+                "type": "string",
+                "examples": ["any", "ko", "en", "ja", "zh", "korean", "english"]
               },
               "language": {
                 "description": "이 패턴에 매칭된 파일에서 요구할 언어. 로케일 코드(ko, en, ja, zh) 및 'any' 사용 가능.",
@@ -165,6 +207,39 @@
           "description": "바이너리 파일 감지 활성화 여부 (기본값: true).\ngit diff --staged --numstat에서 바이너리로 판별된 파일을 감지하여 커밋을 차단함.",
           "type": "boolean",
           "default": true
+        },
+        "default_policy": {
+          "description": "어느 규칙에도 매칭되지 않은 바이너리에 대한 정책 (기본값: block).\n  block: 차단 (에러)\n  allow: 허가 (통과)\n  lfs:   git LFS로 추적되는 경우만 허가, 아니면 차단\n우선순위: rules (확장자 매칭) > 내장 이미지 정책(이미지 확장자 → allow) > default_policy",
+          "type": "string",
+          "enum": ["block", "allow", "lfs"],
+          "default": "block"
+        },
+        "rules": {
+          "description": "확장자별 바이너리 정책 규칙 목록. 첫 번째 매칭 규칙이 적용됨.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "extensions": {
+                "description": "정책을 적용할 파일 확장자 목록 (.png, .jpg 등). 대소문자 무관.",
+                "type": "array",
+                "items": { "type": "string" },
+                "examples": [[".png", ".jpg"], [".psd", ".zip"]]
+              },
+              "policy": {
+                "description": "적용할 정책 (block | allow | lfs).",
+                "type": "string",
+                "enum": ["block", "allow", "lfs"]
+              }
+            }
+          },
+          "examples": [
+            [
+              { "extensions": [".psd", ".zip"], "policy": "lfs" },
+              { "extensions": [".exe"], "policy": "block" }
+            ]
+          ]
         },
         "ignore_files": {
           "description": "바이너리 파일 검사에서 제외할 파일 glob 패턴 목록. '**' 지원.\n이미지, 폰트 등 의도적으로 포함하는 바이너리 파일을 허용.",
@@ -195,6 +270,11 @@
               "type": "boolean",
               "default": true
             },
+            "comment_filter": {
+              "description": "true이면 파일 내 \"# commit-checker: skip-lint\" 주석으로 해당 파일의 YAML lint 검사를 비활성화할 수 있음 (기본값: false).",
+              "type": "boolean",
+              "default": false
+            },
             "ignore_files": {
               "description": "YAML lint에서 제외할 glob 패턴 목록",
               "type": "array",
@@ -214,6 +294,11 @@
             },
             "allow_json5": {
               "description": "JSON5 형식 허용 여부 (기본값: false).\ntrue이면 // 주석, /* */ 블록 주석, trailing comma를 허용.",
+              "type": "boolean",
+              "default": false
+            },
+            "comment_filter": {
+              "description": "true이면 .json 파일에서 // 및 /* */ 주석을 제거한 후 strict JSON 검사 수행 (JSONC 모드, 기본값: false).\n.jsonc 파일은 이 설정과 무관하게 항상 JSON5로 검사됨.",
               "type": "boolean",
               "default": false
             },
@@ -237,6 +322,23 @@
             },
             "ignore_files": {
               "description": "XML lint에서 제외할 glob 패턴 목록",
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "toml": {
+          "description": "TOML 구문 검사 설정",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "TOML lint 활성화 여부 (기본값: true)",
+              "type": "boolean",
+              "default": true
+            },
+            "ignore_files": {
+              "description": "TOML lint에서 제외할 glob 패턴 목록",
               "type": "array",
               "items": { "type": "string" }
             }
@@ -409,6 +511,11 @@
               "type": "boolean",
               "default": false
             },
+            "locale": {
+              "description": "커밋 메시지 본문에 요구되는 자연어. BCP-47 코드(ko, en, ja, zh) 또는 legacy 언어명(korean, english 등) 허용.\n비어있으면 commit_message.locale에서 자동 유도됨. 설정 시 required_language를 덮어씀.",
+              "type": "string",
+              "examples": ["ko", "en", "ja", "zh", "zh-hans", "zh-hant"]
+            },
             "required_language": {
               "description": "커밋 메시지에 사용해야 하는 자연어 (기본값: korean)",
               "type": "string",
@@ -427,6 +534,42 @@
               "items": { "type": "string" },
               "default": ["Merge", "Revert", "fixup!", "squash!"],
               "examples": [["Merge", "Revert", "fixup!", "squash!", "WIP:"]]
+            }
+          }
+        },
+        "subject_limit": {
+          "description": "커밋 메시지 제목(첫 번째 줄) 글자 수 제한 설정",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "제목 길이 검사 활성화 여부 (기본값: false)",
+              "type": "boolean",
+              "default": false
+            },
+            "max_length": {
+              "description": "제목 최대 글자 수 (기본값: 72)",
+              "type": "integer",
+              "minimum": 1,
+              "default": 72
+            }
+          }
+        },
+        "body_line_limit": {
+          "description": "커밋 메시지 본문 각 줄의 글자 수 제한 설정",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "본문 줄 길이 검사 활성화 여부 (기본값: false)",
+              "type": "boolean",
+              "default": false
+            },
+            "max_length": {
+              "description": "본문 각 줄 최대 글자 수 (기본값: 100)",
+              "type": "integer",
+              "minimum": 1,
+              "default": 100
             }
           }
         }
@@ -449,6 +592,97 @@
           "type": "array",
           "items": { "type": "string" },
           "examples": [["legacy/**", "*.generated.go"]]
+        }
+      }
+    },
+
+    "custom_rules": {
+      "description": "정규식 기반 커스텀 규칙 설정",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "commit_message": {
+          "description": "커밋 메시지에 적용할 커스텀 규칙 목록",
+          "type": "array",
+          "items": { "$ref": "#/definitions/customRule" }
+        },
+        "diff": {
+          "description": "스테이지된 diff의 추가된 줄에 적용할 커스텀 규칙 목록",
+          "type": "array",
+          "items": { "$ref": "#/definitions/customRule" }
+        }
+      }
+    },
+
+    "append_only": {
+      "description": "특정 경로에서 파일 삭제·내용 수정·중간 삽입을 금지하는 append-only 설정.\nDB 마이그레이션 디렉터리 등 한 번 커밋한 내용을 변경해서는 안 되는 경우에 사용.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "append-only 검사 활성화 여부 (기본값: false). paths가 비어 있으면 검사하지 않음.",
+          "type": "boolean",
+          "default": false
+        },
+        "paths": {
+          "description": "append-only 규칙을 적용할 glob 패턴 목록",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["migrations/**", "db/migrations/**"]]
+        },
+        "filename_order": {
+          "description": "새 파일 이름이 기존 파일보다 뒤에 와야 하는지 검사.\n  numeric (또는 빈 문자열, 기본값): 자연수(numeric) 정렬 기준으로 기존 파일 중 최대값보다 뒤에 와야 함\n  none: 파일 이름 순서 검사 비활성화",
+          "type": "string",
+          "enum": ["numeric", "none", ""],
+          "default": "numeric"
+        }
+      }
+    },
+
+    "cache_dir": {
+      "description": "빌드 산출물·캐시 디렉터리(node_modules, dist, build, target, __pycache__ 등) 안의 파일이 git에 커밋되거나 스테이지되는지 검사하는 설정.\n부모 디렉터리 인디케이터(go.mod, package.json 등) 기반으로 판별.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "캐시/빌드 디렉터리 검사 활성화 여부 (기본값: true)",
+          "type": "boolean",
+          "default": true
+        },
+        "ignore_dirs": {
+          "description": "검사에서 제외할 디렉터리 이름 목록.\n예: 의도적으로 vendor/ 를 커밋하는 Go 프로젝트에서 [\"vendor\"] 지정.",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["vendor"], ["node_modules", "dist"]]
+        }
+      }
+    }
+  },
+
+  "definitions": {
+    "customRule": {
+      "description": "정규식 기반 커스텀 검사 규칙",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "규칙 이름 (오류 메시지에 표시됨)",
+          "type": "string",
+          "examples": ["no-wip", "require-issue-number"]
+        },
+        "pattern": {
+          "description": "Go 정규식 패턴 (regexp.Compile 호환)",
+          "type": "string",
+          "examples": ["(?i)\\bWIP\\b", "#[0-9]+"]
+        },
+        "message": {
+          "description": "규칙 위반 시 표시할 사람이 읽기 쉬운 메시지",
+          "type": "string"
+        },
+        "required": {
+          "description": "true이면 패턴이 반드시 일치해야 함 (불일치 시 오류).\nfalse(기본값)이면 패턴이 일치하면 안 됨 (일치 시 오류, forbidden 규칙).",
+          "type": "boolean",
+          "default": false
         }
       }
     }
