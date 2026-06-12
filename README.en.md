@@ -105,8 +105,28 @@ Create `lefthook.yml` in your project root:
 ```yaml
 pre-commit:
   commands:
+    # Running fix before diff applies formatting (emoji removal, NBSP cleanup, etc.)
+    # before the check. fix re-stages the files it modifies via git add by itself
+    # (lefthook runs commands in name order).
+    auto-fix:
+      run: commit-checker fix
+      stage_fixed: true       # lefthook's re-staging option can be used as well
     comment-language:
       run: commit-checker diff
+
+# Merge commits do not trigger the pre-commit hook, so register the check on
+# pre-merge-commit too to keep feature-branch violations from entering main via merge.
+pre-merge-commit:
+  commands:
+    comment-language:
+      run: commit-checker diff
+
+# Show active policy hints as # comments in the commit message editor
+# (no-op for -m/merge/squash/amend)
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
 
 commit-msg:
   commands:
@@ -177,12 +197,49 @@ git config set --append hook.commit-checker-msg.event commit-msg
 # (Optional) check commit messages before push (pre-push)
 git config set hook.commit-checker-push.command "commit-checker push"
 git config set --append hook.commit-checker-push.event pre-push
+
+# Check merge commits (pre-merge-commit) — merge commits do not trigger the pre-commit hook
+git config set hook.commit-checker-merge.command "commit-checker diff"
+git config set --append hook.commit-checker-merge.event pre-merge-commit
+
+# Show policy hints in the commit message editor (prepare-commit-msg) — git passes the arguments automatically
+git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
+git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```
 
 - Add `--global` to apply the hooks to every repository at once (useful for a personal global policy).
 - Verify registration: `git hook list pre-commit`
 - Multiple hooks for the same event run in configuration order, and existing `.git/hooks/` scripts (e.g. lefthook) run last, so they can coexist.
 - Note: `.git/config` is not committed, so a manager like lefthook is still the better fit for team-wide enforcement. Config-based hooks suit personal setups and global policies.
+
+### Other hook integrations
+
+#### git am workflow
+
+The same policies can be enforced in a `git am` (patch mail) workflow:
+
+```bash
+# Check the patch's commit message — git passes the message file path automatically
+git config set hook.commit-checker-am-msg.command "commit-checker msg"
+git config set --append hook.commit-checker-am-msg.event applypatch-msg
+
+# Check the applied patch content — at pre-applypatch time the patch is staged
+git config set hook.commit-checker-am-diff.command "commit-checker diff"
+git config set --append hook.commit-checker-am-diff.event pre-applypatch
+```
+
+#### Server-side enforcement (update hook)
+
+The `update` hook on the server (bare repository) receives `<refname> <old> <new>` arguments per ref.
+With `push --range`, commit message policies can be enforced on the server without installing any client-side hooks:
+
+```bash
+#!/bin/sh
+# hooks/update — arguments: <refname> <old> <new>
+exec commit-checker push --range "$2..$3"
+```
+
+New branches (where old is all zeros) print a warning and are skipped.
 
 ## Configuration
 
@@ -269,6 +326,11 @@ append_only:
   # paths:
   #   - "migrations/**"
   #   - "db/migrations/**"
+
+# protected_paths:
+#   enabled: true
+#   paths:
+#     - "legacy/**"            # block all staged changes (add/modify/delete) under matching paths
 
 cache_dir:
   enabled: true                # enabled by default
@@ -362,6 +424,25 @@ Blocked changes:
 - Adding new files that sort before existing files or share a name (allowed with `filename_order: none`)
 
 File name order uses natural numeric sorting, so `9 < 10` (default).
+
+### protected_paths (frozen paths)
+
+Blocks every staged change (add, modify, delete) under paths matching the glob patterns.
+Unlike append_only, which allows appending content at the end of a file, protected_paths is a full-freeze policy that allows no change at all.
+
+```yaml
+protected_paths:
+  enabled: true
+  paths:
+    - "legacy/**"
+```
+
+| Check | Allowed changes |
+|---|---|
+| `append_only` | Adding new files, appending at the end of existing files |
+| `protected_paths` | None (full freeze) |
+
+Files matching `exceptions.global_ignore` are excluded from the check.
 
 ### Build artifact / cache directories
 
@@ -506,6 +587,7 @@ commit-checker init          Generate default config file (.commit-checker.yml)
 commit-checker diff          Check staged diff (comments/encoding/lint/binary/unicode)
 commit-checker run           Check all tracked files for policy compliance
 commit-checker msg <file>    Check commit message file
+commit-checker prepare-msg   For the prepare-commit-msg hook: show active policy hints in the editor
 commit-checker fix           Auto-fix git history (supports --dry-run)
 commit-checker migrate       Migrate config file to the latest schema
 commit-checker analyze       Analyze repository (language detection, lint config check)
@@ -527,6 +609,17 @@ commit-checker diff A B                  # A ↔ B
 commit-checker diff A..B                 # A ↔ B (range)
 commit-checker diff A...B                # merge-base(A,B) ↔ B
 ```
+
+The `--only` flag runs only the specified checks (`run` supports it the same way).
+Checks set to `enabled: false` in the config are force-enabled when selected via `--only`.
+
+```bash
+commit-checker diff --only comment_language   # check comment language only
+commit-checker diff --only lint,encoding      # multiple categories
+```
+
+- Categories shared by run and diff: `binary` `encoding` `unicode` `lint` `editorconfig` `comment_language` `cache_dir`
+- diff-only categories: `custom_rules` `append_only` `protected_paths`
 
 Typical CI usage (GitHub Actions, GitLab CI, etc.):
 
@@ -556,9 +649,23 @@ commit-checker init --force
 ```bash
 # Check all tracked files (regardless of staged state)
 commit-checker run
+
+# Run specific checks only (--only)
+commit-checker run --only lint
 ```
 
 Unlike `diff`, this checks all files tracked by `git ls-files`, regardless of staged state.
+
+### prepare-msg command
+
+A command for the `prepare-commit-msg` hook. It shows the active policy hints as `#` comments in the commit message editor.
+Git strips `#` lines at commit time, so the hints never end up in the message.
+It is a no-op for `-m`/merge/squash/amend commits.
+
+```bash
+# Accepts the arguments git passes as-is: <file> [source] [sha]
+commit-checker prepare-msg .git/COMMIT_EDITMSG
+```
 
 ### fix command
 

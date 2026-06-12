@@ -15,6 +15,13 @@ pre-commit:
       glob: "{internal/comment/testdata/**,internal/checker/testdata/**,internal/comment/**_parser.go,internal/langdetect/**}"
       run: go test ./internal/comment/... ./internal/checker/... -run "TestCommentCheckerGolden|TestGetParser"
 
+# merge 커밋은 pre-commit 훅을 타지 않으므로, feature 브랜치의 위반이
+# merge 로 main 에 들어오는 것을 막기 위해 pre-merge-commit 에도 등록합니다.
+pre-merge-commit:
+  commands:
+    comment-language:
+      run: commit-checker diff
+
 commit-msg:
   commands:
     message-policy:

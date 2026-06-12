@@ -105,8 +105,28 @@ go install github.com/zcube/commit-checker@latest
 ```yaml
 pre-commit:
   commands:
+    # fix を diff より先に実行すると、フォーマット修正（絵文字除去・NBSP整理など）が
+    # 検査前に反映されます。fix は修正したファイルを自分で git add まで行います
+    # （lefthook は名前順に実行）。
+    auto-fix:
+      run: commit-checker fix
+      stage_fixed: true       # lefthook の再ステージングオプションも併用可能
     comment-language:
       run: commit-checker diff
+
+# merge コミットは pre-commit フックを通らないため、feature ブランチの違反が
+# merge で main に入るのを防ぐには pre-merge-commit にも登録します。
+pre-merge-commit:
+  commands:
+    comment-language:
+      run: commit-checker diff
+
+# コミットメッセージエディタに有効なポリシーのヒントを # コメントで表示
+# （-m/merge/squash/amend 時は何もしません）
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
 
 commit-msg:
   commands:
@@ -176,12 +196,49 @@ git config set --append hook.commit-checker-msg.event commit-msg
 # （任意）push前のコミットメッセージ検査（pre-push）
 git config set hook.commit-checker-push.command "commit-checker push"
 git config set --append hook.commit-checker-push.event pre-push
+
+# merge コミットの検査（pre-merge-commit）— merge コミットは pre-commit フックを通らない
+git config set hook.commit-checker-merge.command "commit-checker diff"
+git config set --append hook.commit-checker-merge.event pre-merge-commit
+
+# コミットメッセージエディタにポリシーヒントを表示（prepare-commit-msg）— 引数はgitが自動的に渡します
+git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
+git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```
 
 - `--global` を付けるとすべてのリポジトリに一括適用されます（個人のグローバルポリシーに便利）。
 - 登録確認: `git hook list pre-commit`
 - 同じイベントの複数のフックは設定順に実行され、既存の `.git/hooks/` スクリプト（lefthookなど）は最後に実行されるため共存できます。
 - 注意: `.git/config` はコミットされないため、チーム全体への強制には引き続きlefthookのようなマネージャーが適しています。設定ベースのフックは個人設定・グローバルポリシーに適しています。
+
+### その他のフック連携
+
+#### git am ワークフロー
+
+`git am` でパッチメールを適用するワークフローでも同じポリシーを適用できます:
+
+```bash
+# パッチのコミットメッセージ検査 — メッセージファイルのパスはgitが自動的に渡します
+git config set hook.commit-checker-am-msg.command "commit-checker msg"
+git config set --append hook.commit-checker-am-msg.event applypatch-msg
+
+# 適用されたパッチ内容の検査 — pre-applypatch の時点ではパッチが staged 状態
+git config set hook.commit-checker-am-diff.command "commit-checker diff"
+git config set --append hook.commit-checker-am-diff.event pre-applypatch
+```
+
+#### サーバー側の強制（update フック）
+
+サーバー（bareリポジトリ）の `update` フックは ref ごとに `<refname> <old> <new>` の引数を受け取ります。
+`push --range` を使うと、クライアントにフックをインストールしなくてもサーバー側でコミットメッセージポリシーを強制できます:
+
+```bash
+#!/bin/sh
+# hooks/update — 引数: <refname> <old> <new>
+exec commit-checker push --range "$2..$3"
+```
+
+新規ブランチ（old がすべて0）は警告を出力して検査をスキップします。
 
 ## 設定
 
@@ -268,6 +325,11 @@ append_only:
   # paths:
   #   - "migrations/**"
   #   - "db/migrations/**"
+
+# protected_paths:
+#   enabled: true
+#   paths:
+#     - "legacy/**"            # マッチするパスのすべての staged 変更（追加・修正・削除）をブロック
 
 cache_dir:
   enabled: true                # 既定で有効
@@ -360,6 +422,25 @@ append_only:
 - 既存ファイルより前または同名の新規ファイル追加（`filename_order: none` の場合は許可）
 
 ファイル名の順序は自然数ソート基準で `9 < 10` として扱われます（既定）。
+
+### protected_paths（保護パス）
+
+glob パターンにマッチするパスのすべての staged 変更（追加・修正・削除）をブロックします。
+append_only がファイル末尾への追記を許可するのに対し、protected_paths は一切の変更を許可しない完全凍結ポリシーです。
+
+```yaml
+protected_paths:
+  enabled: true
+  paths:
+    - "legacy/**"
+```
+
+| 検査 | 許可される変更 |
+|---|---|
+| `append_only` | 新規ファイルの追加、既存ファイル末尾への追記 |
+| `protected_paths` | なし（完全凍結） |
+
+`exceptions.global_ignore` にマッチするファイルは検査から除外されます。
 
 ### ビルド成果物・キャッシュディレクトリ検査
 
@@ -504,6 +585,7 @@ commit-checker init          デフォルト設定ファイル（.commit-checker
 commit-checker diff          staged diff のコメント/エンコーディング/lint/バイナリ/Unicode 検査
 commit-checker run           追跡中の全ファイルのポリシー準拠検査
 commit-checker msg <file>    コミットメッセージファイルの検査
+commit-checker prepare-msg   prepare-commit-msg フック用: エディタに有効ポリシーのヒントを表示
 commit-checker fix           git履歴の自動修正（dry-run対応）
 commit-checker migrate       設定ファイルを最新スキーマに移行
 commit-checker analyze       リポジトリ分析（言語検出、lint設定の確認）
@@ -525,6 +607,17 @@ commit-checker diff A B                  # A ↔ B
 commit-checker diff A..B                 # A ↔ B (range 表記)
 commit-checker diff A...B                # merge-base(A,B) ↔ B
 ```
+
+`--only` フラグで指定した検査だけを実行できます（`run` でも同様に対応）。
+設定で `enabled: false` の検査も `--only` で指定すると強制的に実行されます。
+
+```bash
+commit-checker diff --only comment_language   # コメント言語のみ検査
+commit-checker diff --only lint,encoding      # 複数カテゴリの指定
+```
+
+- run・diff 共通カテゴリ: `binary` `encoding` `unicode` `lint` `editorconfig` `comment_language` `cache_dir`
+- diff 専用カテゴリ: `custom_rules` `append_only` `protected_paths`
 
 CIの例（GitHub Actions、GitLab CI など）:
 
@@ -554,9 +647,23 @@ commit-checker init --force
 ```bash
 # 追跡中の全ファイルを検査（staged 状態に関係なく）
 commit-checker run
+
+# 特定の検査のみ実行（--only）
+commit-checker run --only lint
 ```
 
 `diff` と異なり、ステージ状態に関係なく `git ls-files` で追跡されているすべてのファイルを検査します。
+
+### prepare-msg コマンド
+
+`prepare-commit-msg` フック用のコマンドです。コミットメッセージエディタに、有効になっているポリシーのヒントを `#` コメントで表示します。
+git がコミット時に `#` 行を除去するため、ヒントがメッセージに残ることはありません。
+`-m`/merge/squash/amend のコミットでは何もしません。
+
+```bash
+# git が渡す引数をそのまま受け取ります: <ファイル> [source] [sha]
+commit-checker prepare-msg .git/COMMIT_EDITMSG
+```
 
 ### fix コマンド
 

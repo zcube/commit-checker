@@ -105,8 +105,26 @@ go install github.com/zcube/commit-checker@latest
 ```yaml
 pre-commit:
   commands:
+    # 在 diff 之前运行 fix，可在检查前自动应用格式修复（去除表情符号、清理 NBSP 等）。
+    # fix 会自行对修改过的文件执行 git add 重新暂存（lefthook 按名称顺序执行）。
+    auto-fix:
+      run: commit-checker fix
+      stage_fixed: true       # 也可同时使用 lefthook 的重新暂存选项
     comment-language:
       run: commit-checker diff
+
+# merge 提交不会触发 pre-commit 钩子，为防止 feature 分支的违规
+# 通过 merge 进入 main，请同时在 pre-merge-commit 上注册检查。
+pre-merge-commit:
+  commands:
+    comment-language:
+      run: commit-checker diff
+
+# 在提交信息编辑器中以 # 注释显示当前生效的策略提示（-m/merge/squash/amend 时不执行任何操作）
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
 
 commit-msg:
   commands:
@@ -176,12 +194,49 @@ git config set --append hook.commit-checker-msg.event commit-msg
 # （可选）push 前检查提交信息（pre-push）
 git config set hook.commit-checker-push.command "commit-checker push"
 git config set --append hook.commit-checker-push.event pre-push
+
+# 检查 merge 提交（pre-merge-commit）— merge 提交不会触发 pre-commit 钩子
+git config set hook.commit-checker-merge.command "commit-checker diff"
+git config set --append hook.commit-checker-merge.event pre-merge-commit
+
+# 在提交信息编辑器中显示策略提示（prepare-commit-msg）— 参数由 git 自动传递
+git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
+git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```
 
 - 加上 `--global` 可一次性应用到所有仓库（适合个人全局策略）。
 - 确认注册：`git hook list pre-commit`
 - 同一事件的多个钩子按配置顺序执行，现有的 `.git/hooks/` 脚本（如 lefthook）最后执行，因此可以共存。
 - 注意：`.git/config` 不会被提交，团队级强制仍更适合使用 lefthook 等管理器。基于配置的钩子适合个人配置和全局策略。
+
+### 其他钩子集成
+
+#### git am 工作流
+
+在使用 `git am` 应用补丁邮件的工作流中也可以应用相同的策略：
+
+```bash
+# 检查补丁的提交信息 — 信息文件路径由 git 自动传递
+git config set hook.commit-checker-am-msg.command "commit-checker msg"
+git config set --append hook.commit-checker-am-msg.event applypatch-msg
+
+# 检查已应用的补丁内容 — pre-applypatch 时补丁处于 staged 状态
+git config set hook.commit-checker-am-diff.command "commit-checker diff"
+git config set --append hook.commit-checker-am-diff.event pre-applypatch
+```
+
+#### 服务器端强制（update 钩子）
+
+服务器（bare 仓库）的 `update` 钩子按 ref 接收 `<refname> <old> <new>` 参数。
+使用 `push --range`，无需在客户端安装任何钩子即可在服务器端强制执行提交信息策略：
+
+```bash
+#!/bin/sh
+# hooks/update — 参数: <refname> <old> <new>
+exec commit-checker push --range "$2..$3"
+```
+
+新分支（old 全为 0）会输出警告并跳过检查。
 
 ## 配置
 
@@ -268,6 +323,11 @@ append_only:
   # paths:
   #   - "migrations/**"
   #   - "db/migrations/**"
+
+# protected_paths:
+#   enabled: true
+#   paths:
+#     - "legacy/**"            # 阻止匹配路径下的所有 staged 变更（添加/修改/删除）
 
 cache_dir:
   enabled: true                # 默认启用
@@ -360,6 +420,25 @@ append_only:
 - 添加排在现有文件之前或同名的新文件（`filename_order: none` 时允许）
 
 文件名顺序按自然数排序处理，即 `9 < 10`（默认）。
+
+### protected_paths（保护路径）
+
+阻止 glob 模式匹配路径下的所有 staged 变更（添加、修改、删除）。
+与允许在文件末尾追加内容的 append_only 不同，protected_paths 是不允许任何变更的完全冻结策略。
+
+```yaml
+protected_paths:
+  enabled: true
+  paths:
+    - "legacy/**"
+```
+
+| 检查 | 允许的变更 |
+|---|---|
+| `append_only` | 添加新文件、在现有文件末尾追加内容 |
+| `protected_paths` | 无（完全冻结） |
+
+匹配 `exceptions.global_ignore` 的文件会从检查中排除。
 
 ### 构建产物·缓存目录检查
 
@@ -504,6 +583,7 @@ commit-checker init          生成默认配置文件（.commit-checker.yml）
 commit-checker diff          检查 staged diff 的注释/编码/lint/二进制/Unicode
 commit-checker run           检查所有已跟踪文件的策略合规性
 commit-checker msg <file>    检查提交消息文件
+commit-checker prepare-msg   用于 prepare-commit-msg 钩子: 在编辑器中显示生效的策略提示
 commit-checker fix           自动修复git历史（支持 dry-run）
 commit-checker migrate       将配置文件迁移到最新架构
 commit-checker analyze       仓库分析（语言检测、lint配置确认）
@@ -525,6 +605,17 @@ commit-checker diff A B                  # A ↔ B
 commit-checker diff A..B                 # A ↔ B (range 表示法)
 commit-checker diff A...B                # merge-base(A,B) ↔ B
 ```
+
+使用 `--only` 标志可以只运行指定的检查（`run` 同样支持）。
+即使配置中为 `enabled: false` 的检查，通过 `--only` 指定时也会强制执行。
+
+```bash
+commit-checker diff --only comment_language   # 仅检查注释语言
+commit-checker diff --only lint,encoding      # 指定多个类别
+```
+
+- run·diff 共用类别: `binary` `encoding` `unicode` `lint` `editorconfig` `comment_language` `cache_dir`
+- diff 专用类别: `custom_rules` `append_only` `protected_paths`
 
 CI 示例（GitHub Actions、GitLab CI 等）：
 
@@ -554,9 +645,23 @@ commit-checker init --force
 ```bash
 # 检查所有已跟踪文件（与暂存状态无关）
 commit-checker run
+
+# 仅运行特定检查（--only）
+commit-checker run --only lint
 ```
 
 与 `diff` 不同，无论是否暂存，都会检查 `git ls-files` 跟踪的所有文件。
+
+### prepare-msg 命令
+
+用于 `prepare-commit-msg` 钩子的命令。在提交信息编辑器中以 `#` 注释显示当前生效的策略提示。
+git 在提交时会去除 `#` 行，因此提示不会留在提交信息中。
+对 `-m`/merge/squash/amend 提交不执行任何操作。
+
+```bash
+# 按原样接收 git 传递的参数: <文件> [source] [sha]
+commit-checker prepare-msg .git/COMMIT_EDITMSG
+```
 
 ### fix 命令
 

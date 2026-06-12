@@ -123,6 +123,13 @@ editorconfig:
 #   # filename_order: numeric 이 기본. 순서 검사를 끄려면 none 지정.
 #   # filename_order: none
 
+# protected_paths: glob 패턴 경로의 모든 staged 변경(추가·수정·삭제)을 차단하는 완전 동결 정책.
+# append_only 와 달리 파일 끝에 내용 추가도 허용하지 않습니다. exceptions.global_ignore 가 적용됩니다.
+# protected_paths:
+#   enabled: true
+#   paths:
+#     - "legacy/**"
+
 # cache_dir: 빌드 산출물·캐시 디렉터리(node_modules, dist, build, target,
 # __pycache__, .venv 등) 안의 파일이 커밋되는 것을 차단합니다.
 # 부모 디렉터리 인디케이터(go.mod, package.json, Cargo.toml 등) 기반으로 검증.

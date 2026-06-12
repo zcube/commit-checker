@@ -105,8 +105,26 @@ go install github.com/zcube/commit-checker@latest
 ```yaml
 pre-commit:
   commands:
+    # fix 를 diff 보다 먼저 실행하면 포매팅(이모지 제거·NBSP 정리 등)이 검사 전에 반영됩니다.
+    # fix 는 수정한 파일을 스스로 git add 까지 수행합니다 (lefthook 은 이름 순서로 실행).
+    auto-fix:
+      run: commit-checker fix
+      stage_fixed: true       # lefthook 의 재스테이징 옵션도 함께 사용 가능
     comment-language:
       run: commit-checker diff
+
+# merge 커밋은 pre-commit 훅을 타지 않으므로, feature 브랜치의 위반이
+# merge 로 main 에 들어오는 것을 막으려면 pre-merge-commit 에도 등록합니다.
+pre-merge-commit:
+  commands:
+    comment-language:
+      run: commit-checker diff
+
+# 커밋 메시지 에디터에 활성 정책 힌트를 # 주석으로 표시 (-m/merge/squash/amend 시 무동작)
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
 
 commit-msg:
   commands:
@@ -176,12 +194,49 @@ git config set --append hook.commit-checker-msg.event commit-msg
 # (선택) push 전 커밋 메시지 검사 (pre-push)
 git config set hook.commit-checker-push.command "commit-checker push"
 git config set --append hook.commit-checker-push.event pre-push
+
+# merge 커밋 검사 (pre-merge-commit) — merge 커밋은 pre-commit 훅을 타지 않음
+git config set hook.commit-checker-merge.command "commit-checker diff"
+git config set --append hook.commit-checker-merge.event pre-merge-commit
+
+# 커밋 메시지 에디터에 정책 힌트 표시 (prepare-commit-msg) — 인자는 git이 자동 전달
+git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
+git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```
 
 - `--global` 을 붙이면 모든 리포지터리에 일괄 적용됩니다 (개인 전역 정책에 유용).
 - 등록 확인: `git hook list pre-commit`
 - 같은 이벤트의 훅 여러 개는 설정 순서대로 실행되고, 기존 `.git/hooks/` 스크립트(lefthook 등)는 마지막에 실행되므로 공존할 수 있습니다.
 - 주의: `.git/config` 는 커밋되지 않으므로 팀 전체 강제에는 lefthook 같은 매니저가 여전히 적합합니다. 설정 기반 훅은 개인 설정·전역 정책에 알맞습니다.
+
+### 그 밖의 훅 연동
+
+#### git am 워크플로
+
+`git am` 으로 패치 메일을 적용하는 워크플로에서도 동일한 정책을 적용할 수 있습니다:
+
+```bash
+# 패치의 커밋 메시지 검사 — 메시지 파일 경로는 git이 자동 전달
+git config set hook.commit-checker-am-msg.command "commit-checker msg"
+git config set --append hook.commit-checker-am-msg.event applypatch-msg
+
+# 적용된 패치 내용 검사 — pre-applypatch 시점에는 패치가 staged 상태
+git config set hook.commit-checker-am-diff.command "commit-checker diff"
+git config set --append hook.commit-checker-am-diff.event pre-applypatch
+```
+
+#### 서버 측 강제 (update 훅)
+
+서버(bare 리포지터리)의 `update` 훅은 ref 당 `<refname> <old> <new>` 인자를 받습니다.
+`push --range` 를 사용하면 클라이언트에 훅을 설치하지 않아도 서버에서 커밋 메시지 정책을 강제할 수 있습니다:
+
+```bash
+#!/bin/sh
+# hooks/update — 인자: <refname> <old> <new>
+exec commit-checker push --range "$2..$3"
+```
+
+신규 브랜치(old 가 모두 0)는 경고를 출력하고 검사를 건너뜁니다.
 
 ## 설정
 
@@ -268,6 +323,11 @@ append_only:
   # paths:
   #   - "migrations/**"
   #   - "db/migrations/**"
+
+# protected_paths:
+#   enabled: true
+#   paths:
+#     - "legacy/**"            # 매칭 경로의 모든 staged 변경(추가·수정·삭제) 차단
 
 cache_dir:
   enabled: true                # 기본 활성화
@@ -360,6 +420,25 @@ append_only:
 - 기존 파일보다 앞이나 같은 이름의 새 파일 추가 (`filename_order: none` 시 허용)
 
 파일 이름 순서는 자연수 정렬 기준으로 `9 < 10` 으로 처리합니다 (기본값).
+
+### protected_paths (보호 경로)
+
+glob 패턴에 매칭되는 경로의 모든 staged 변경(추가·수정·삭제)을 차단합니다.
+append_only 가 파일 끝에 내용 추가를 허용하는 것과 달리, protected_paths 는 어떤 변경도 허용하지 않는 완전 동결 정책입니다.
+
+```yaml
+protected_paths:
+  enabled: true
+  paths:
+    - "legacy/**"
+```
+
+| 검사 | 허용되는 변경 |
+|---|---|
+| `append_only` | 새 파일 추가, 기존 파일 끝에 내용 추가 |
+| `protected_paths` | 없음 (완전 동결) |
+
+`exceptions.global_ignore` 에 매칭되는 파일은 검사에서 제외됩니다.
 
 ### 빌드 산출물·캐시 디렉터리 검사
 
@@ -504,6 +583,7 @@ commit-checker init          기본 설정 파일(.commit-checker.yml) 생성
 commit-checker diff          staged diff의 주석/인코딩/린트/바이너리/유니코드 검사
 commit-checker run           추적된 전체 파일의 정책 준수 검사
 commit-checker msg <file>    커밋 메시지 파일 검사
+commit-checker prepare-msg   prepare-commit-msg 훅용: 에디터에 활성 정책 힌트 표시
 commit-checker fix           git history 자동 수정 (dry-run 지원)
 commit-checker migrate       설정 파일을 최신 스키마로 마이그레이션
 commit-checker analyze       리포지터리 분석 (언어 감지, 린트 설정 확인)
@@ -525,6 +605,17 @@ commit-checker diff A B                  # A ↔ B
 commit-checker diff A..B                 # A ↔ B (range 표기)
 commit-checker diff A...B                # merge-base(A,B) ↔ B
 ```
+
+`--only` 플래그로 지정한 검사만 실행할 수 있습니다 (`run` 도 동일하게 지원).
+설정에서 `enabled: false` 인 검사도 `--only` 로 지정하면 강제 실행됩니다.
+
+```bash
+commit-checker diff --only comment_language   # 주석 언어만 검사
+commit-checker diff --only lint,encoding      # 복수 카테고리 지정
+```
+
+- run·diff 공통 카테고리: `binary` `encoding` `unicode` `lint` `editorconfig` `comment_language` `cache_dir`
+- diff 전용 카테고리: `custom_rules` `append_only` `protected_paths`
 
 CI 예시 (GitHub Actions, GitLab CI 등):
 
@@ -554,9 +645,23 @@ commit-checker init --force
 ```bash
 # 추적된 전체 파일 검사 (staged 상태 무관)
 commit-checker run
+
+# 특정 검사만 실행 (--only)
+commit-checker run --only lint
 ```
 
 `diff` 와 달리 스테이지 여부에 관계없이 `git ls-files` 로 추적된 모든 파일을 검사합니다.
+
+### prepare-msg 커맨드
+
+`prepare-commit-msg` 훅용 커맨드입니다. 커밋 메시지 에디터에 활성화된 정책 힌트를 `#` 주석으로 표시합니다.
+git이 커밋 시 `#` 줄을 제거하므로 힌트는 메시지에 남지 않습니다.
+`-m`/merge/squash/amend 커밋에서는 아무 동작도 하지 않습니다.
+
+```bash
+# git이 전달하는 인자를 그대로 받습니다: <파일> [source] [sha]
+commit-checker prepare-msg .git/COMMIT_EDITMSG
+```
 
 ### fix 커맨드
 
