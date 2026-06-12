@@ -2,6 +2,7 @@ package checker
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"unicode"
@@ -14,6 +15,9 @@ import (
 	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/commit-checker/internal/pathutil"
 )
+
+// errNotInFromTree: 비교 기준(from) 트리에 파일이 존재하지 않음을 나타내는 센티널 에러.
+var errNotInFromTree = errors.New("file not in from tree")
 
 // CheckAppendOnly 는 스테이지된 diff 에서 append-only 경로 위반을 검사합니다.
 // go-git 으로 HEAD 내용과 staged 내용을 직접 비교합니다.
@@ -82,7 +86,11 @@ func CheckAppendOnly(cfg *config.Config) ([]string, error) {
 
 		violation, checkErr := checkFileContent(tree, d.Path)
 		if checkErr != nil {
-			continue
+			// from tree 에 없는 파일(rename 등)은 비교 대상이 없으므로 건너뜀
+			if errors.Is(checkErr, errNotInFromTree) {
+				continue
+			}
+			return nil, fmt.Errorf("append-only check %s: %w", d.Path, checkErr)
 		}
 		if violation != "" {
 			errs = append(errs, i18n.T(violation, map[string]any{
@@ -156,7 +164,7 @@ func checkFileContent(headTree *object.Tree, path string) (string, error) {
 
 	headFile, err := headTree.File(path)
 	if err != nil {
-		return "", errors.New("not in HEAD")
+		return "", errNotInFromTree
 	}
 
 	headContent, err := headFile.Contents()

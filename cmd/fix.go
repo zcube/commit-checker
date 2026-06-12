@@ -46,6 +46,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 	for _, path := range files {
 		content, err := os.ReadFile(path)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: skipping %s: %v\n", path, err)
 			continue
 		}
 		if encoding.IsBinary(content) {

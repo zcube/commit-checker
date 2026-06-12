@@ -17,7 +17,7 @@ import (
 var pushRange string
 
 var pushCmd = &cobra.Command{
-	Use:  "push",
+	Use: "push",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load(configFile)
 		if err != nil {
@@ -43,11 +43,13 @@ var pushCmd = &cobra.Command{
 		for _, r := range commitRanges {
 			hashes, listErr := listPushCommitHashes(r)
 			if listErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not list commits for range %s, skipping commit check: %v\n", r, listErr)
 				continue
 			}
 			for _, hash := range hashes {
 				msg, msgErr := getPushCommitMessage(hash)
 				if msgErr != nil {
+					fmt.Fprintf(os.Stderr, "warning: could not read commit message for %s, skipping: %v\n", hash[:7], msgErr)
 					continue
 				}
 				errs := checker.CheckMsg(cfg, msg)
