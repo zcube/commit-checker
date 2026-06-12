@@ -188,6 +188,42 @@ cmd.msg.long:
 
     With --fix, auto-fixable violations (all except language checks) are
     corrected in place before the commit proceeds.
+cmd.prepare_msg.short:
+  other: "Add policy hints to the commit message template (prepare-commit-msg hook)"
+cmd.prepare_msg.long:
+  other: |-
+    Appends config-based policy hints to the end of the commit message file
+    as # comment lines. Git strips lines starting with # at commit time,
+    so the hints never end up in the actual commit message.
+
+    Does nothing when source is message (-m/-F), merge, squash, or
+    commit (amend) — the user already has a message in those cases.
+
+    Use as a git prepare-commit-msg hook via lefthook, husky, or similar:
+      prepare-commit-msg:
+        commands:
+          policy-hint:
+            run: commit-checker prepare-msg {1} {2} {3}
+cmd.prepare_msg.hint_header:
+  other: "── commit-checker policy guide ──"
+cmd.prepare_msg.hint_format:
+  other: "Format: <type>(<scope>): <description>"
+cmd.prepare_msg.hint_types:
+  other: "Allowed types: {{.Types}}"
+cmd.prepare_msg.hint_language:
+  other: "Write the commit message in {{.Language}}"
+cmd.prepare_msg.hint_coauthor:
+  other: "AI co-author trailers will be removed before commit"
+
+# language display names (used in prepare-msg hints)
+lang.korean:
+  other: "Korean"
+lang.english:
+  other: "English"
+lang.japanese:
+  other: "Japanese"
+lang.chinese:
+  other: "Chinese"
 cmd.fix.short:
   other: "Auto-fix Unicode issues in staged files"
 cmd.fix.long:
@@ -307,6 +343,10 @@ flag.migrate_dry_run:
   other: "preview changes without modifying the file"
 flag.no_guide:
   other: "disable the remediation guide output on violations"
+flag.only:
+  other: "run only the specified check categories, comma-separated (forces them on even if disabled in config)"
+flag.only_invalid:
+  other: "invalid --only category '{{.Category}}'; valid categories: {{.Valid}}"
 
 # step names
 step.binary_detection:

@@ -188,6 +188,42 @@ cmd.msg.long:
 
     --fixを使用すると、自動修正可能な違反(言語チェック以外)が
     コミット前にファイル内で修正されます。
+cmd.prepare_msg.short:
+  other: "コミットメッセージテンプレートにポリシーヒントを追加します (prepare-commit-msg フック)"
+cmd.prepare_msg.long:
+  other: |-
+    設定に基づくポリシー案内をコミットメッセージファイルの末尾に
+    # コメント行として追加します。git はコミット時に # で始まる行を
+    削除するため、実際のコミットメッセージには残りません。
+
+    source が message(-m/-F)、merge、squash、commit(amend) の場合、
+    ユーザーが既にメッセージを持っているため何もしません。
+
+    lefthook、husky などを通じて git prepare-commit-msg フックとして使用してください:
+      prepare-commit-msg:
+        commands:
+          policy-hint:
+            run: commit-checker prepare-msg {1} {2} {3}
+cmd.prepare_msg.hint_header:
+  other: "── commit-checker ポリシー案内 ──"
+cmd.prepare_msg.hint_format:
+  other: "フォーマット: <type>(<scope>): <説明>"
+cmd.prepare_msg.hint_types:
+  other: "許可された type: {{.Types}}"
+cmd.prepare_msg.hint_language:
+  other: "コミットメッセージは{{.Language}}で書いてください"
+cmd.prepare_msg.hint_coauthor:
+  other: "AI co-author トレーラーはコミット前に削除されます"
+
+# 言語表示名 (prepare-msg ヒントで使用)
+lang.korean:
+  other: "韓国語"
+lang.english:
+  other: "英語"
+lang.japanese:
+  other: "日本語"
+lang.chinese:
+  other: "中国語"
 cmd.fix.short:
   other: "ステージ済みファイルのUnicode問題を自動修正します"
 cmd.fix.long:
@@ -307,6 +343,10 @@ flag.migrate_dry_run:
   other: "ファイルを変更せずに変更内容をプレビュー"
 flag.no_guide:
   other: "違反時の改善ガイド出力を無効化"
+flag.only:
+  other: "指定したカテゴリの検査のみ実行 (カンマ区切り; 設定で無効でも強制実行)"
+flag.only_invalid:
+  other: "--only カテゴリ '{{.Category}}' は無効です。有効なカテゴリ: {{.Valid}}"
 
 # ステップ名
 step.binary_detection:

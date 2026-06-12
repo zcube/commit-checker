@@ -187,6 +187,41 @@ cmd.msg.long:
       - 约定式提交格式 (启用时)
 
     使用--fix时，可自动修复的违规(除语言检查外)将在提交前就地修正。
+cmd.prepare_msg.short:
+  other: "向提交消息模板添加策略提示 (prepare-commit-msg 钩子)"
+cmd.prepare_msg.long:
+  other: |-
+    将基于配置的策略提示以 # 注释行的形式追加到提交消息文件末尾。
+    git 在提交时会删除以 # 开头的行，因此提示不会出现在实际的提交消息中。
+
+    当 source 为 message(-m/-F)、merge、squash 或 commit(amend) 时，
+    用户已经有消息，因此不做任何操作。
+
+    通过 lefthook、husky 等作为 git prepare-commit-msg 钩子使用:
+      prepare-commit-msg:
+        commands:
+          policy-hint:
+            run: commit-checker prepare-msg {1} {2} {3}
+cmd.prepare_msg.hint_header:
+  other: "── commit-checker 策略指南 ──"
+cmd.prepare_msg.hint_format:
+  other: "格式: <type>(<scope>): <描述>"
+cmd.prepare_msg.hint_types:
+  other: "允许的 type: {{.Types}}"
+cmd.prepare_msg.hint_language:
+  other: "提交消息请使用{{.Language}}编写"
+cmd.prepare_msg.hint_coauthor:
+  other: "AI co-author 尾部标记将在提交前被删除"
+
+# 语言显示名称 (用于 prepare-msg 提示)
+lang.korean:
+  other: "韩语"
+lang.english:
+  other: "英语"
+lang.japanese:
+  other: "日语"
+lang.chinese:
+  other: "中文"
 cmd.fix.short:
   other: "自动修复已暂存文件中的Unicode问题"
 cmd.fix.long:
@@ -305,6 +340,10 @@ flag.migrate_dry_run:
   other: "预览更改而不修改文件"
 flag.no_guide:
   other: "禁用违规时的改进指南输出"
+flag.only:
+  other: "仅运行指定类别的检查 (逗号分隔; 即使在配置中禁用也会强制执行)"
+flag.only_invalid:
+  other: "--only 类别 '{{.Category}}' 无效。有效类别: {{.Valid}}"
 
 # 步骤名称
 step.binary_detection:
