@@ -85,6 +85,14 @@ cmd.fix.dry_run_summary:
   other: "{{.Count}}개 파일에서 이슈 발견 (dry-run: 변경 사항 저장 안 됨)"
 cmd.fix.fixed_summary:
   other: "{{.Count}}개 파일 수정 완료"
+cmd.fix.warn_read_failed:
+  other: "경고: {{.Path}} 읽기 실패로 건너뜀: {{.Error}}"
+cmd.push.warn_list_failed:
+  other: "경고: 범위 {{.Range}}의 커밋 목록을 가져올 수 없어 커밋 검사를 건너뜀: {{.Error}}"
+cmd.push.warn_msg_failed:
+  other: "경고: 커밋 {{.Hash}}의 메시지를 읽을 수 없어 건너뜀: {{.Error}}"
+cmd.push.warn_no_base:
+  other: "경고: {{.Ref}}의 리모트 기준 브랜치를 찾을 수 없어 커밋 검사를 건너뜀"
 cmd.no_staged_changes:
   other: "스테이지된 변경 사항이 없습니다 — 건너뜁니다."
 

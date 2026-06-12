@@ -85,6 +85,14 @@ cmd.fix.dry_run_summary:
   other: "在{{.Count}}个文件中发现问题 (dry-run: 未保存更改)"
 cmd.fix.fixed_summary:
   other: "已修复{{.Count}}个文件"
+cmd.fix.warn_read_failed:
+  other: "警告: 读取 {{.Path}} 失败，已跳过: {{.Error}}"
+cmd.push.warn_list_failed:
+  other: "警告: 无法获取范围 {{.Range}} 的提交列表，跳过提交检查: {{.Error}}"
+cmd.push.warn_msg_failed:
+  other: "警告: 无法读取提交 {{.Hash}} 的消息，已跳过: {{.Error}}"
+cmd.push.warn_no_base:
+  other: "警告: 找不到 {{.Ref}} 的远程基准分支，跳过提交检查"
 cmd.no_staged_changes:
   other: "未找到暂存的更改 — 跳过。"
 

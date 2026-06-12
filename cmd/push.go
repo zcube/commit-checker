@@ -43,13 +43,13 @@ var pushCmd = &cobra.Command{
 		for _, r := range commitRanges {
 			hashes, listErr := listPushCommitHashes(r)
 			if listErr != nil {
-				fmt.Fprintf(os.Stderr, "warning: could not list commits for range %s, skipping commit check: %v\n", r, listErr)
+				fmt.Fprintln(os.Stderr, i18n.T("cmd.push.warn_list_failed", map[string]any{"Range": r, "Error": listErr.Error()}))
 				continue
 			}
 			for _, hash := range hashes {
 				msg, msgErr := getPushCommitMessage(hash)
 				if msgErr != nil {
-					fmt.Fprintf(os.Stderr, "warning: could not read commit message for %s, skipping: %v\n", hash[:7], msgErr)
+					fmt.Fprintln(os.Stderr, i18n.T("cmd.push.warn_msg_failed", map[string]any{"Hash": hash[:7], "Error": msgErr.Error()}))
 					continue
 				}
 				errs := checker.CheckMsg(cfg, msg)
@@ -96,7 +96,7 @@ func parsePushRanges(r io.Reader) []string {
 			// 새 브랜치: 리모트 기본 브랜치에서 분기된 커밋을 검사합니다
 			base := findPushRemoteBase()
 			if base == "" {
-				fmt.Fprintf(os.Stderr, "warning: could not find remote base branch for %s, skipping commit check\n", parts[0])
+				fmt.Fprintln(os.Stderr, i18n.T("cmd.push.warn_no_base", map[string]any{"Ref": parts[0]}))
 				continue
 			}
 			ranges = append(ranges, base+".."+localSHA)

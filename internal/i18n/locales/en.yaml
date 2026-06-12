@@ -85,6 +85,14 @@ cmd.fix.dry_run_summary:
   other: "Found issues in {{.Count}} file(s) (dry-run: no changes written)"
 cmd.fix.fixed_summary:
   other: "Fixed {{.Count}} file(s)"
+cmd.fix.warn_read_failed:
+  other: "warning: skipping {{.Path}}: {{.Error}}"
+cmd.push.warn_list_failed:
+  other: "warning: could not list commits for range {{.Range}}, skipping commit check: {{.Error}}"
+cmd.push.warn_msg_failed:
+  other: "warning: could not read commit message for {{.Hash}}, skipping: {{.Error}}"
+cmd.push.warn_no_base:
+  other: "warning: could not find remote base branch for {{.Ref}}, skipping commit check"
 cmd.no_staged_changes:
   other: "no staged changes found — skipping."
 

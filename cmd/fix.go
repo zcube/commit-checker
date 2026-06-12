@@ -30,7 +30,7 @@ func init() {
 func runFix(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load(configFile)
 	if err != nil {
-		return fmt.Errorf("loading config: %w", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	files, err := getStagedFilesForFix()
@@ -46,7 +46,7 @@ func runFix(cmd *cobra.Command, args []string) error {
 	for _, path := range files {
 		content, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "warning: skipping %s: %v\n", path, err)
+			fmt.Fprintln(os.Stderr, i18n.T("cmd.fix.warn_read_failed", map[string]any{"Path": path, "Error": err.Error()}))
 			continue
 		}
 		if encoding.IsBinary(content) {

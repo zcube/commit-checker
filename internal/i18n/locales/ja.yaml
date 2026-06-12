@@ -85,6 +85,14 @@ cmd.fix.dry_run_summary:
   other: "{{.Count}}個のファイルで問題を検出しました (dry-run: 変更は保存されません)"
 cmd.fix.fixed_summary:
   other: "{{.Count}}個のファイルを修正しました"
+cmd.fix.warn_read_failed:
+  other: "警告: {{.Path}} の読み込みに失敗したためスキップします: {{.Error}}"
+cmd.push.warn_list_failed:
+  other: "警告: 範囲 {{.Range}} のコミット一覧を取得できないためコミット検査をスキップします: {{.Error}}"
+cmd.push.warn_msg_failed:
+  other: "警告: コミット {{.Hash}} のメッセージを読み取れないためスキップします: {{.Error}}"
+cmd.push.warn_no_base:
+  other: "警告: {{.Ref}} のリモート基準ブランチが見つからないためコミット検査をスキップします"
 cmd.no_staged_changes:
   other: "ステージされた変更がありません — スキップします。"
 
