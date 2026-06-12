@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -105,5 +106,24 @@ func TestMsgCmd_Fix_RemovesInvisibleChar(t *testing.T) {
 	}
 	if strings.Contains(string(data), "\u00a0") {
 		t.Errorf("비가시 문자가 제거되지 않았습니다: %q", data)
+	}
+}
+
+func TestMsgCmd_Violations_ReturnsSentinel(t *testing.T) {
+	isolateHome(t)
+	dir := chdirTemp(t)
+	setConfigFile(t, filepath.Join(dir, ".commit-checker.yml"))
+	setMsgFix(t, false)
+	path := writeMsgTestFile(t, "feat: 기능 추가\n\nCo-authored-by: Claude <noreply@anthropic.com>\n")
+
+	var err error
+	stderr := captureStderr(t, func() {
+		err = msgCmd.RunE(msgCmd, []string{path})
+	})
+	if !errors.Is(err, errSilentExit) {
+		t.Errorf("검사 실패 시 errSilentExit 를 반환해야 합니다: %v", err)
+	}
+	if !strings.Contains(stderr, "Co-authored-by") {
+		t.Errorf("위반 메시지가 stderr 에 출력되어야 합니다:\n%s", stderr)
 	}
 }

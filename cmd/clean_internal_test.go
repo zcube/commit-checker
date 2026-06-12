@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -64,5 +65,19 @@ func TestCleanCmd_Yes_RemovesUntracked(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "node_modules")); !os.IsNotExist(err) {
 		t.Error("--yes 인데 미추적 node_modules 가 삭제되지 않았습니다")
+	}
+}
+
+func TestCleanCmd_NotInRepo_ReturnsSentinel(t *testing.T) {
+	chdirTemp(t) // git 저장소가 아닌 디렉터리
+	setCleanYes(t, false)
+
+	var err error
+	stderr := captureStderr(t, func() { err = runCleanCmd(t) })
+	if !errors.Is(err, errSilentExit) {
+		t.Errorf("리포 루트를 못 찾으면 errSilentExit 를 반환해야 합니다: %v", err)
+	}
+	if stderr == "" {
+		t.Error("리포 외부 안내 메시지가 stderr 에 출력되어야 합니다")
 	}
 }

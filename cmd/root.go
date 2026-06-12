@@ -27,9 +27,12 @@ func Execute() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// os.Exit 은 여기 한 곳으로 중앙화: RunE 는 errSilentExit 등 에러를 반환만 하고,
+	// 종료 코드 결정은 Execute 가 담당한다.
 	if err := fang.Execute(ctx, rootCmd,
 		fang.WithVersion(version.Version),
 		fang.WithCommit(version.Commit),
+		fang.WithErrorHandler(silentErrorHandler),
 	); err != nil {
 		os.Exit(1)
 	}

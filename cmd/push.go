@@ -63,7 +63,7 @@ var pushCmd = &cobra.Command{
 			for _, e := range allErrs {
 				fmt.Fprintln(os.Stderr, e)
 			}
-			os.Exit(1)
+			return errSilentExit
 		}
 
 		return nil

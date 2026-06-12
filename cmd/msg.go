@@ -43,7 +43,7 @@ var msgCmd = &cobra.Command{
 			for _, e := range errs {
 				fmt.Fprintln(os.Stderr, e)
 			}
-			os.Exit(1)
+			return errSilentExit
 		}
 
 		return nil

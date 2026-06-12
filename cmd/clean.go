@@ -23,7 +23,7 @@ var cleanCmd = &cobra.Command{
 		repoRoot, err := cachedir.FindRepoRoot(cwd)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, i18n.T("cmd.clean.not_in_repo", map[string]any{"Path": cwd}))
-			os.Exit(1)
+			return errSilentExit
 		}
 
 		if !globalQuiet {

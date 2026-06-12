@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -84,5 +86,49 @@ func TestParsePushRanges_BlankLines(t *testing.T) {
 	ranges := parsePushRanges(strings.NewReader(input))
 	if len(ranges) != 0 {
 		t.Errorf("expected 0 ranges for blank lines, got %d", len(ranges))
+	}
+}
+
+// setPushRange: pushRange 플래그를 설정하고 테스트 종료 시 복원.
+func setPushRange(t *testing.T, v string) {
+	t.Helper()
+	orig := pushRange
+	pushRange = v
+	t.Cleanup(func() { pushRange = orig })
+}
+
+func TestPushCmd_Violations_ReturnsSentinel(t *testing.T) {
+	isolateHome(t)
+	dir := newTestGitRepo(t)
+	setConfigFile(t, filepath.Join(dir, ".commit-checker.yml")) // 파일 없음 → 기본 설정
+
+	// AI 공동 작성자 트레일러가 포함된 위반 커밋 생성
+	gitRun(t, dir, "commit", "--allow-empty",
+		"-m", "feat: 기능 추가",
+		"-m", "Co-authored-by: Claude <noreply@anthropic.com>")
+	setPushRange(t, "HEAD~1..HEAD")
+
+	var err error
+	stderr := captureStderr(t, func() {
+		err = pushCmd.RunE(pushCmd, nil)
+	})
+	if !errors.Is(err, errSilentExit) {
+		t.Errorf("위반 발견 시 errSilentExit 를 반환해야 합니다: %v", err)
+	}
+	if !strings.Contains(stderr, "Co-authored-by") {
+		t.Errorf("위반 메시지가 stderr 에 출력되어야 합니다:\n%s", stderr)
+	}
+}
+
+func TestPushCmd_NoViolations_ReturnsNil(t *testing.T) {
+	isolateHome(t)
+	dir := newTestGitRepo(t)
+	setConfigFile(t, filepath.Join(dir, ".commit-checker.yml"))
+
+	gitRun(t, dir, "commit", "--allow-empty", "-m", "feat: 정상 커밋")
+	setPushRange(t, "HEAD~1..HEAD")
+
+	if err := pushCmd.RunE(pushCmd, nil); err != nil {
+		t.Errorf("위반이 없으면 nil 을 반환해야 합니다: %v", err)
 	}
 }

@@ -88,3 +88,27 @@ func captureStdout(t *testing.T, fn func()) string {
 	os.Stdout = orig
 	return out
 }
+
+// captureStderr: fn 실행 동안 표준 에러를 가로채 문자열로 반환.
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+	orig := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stderr = w
+	defer func() { os.Stderr = orig }()
+
+	done := make(chan string)
+	go func() {
+		b, _ := io.ReadAll(r)
+		done <- string(b)
+	}()
+
+	fn()
+	_ = w.Close()
+	out := <-done
+	os.Stderr = orig
+	return out
+}
