@@ -1,3 +1,19 @@
+// Package schema 는 설정 파일의 스키마 버전 감지와 현재 버전으로의
+// 마이그레이션을 담당합니다.
+//
+// 모든 버전 정보는 versionChain (오래된 → 최신 순서) 하나에 선언적으로
+// 모여 있으며, DetectVersion 과 Migrate 는 이 체인만 따라 동작합니다.
+//
+// 새 스키마 버전 추가 절차 (versionChain 에 엔트리 1개 추가로 끝):
+//  1. 새 버전의 Config 구조체를 정의 (vX_Y_Z.go 또는 schema.go)
+//  2. Version 상수를 추가하고 VersionCurrent 를 새 버전으로 올림
+//  3. versionChain 끝에 versionSpec 엔트리 1개를 추가
+//     - parse: 새 스키마의 strict 파싱 함수
+//     - signature: 새 버전에서 도입된 마커 필드 경로
+//     (필드 제거만 있는 버전은 직전 버전의 마커를 공유)
+//     - 직전 버전 엔트리의 migrateUp 에 새 버전으로 가는 변환 규칙을 채움
+//
+// DetectVersion / Migrate 등 다른 코드는 수정할 필요가 없습니다.
 package schema
 
 import (
@@ -202,157 +218,164 @@ func tryParseStrict[T any](data []byte) error {
 	return dec.Decode(&cfg)
 }
 
+// versionSpec: 스키마 한 버전을 선언하는 단일 엔트리.
+// 버전 감지·마이그레이션에 필요한 모든 정보를 이 구조체 하나에 모읍니다.
+type versionSpec struct {
+	// version: 이 엔트리가 나타내는 스키마 버전.
+	version Version
+	// parse: 이 버전 스키마로의 strict 파싱 시도 (모르는 필드가 있으면 실패).
+	parse func(data []byte) error
+	// signature: 이 버전에서 도입된 필드를 식별하는 YAML 경로 목록 (문서화·판별용).
+	// 문법: "a.b" (중첩 맵 키), "a.b[].c" (시퀀스 원소의 키).
+	// 구 버전 스키마가 신 버전의 부분집합이라 양쪽 strict 파싱이 모두 성공할 때,
+	// 이 경로 중 하나라도 존재하면 신 버전으로 승격하는 근거가 됩니다.
+	// nil 이면 마커 없음 (최초 버전).
+	signature []string
+	// migrateUp: 바로 다음 버전으로 가는 YAML 텍스트 변환 규칙 (주석 보존).
+	// 필드 추가만 있는 버전 전환은 nil. 최신 버전은 항상 nil.
+	migrateUp []MigrationRule
+}
+
+// v110MarkerFields: v1.1.0 에서 도입된 마커 필드 경로.
+// v1.2.0 은 신규 필드 없이 required_language 류 구 필드만 제거했으므로
+// 같은 마커를 공유합니다 (구 필드 유무는 strict 파싱이 구분).
+var v110MarkerFields = []string{
+	"comment_language.allowed_words",
+	"comment_language.allowed_words_file",
+	"comment_language.allowed_words_url",
+	"comment_language.allowed_words_cache",
+	"encoding.no_invisible_chars",
+	"encoding.no_ambiguous_chars",
+	"encoding.locale",
+}
+
+// versionChain: 지원하는 모든 스키마 버전 (오래된 → 최신 순서).
+// 감지(DetectVersion)와 마이그레이션(Migrate)은 모두 이 체인 하나로 동작합니다.
+var versionChain = []versionSpec{
+	{
+		version: VersionV100,
+		parse:   tryParseStrict[ConfigV100],
+		// 최초 버전: 마커 없음. v1.0.0 → v1.0.1 은 필드 추가만 있어 변환 불필요.
+	},
+	{
+		version: VersionV101,
+		parse:   tryParseStrict[ConfigV101],
+		signature: []string{
+			"binary_file",
+			"lint",
+			"encoding",
+			"editorconfig",
+			"commit_message.enabled",
+			"commit_message.no_emoji",
+			"comment_language.no_emoji",
+		},
+		// v1.0.1 → v1.0.2: no_coauthor 키 이름 변경.
+		migrateUp: []MigrationRule{renameNoCoauthorRule},
+	},
+	{
+		version:   VersionV102,
+		parse:     tryParseStrict[ConfigV102],
+		signature: []string{"commit_message.no_ai_coauthor"},
+		// v1.0.2 → v1.1.0 은 필드 추가만 있어 변환 불필요.
+	},
+	{
+		version:   VersionV110,
+		parse:     tryParseStrict[ConfigV110],
+		signature: v110MarkerFields,
+		// v1.1.0 → v1.2.0: required_language 류 필드를 locale 로 통합.
+		migrateUp: []MigrationRule{renameRequiredLanguageRule},
+	},
+	{
+		version: VersionCurrent, // v1.2.0
+		parse:   tryParseStrict[ConfigCurrent],
+		// v1.2.0 마커는 v1.1.0 과 공유. required_language 류 구 필드가 있으면
+		// strict 파싱이 실패하여 v1.1.0 으로 판별됩니다.
+		signature: v110MarkerFields,
+	},
+}
+
+// chainIndex: versionChain 에서 해당 버전의 인덱스를 반환. 없으면 -1.
+func chainIndex(version Version) int {
+	for i, spec := range versionChain {
+		if spec.version == version {
+			return i
+		}
+	}
+	return -1
+}
+
 // DetectVersion: YAML 데이터의 스키마 버전을 감지.
-// 구 버전부터 순서대로 strict 파싱을 시도하여 첫 번째 성공한 버전을 반환.
-// 상위 호환(superset) 관계에서는 YAML 필드 존재 여부로 추가 판별.
+// versionChain 을 구 버전부터 순서대로 strict 파싱 시도하여 기준 버전을 정하고,
+// 부분집합 관계로 모호한 경우 최신 쪽부터 시그니처 필드로 승격 판별.
 func DetectVersion(data []byte) Version {
-	// strict 파싱: 구 버전 → 신 버전 순서로 시도.
+	// 1단계: 구 버전 → 신 버전 순서로 strict 파싱 시도.
 	// YAML에 해당 스키마가 모르는 필드가 있으면 실패.
-	// 첫 번째 성공 = 가장 오래된 호환 버전.
-	//
-	// 단, 구 버전 스키마가 신 버전의 부분집합이면 둘 다 성공하므로
-	// 추가 판별이 필요한 경우가 있음:
-	//   - v1.0.0 ⊂ v1.0.1 (v1.0.0은 v1.0.1의 부분집합)
-	//   - v1.0.2 ⊂ v1.1.0 (v1.0.2는 v1.1.0의 부분집합)
-
-	type candidate struct {
-		version  Version
-		tryParse func([]byte) error
-	}
-	// 구 버전 → 신 버전 순서. v1.2.0(Current) 를 v1.1.0 보다 먼저 시도하여
-	// required_language 없는 신형 설정이 v1.1.0 으로 잘못 감지되지 않게 함.
-	candidates := []candidate{
-		{VersionV100, tryParseStrict[ConfigV100]},
-		{VersionV101, tryParseStrict[ConfigV101]},
-		{VersionV102, tryParseStrict[ConfigV102]},
-		{VersionCurrent, tryParseStrict[ConfigCurrent]}, // v1.2.0 (required_language 없음)
-		{VersionV110, tryParseStrict[ConfigV110]},       // v1.1.0 (required_language 있음)
-	}
-
-	var matched Version
-	for _, c := range candidates {
-		if c.tryParse(data) == nil {
-			matched = c.version
+	// 첫 번째 성공 = 가장 오래된 호환 버전(base).
+	base := -1
+	for i, spec := range versionChain {
+		if spec.parse(data) == nil {
+			base = i
 			break
 		}
 	}
-
-	if matched == "" {
+	if base < 0 {
 		return VersionUnknown
 	}
 
-	// 부분집합 관계 추가 판별
-	switch matched {
-	case VersionV100:
-		// v1.0.0 config는 v1.0.1에서도 파싱됨 (부분집합).
-		if hasV101Fields(data) {
-			return VersionV101
-		}
-		return VersionV100
-	case VersionV102:
-		// v1.0.2 config는 v1.1.0/v1.2.0 모두의 부분집합.
-		//   - allowed_words 등 v1.1.0+ 신규 필드가 있는지 확인
-		//   - required_language 가 있으면 v1.1.0 (마이그레이션 대상)
-		//   - 그 외에는 v1.0.2 또는 v1.2.0
-		hasNew := hasV110Fields(data)
-		hasReqLang := hasRequiredLanguageField(data)
-		switch {
-		case hasNew && hasReqLang:
-			return VersionV110
-		case hasNew && !hasReqLang:
-			return VersionCurrent
-		case !hasNew && hasReqLang:
-			return VersionV102 // v1.0.2 라도 required_language 가 있으면 마이그레이션 필요
-		default:
-			return VersionV102
-		}
-	}
-
-	return matched
-}
-
-// hasV101Fields: v1.0.1에서 추가된 필드가 존재하는지 확인.
-func hasV101Fields(data []byte) bool {
+	// 2단계: 승격 판별. 구 버전 스키마가 신 버전의 부분집합이면
+	// (예: v1.0.0 ⊂ v1.0.1, v1.0.2 ⊂ v1.1.0)
+	// base 파싱도 성공하므로, 최신 쪽부터 역순으로 시그니처 마커 필드가
+	// 존재하고 strict 파싱도 통과하는 가장 새로운 버전으로 승격.
 	var raw map[string]any
 	if err := yaml.Unmarshal(data, &raw); err != nil {
-		return false
+		return versionChain[base].version
 	}
-	for _, key := range []string{"binary_file", "lint", "encoding", "editorconfig"} {
-		if _, ok := raw[key]; ok {
-			return true
+	for i := len(versionChain) - 1; i > base; i-- {
+		spec := versionChain[i]
+		if hasAnyYAMLPath(raw, spec.signature) && spec.parse(data) == nil {
+			return spec.version
 		}
 	}
-	if cm, ok := raw["commit_message"].(map[string]any); ok {
-		for _, key := range []string{"enabled", "no_emoji"} {
-			if _, ok := cm[key]; ok {
-				return true
-			}
-		}
-	}
-	if cl, ok := raw["comment_language"].(map[string]any); ok {
-		if _, ok := cl["no_emoji"]; ok {
+	return versionChain[base].version
+}
+
+// hasAnyYAMLPath: 파싱된 YAML 맵에 주어진 경로 중 하나라도 존재하는지 확인.
+func hasAnyYAMLPath(raw map[string]any, paths []string) bool {
+	for _, path := range paths {
+		if yamlPathExists(raw, strings.Split(path, ".")) {
 			return true
 		}
 	}
 	return false
 }
 
-// hasRequiredLanguageField: YAML 데이터에 v1.2.0 에서 제거된 required_language 키가
-// (comment_language.required_language 또는 commit_message.language_check.required_language 또는
-// comment_language.file_languages[].language 형태로) 존재하는지 확인.
-// 이 필드가 있으면 마이그레이션이 필요합니다 (locale 로 변환).
-func hasRequiredLanguageField(data []byte) bool {
-	var raw map[string]any
-	if err := yaml.Unmarshal(data, &raw); err != nil {
+// yamlPathExists: 노드에서 경로 세그먼트를 따라 키가 존재하는지 확인.
+// "key[]" 세그먼트는 시퀀스의 각 원소에 대해 나머지 경로를 검사.
+func yamlPathExists(node any, segs []string) bool {
+	if len(segs) == 0 {
+		return true
+	}
+	m, ok := node.(map[string]any)
+	if !ok {
 		return false
 	}
-	if cl, ok := raw["comment_language"].(map[string]any); ok {
-		if _, ok := cl["required_language"]; ok {
-			return true
+	if key, isSeq := strings.CutSuffix(segs[0], "[]"); isSeq {
+		items, ok := m[key].([]any)
+		if !ok {
+			return false
 		}
-		if fl, ok := cl["file_languages"].([]any); ok {
-			for _, item := range fl {
-				if m, ok := item.(map[string]any); ok {
-					if _, ok := m["language"]; ok {
-						return true
-					}
-				}
-			}
-		}
-	}
-	if cm, ok := raw["commit_message"].(map[string]any); ok {
-		if lc, ok := cm["language_check"].(map[string]any); ok {
-			if _, ok := lc["required_language"]; ok {
+		for _, item := range items {
+			if yamlPathExists(item, segs[1:]) {
 				return true
 			}
 		}
-	}
-	return false
-}
-
-// hasV110Fields: v1.1.0에서 추가된 필드가 존재하는지 확인.
-func hasV110Fields(data []byte) bool {
-	var raw map[string]any
-	if err := yaml.Unmarshal(data, &raw); err != nil {
 		return false
 	}
-	// comment_language 에 allowed_words 관련 필드
-	if cl, ok := raw["comment_language"].(map[string]any); ok {
-		for _, key := range []string{"allowed_words", "allowed_words_file", "allowed_words_url", "allowed_words_cache"} {
-			if _, ok := cl[key]; ok {
-				return true
-			}
-		}
+	value, ok := m[segs[0]]
+	if !ok {
+		return false
 	}
-	// encoding 에 no_invisible_chars, no_ambiguous_chars, locale
-	if enc, ok := raw["encoding"].(map[string]any); ok {
-		for _, key := range []string{"no_invisible_chars", "no_ambiguous_chars", "locale"} {
-			if _, ok := enc[key]; ok {
-				return true
-			}
-		}
-	}
-	return false
+	return yamlPathExists(value, segs[1:])
 }
 
 // MigrationRule: 단일 마이그레이션 규칙.
@@ -361,6 +384,14 @@ type MigrationRule struct {
 	Description string
 	// Apply: YAML 텍스트에 변환을 적용하고 변경된 텍스트를 반환.
 	Apply func(data []byte) []byte
+}
+
+// renameNoCoauthorRule: v1.0.2 에서 변경된 키 이름을 적용하는 마이그레이션 규칙.
+var renameNoCoauthorRule = MigrationRule{
+	Description: "commit_message.no_coauthor → commit_message.no_ai_coauthor",
+	Apply: func(data []byte) []byte {
+		return renameYAMLKey(data, "no_coauthor", "no_ai_coauthor")
+	},
 }
 
 // renameRequiredLanguageRule: v1.2.0 통일을 위한 마이그레이션 규칙.
@@ -377,35 +408,6 @@ var renameRequiredLanguageRule = MigrationRule{
 	},
 }
 
-// migrationRules: 버전별 마이그레이션 규칙 매핑.
-// key는 감지된 (구) 버전.
-var migrationRules = map[Version][]MigrationRule{
-	VersionV100: {
-		{
-			Description: "commit_message.no_coauthor → commit_message.no_ai_coauthor",
-			Apply: func(data []byte) []byte {
-				return renameYAMLKey(data, "no_coauthor", "no_ai_coauthor")
-			},
-		},
-		renameRequiredLanguageRule,
-	},
-	VersionV101: {
-		{
-			Description: "commit_message.no_coauthor → commit_message.no_ai_coauthor",
-			Apply: func(data []byte) []byte {
-				return renameYAMLKey(data, "no_coauthor", "no_ai_coauthor")
-			},
-		},
-		renameRequiredLanguageRule,
-	},
-	VersionV102: {
-		renameRequiredLanguageRule,
-	},
-	VersionV110: {
-		renameRequiredLanguageRule,
-	},
-}
-
 // MigrateResult: 마이그레이션 결과.
 type MigrateResult struct {
 	// DetectedVersion: 감지된 설정 파일의 스키마 버전.
@@ -417,7 +419,8 @@ type MigrateResult struct {
 }
 
 // Migrate: YAML 데이터를 현재 스키마로 마이그레이션.
-// 이미 최신이면 Applied가 빈 슬라이스.
+// 감지된 버전부터 versionChain 을 따라 migrateUp 을 단계적으로 적용
+// (v1.0.0 → v1.0.1 → ... → 최신). 이미 최신이면 Applied가 빈 슬라이스.
 func Migrate(data []byte) (*MigrateResult, error) {
 	version := DetectVersion(data)
 	if version == VersionUnknown {
@@ -433,21 +436,19 @@ func Migrate(data []byte) (*MigrateResult, error) {
 		return result, nil
 	}
 
-	rules, ok := migrationRules[version]
-	if !ok {
-		// 마이그레이션 규칙 없음 (예: v1.0.2 → 추가만 있어 변환 불필요)
-		return result, nil
-	}
-
 	migrated := make([]byte, len(data))
 	copy(migrated, data)
 
-	for _, rule := range rules {
-		migrated = rule.Apply(migrated)
-		result.Applied = append(result.Applied, rule.Description)
+	// 감지된 버전부터 체인을 따라 한 단계씩 최신 버전으로 변환.
+	// (DetectVersion 이 unknown 이 아닌 버전을 반환했으므로 체인에 반드시 존재)
+	for _, spec := range versionChain[chainIndex(version):] {
+		for _, rule := range spec.migrateUp {
+			migrated = rule.Apply(migrated)
+			result.Applied = append(result.Applied, rule.Description)
+		}
 	}
 
-	// 마이그레이션 후 현재 스키마로 파싱 가능한지 검증.
+	// 마이그레이션 후 현재(최신) 스키마로 파싱 가능한지 검증.
 	if err := tryParseStrict[ConfigCurrent](migrated); err != nil {
 		return nil, fmt.Errorf("마이그레이션 후 검증 실패: %w", err)
 	}
