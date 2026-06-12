@@ -105,28 +105,8 @@ Create `lefthook.yml` in your project root:
 ```yaml
 pre-commit:
   commands:
-    # Running fix before diff applies formatting (emoji removal, NBSP cleanup, etc.)
-    # before the check. fix re-stages the files it modifies via git add by itself
-    # (lefthook runs commands in name order).
-    auto-fix:
-      run: commit-checker fix
-      stage_fixed: true       # lefthook's re-staging option can be used as well
-    comment-language:
+    commit-checker:
       run: commit-checker diff
-
-# Merge commits do not trigger the pre-commit hook, so register the check on
-# pre-merge-commit too to keep feature-branch violations from entering main via merge.
-pre-merge-commit:
-  commands:
-    comment-language:
-      run: commit-checker diff
-
-# Show active policy hints as # comments in the commit message editor
-# (no-op for -m/merge/squash/amend)
-prepare-commit-msg:
-  commands:
-    policy-hint:
-      run: commit-checker prepare-msg {0}
 
 commit-msg:
   commands:
@@ -141,6 +121,55 @@ lefthook install
 ```
 
 Checks run automatically on every `git commit`.
+
+### Optional hooks (add only what you need)
+
+The blocks below are independent of each other; append only the ones you need to `lefthook.yml`.
+
+#### Auto-fix before checking (fix)
+
+`fix` re-stages the files it modifies via `git add` by itself, so formatting (emoji removal, NBSP cleanup, etc.) is applied before the check. Replace the `pre-commit` block from the base setup with the one below (lefthook runs commands in name order, so `auto-fix` runs before `commit-checker`):
+
+```yaml
+pre-commit:
+  commands:
+    auto-fix:
+      run: commit-checker fix
+      stage_fixed: true
+    commit-checker:
+      run: commit-checker diff
+```
+
+#### Prevent merge bypass (pre-merge-commit)
+
+Merge commits do not trigger the pre-commit hook, so feature-branch violations can slip in via merge. To prevent this, register the check on pre-merge-commit as well:
+
+```yaml
+pre-merge-commit:
+  commands:
+    commit-checker:
+      run: commit-checker diff
+```
+
+#### Commit message policy hints (prepare-commit-msg)
+
+Shows active policy hints as `#` comments at the bottom of the commit message editor (no-op for -m/merge/squash/amend; git strips `#` lines at commit time). Be sure to use `{0}` — `{1}` `{2}` `{3}` are left as literals when the argument is absent and break the hook (verified with lefthook 2.1.9):
+
+```yaml
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
+```
+
+#### Check commit messages before push (pre-push)
+
+```yaml
+pre-push:
+  commands:
+    check-commits:
+      run: commit-checker push
+```
 
 ### 5. Check all existing files (initial adoption)
 
@@ -186,23 +215,25 @@ commit-checker msg "$1"
 Starting with Git 2.54, you can integrate commit-checker with git configuration alone, without a hook manager like lefthook.
 
 ```bash
-# Check staged changes (pre-commit)
+# Base: check staged changes (pre-commit)
 git config set hook.commit-checker-diff.command "commit-checker diff"
 git config set --append hook.commit-checker-diff.event pre-commit
 
-# Check commit messages (commit-msg) — git passes the message file path automatically
+# Base: check commit messages (commit-msg) — git passes the message file path automatically
 git config set hook.commit-checker-msg.command "commit-checker msg"
 git config set --append hook.commit-checker-msg.event commit-msg
 
-# (Optional) check commit messages before push (pre-push)
+# ── Optional from here: register only what you need ──
+
+# Optional: check commit messages before push (pre-push)
 git config set hook.commit-checker-push.command "commit-checker push"
 git config set --append hook.commit-checker-push.event pre-push
 
-# Check merge commits (pre-merge-commit) — merge commits do not trigger the pre-commit hook
+# Optional: check merge commits (pre-merge-commit) — merge commits do not trigger the pre-commit hook
 git config set hook.commit-checker-merge.command "commit-checker diff"
 git config set --append hook.commit-checker-merge.event pre-merge-commit
 
-# Show policy hints in the commit message editor (prepare-commit-msg) — git passes the arguments automatically
+# Optional: show policy hints in the commit message editor (prepare-commit-msg) — git passes the arguments automatically
 git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
 git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```

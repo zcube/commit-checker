@@ -105,26 +105,8 @@ go install github.com/zcube/commit-checker@latest
 ```yaml
 pre-commit:
   commands:
-    # 在 diff 之前运行 fix，可在检查前自动应用格式修复（去除表情符号、清理 NBSP 等）。
-    # fix 会自行对修改过的文件执行 git add 重新暂存（lefthook 按名称顺序执行）。
-    auto-fix:
-      run: commit-checker fix
-      stage_fixed: true       # 也可同时使用 lefthook 的重新暂存选项
-    comment-language:
+    commit-checker:
       run: commit-checker diff
-
-# merge 提交不会触发 pre-commit 钩子，为防止 feature 分支的违规
-# 通过 merge 进入 main，请同时在 pre-merge-commit 上注册检查。
-pre-merge-commit:
-  commands:
-    comment-language:
-      run: commit-checker diff
-
-# 在提交信息编辑器中以 # 注释显示当前生效的策略提示（-m/merge/squash/amend 时不执行任何操作）
-prepare-commit-msg:
-  commands:
-    policy-hint:
-      run: commit-checker prepare-msg {0}
 
 commit-msg:
   commands:
@@ -139,6 +121,55 @@ lefthook install
 ```
 
 之后每次 `git commit` 时会自动执行检查。
+
+### 可选钩子（按需添加）
+
+以下各代码块彼此独立，只需将需要的部分追加到 `lefthook.yml` 即可。
+
+#### 自动修复（fix）
+
+`fix` 会自行对修改过的文件执行 `git add` 重新暂存，因此格式修复（去除表情符号、清理 NBSP 等）会在检查前生效。请将基础配置中的 `pre-commit` 块替换为以下内容（lefthook 按名称顺序执行命令，因此 `auto-fix` 会先于 `commit-checker` 运行）：
+
+```yaml
+pre-commit:
+  commands:
+    auto-fix:
+      run: commit-checker fix
+      stage_fixed: true
+    commit-checker:
+      run: commit-checker diff
+```
+
+#### 防止 merge 绕过（pre-merge-commit）
+
+merge 提交不会触发 pre-commit 钩子，feature 分支的违规可能通过 merge 流入。为防止这种情况，请同时在 pre-merge-commit 上注册检查：
+
+```yaml
+pre-merge-commit:
+  commands:
+    commit-checker:
+      run: commit-checker diff
+```
+
+#### 提交信息策略提示（prepare-commit-msg）
+
+在提交信息编辑器底部以 `#` 注释显示当前生效的策略提示（-m/merge/squash/amend 时不执行任何操作；`#` 行会在提交时被 git 移除）。请务必使用 `{0}` — `{1}` `{2}` `{3}` 在没有参数时会以字面形式残留并导致钩子损坏（lefthook 2.1.9 实测）：
+
+```yaml
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
+```
+
+#### push 前检查提交信息（pre-push）
+
+```yaml
+pre-push:
+  commands:
+    check-commits:
+      run: commit-checker push
+```
 
 ### 5. 检查现有全部文件（初次引入时）
 
@@ -183,23 +214,25 @@ commit-checker msg "$1"
 从 Git 2.54 开始，无需 lefthook 等钩子管理器，仅通过 git 配置即可集成 commit-checker。
 
 ```bash
-# 检查暂存的变更（pre-commit）
+# 基础：检查暂存的变更（pre-commit）
 git config set hook.commit-checker-diff.command "commit-checker diff"
 git config set --append hook.commit-checker-diff.event pre-commit
 
-# 检查提交信息（commit-msg）— 信息文件路径由 git 自动传递
+# 基础：检查提交信息（commit-msg）— 信息文件路径由 git 自动传递
 git config set hook.commit-checker-msg.command "commit-checker msg"
 git config set --append hook.commit-checker-msg.event commit-msg
 
-# （可选）push 前检查提交信息（pre-push）
+# ── 以下为可选：按需注册 ──
+
+# 可选：push 前检查提交信息（pre-push）
 git config set hook.commit-checker-push.command "commit-checker push"
 git config set --append hook.commit-checker-push.event pre-push
 
-# 检查 merge 提交（pre-merge-commit）— merge 提交不会触发 pre-commit 钩子
+# 可选：检查 merge 提交（pre-merge-commit）— merge 提交不会触发 pre-commit 钩子
 git config set hook.commit-checker-merge.command "commit-checker diff"
 git config set --append hook.commit-checker-merge.event pre-merge-commit
 
-# 在提交信息编辑器中显示策略提示（prepare-commit-msg）— 参数由 git 自动传递
+# 可选：在提交信息编辑器中显示策略提示（prepare-commit-msg）— 参数由 git 自动传递
 git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
 git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```

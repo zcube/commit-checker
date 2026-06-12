@@ -105,28 +105,8 @@ go install github.com/zcube/commit-checker@latest
 ```yaml
 pre-commit:
   commands:
-    # fix を diff より先に実行すると、フォーマット修正（絵文字除去・NBSP整理など）が
-    # 検査前に反映されます。fix は修正したファイルを自分で git add まで行います
-    # （lefthook は名前順に実行）。
-    auto-fix:
-      run: commit-checker fix
-      stage_fixed: true       # lefthook の再ステージングオプションも併用可能
-    comment-language:
+    commit-checker:
       run: commit-checker diff
-
-# merge コミットは pre-commit フックを通らないため、feature ブランチの違反が
-# merge で main に入るのを防ぐには pre-merge-commit にも登録します。
-pre-merge-commit:
-  commands:
-    comment-language:
-      run: commit-checker diff
-
-# コミットメッセージエディタに有効なポリシーのヒントを # コメントで表示
-# （-m/merge/squash/amend 時は何もしません）
-prepare-commit-msg:
-  commands:
-    policy-hint:
-      run: commit-checker prepare-msg {0}
 
 commit-msg:
   commands:
@@ -141,6 +121,55 @@ lefthook install
 ```
 
 以降、`git commit` 時に自動的に検査が実行されます。
+
+### 任意のフック（必要なものだけ追加）
+
+以下のブロックは互いに独立しており、必要なものだけを `lefthook.yml` に追記すれば使えます。
+
+#### 自動修正の反映（fix）
+
+`fix` は修正したファイルを自分で `git add` まで行うため、フォーマット修正（絵文字除去・NBSP整理など）が検査前に反映されます。基本設定の `pre-commit` ブロックを以下のように置き換えます（lefthook はコマンドを名前順に実行するため、`auto-fix` が `commit-checker` より先に実行されます）:
+
+```yaml
+pre-commit:
+  commands:
+    auto-fix:
+      run: commit-checker fix
+      stage_fixed: true
+    commit-checker:
+      run: commit-checker diff
+```
+
+#### merge による回避の防止（pre-merge-commit）
+
+merge コミットは pre-commit フックを通らないため、feature ブランチの違反が merge で流入する可能性があります。これを防ぐには pre-merge-commit にも検査を登録します:
+
+```yaml
+pre-merge-commit:
+  commands:
+    commit-checker:
+      run: commit-checker diff
+```
+
+#### コミットメッセージのポリシーヒント（prepare-commit-msg）
+
+コミットメッセージエディタの下部に、有効なポリシーのヒントを `#` コメントで表示します（-m/merge/squash/amend 時は何もしません。`#` の行はコミット時に git が除去します）。必ず `{0}` を使用してください — `{1}` `{2}` `{3}` は引数がないときにリテラルのまま残り、フックが壊れます（lefthook 2.1.9 で実測）:
+
+```yaml
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
+```
+
+#### push 前のコミットメッセージ検査（pre-push）
+
+```yaml
+pre-push:
+  commands:
+    check-commits:
+      run: commit-checker push
+```
 
 ### 5. 既存ファイルの全体検査（初期導入時）
 
@@ -185,23 +214,25 @@ commit-checker msg "$1"
 Git 2.54からは、lefthookのようなフックマネージャーなしで、gitの設定だけでcommit-checkerを連携できます。
 
 ```bash
-# ステージされた変更の検査（pre-commit）
+# 基本: ステージされた変更の検査（pre-commit）
 git config set hook.commit-checker-diff.command "commit-checker diff"
 git config set --append hook.commit-checker-diff.event pre-commit
 
-# コミットメッセージの検査（commit-msg）— メッセージファイルのパスはgitが自動的に渡します
+# 基本: コミットメッセージの検査（commit-msg）— メッセージファイルのパスはgitが自動的に渡します
 git config set hook.commit-checker-msg.command "commit-checker msg"
 git config set --append hook.commit-checker-msg.event commit-msg
 
-# （任意）push前のコミットメッセージ検査（pre-push）
+# ── 以下は任意: 必要なものだけ登録 ──
+
+# 任意: push前のコミットメッセージ検査（pre-push）
 git config set hook.commit-checker-push.command "commit-checker push"
 git config set --append hook.commit-checker-push.event pre-push
 
-# merge コミットの検査（pre-merge-commit）— merge コミットは pre-commit フックを通らない
+# 任意: merge コミットの検査（pre-merge-commit）— merge コミットは pre-commit フックを通らない
 git config set hook.commit-checker-merge.command "commit-checker diff"
 git config set --append hook.commit-checker-merge.event pre-merge-commit
 
-# コミットメッセージエディタにポリシーヒントを表示（prepare-commit-msg）— 引数はgitが自動的に渡します
+# 任意: コミットメッセージエディタにポリシーヒントを表示（prepare-commit-msg）— 引数はgitが自動的に渡します
 git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
 git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```

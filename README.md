@@ -105,26 +105,8 @@ go install github.com/zcube/commit-checker@latest
 ```yaml
 pre-commit:
   commands:
-    # fix 를 diff 보다 먼저 실행하면 포매팅(이모지 제거·NBSP 정리 등)이 검사 전에 반영됩니다.
-    # fix 는 수정한 파일을 스스로 git add 까지 수행합니다 (lefthook 은 이름 순서로 실행).
-    auto-fix:
-      run: commit-checker fix
-      stage_fixed: true       # lefthook 의 재스테이징 옵션도 함께 사용 가능
-    comment-language:
+    commit-checker:
       run: commit-checker diff
-
-# merge 커밋은 pre-commit 훅을 타지 않으므로, feature 브랜치의 위반이
-# merge 로 main 에 들어오는 것을 막으려면 pre-merge-commit 에도 등록합니다.
-pre-merge-commit:
-  commands:
-    comment-language:
-      run: commit-checker diff
-
-# 커밋 메시지 에디터에 활성 정책 힌트를 # 주석으로 표시 (-m/merge/squash/amend 시 무동작)
-prepare-commit-msg:
-  commands:
-    policy-hint:
-      run: commit-checker prepare-msg {0}
 
 commit-msg:
   commands:
@@ -139,6 +121,55 @@ lefthook install
 ```
 
 이후 `git commit` 시 자동으로 검사가 실행됩니다.
+
+### 선택 훅 (필요한 것만 추가)
+
+아래 블록들은 서로 독립적이며 필요한 것만 `lefthook.yml` 에 덧붙이면 됩니다.
+
+#### 자동 수정 반영 (fix)
+
+`fix` 는 수정한 파일을 스스로 `git add` 까지 수행하므로 포매팅(이모지 제거·NBSP 정리 등)이 검사 전에 반영됩니다. 기본 설정의 `pre-commit` 블록을 아래처럼 바꿉니다 (lefthook 은 커맨드를 이름순으로 실행하므로 `auto-fix` 가 `commit-checker` 보다 먼저 실행됩니다):
+
+```yaml
+pre-commit:
+  commands:
+    auto-fix:
+      run: commit-checker fix
+      stage_fixed: true
+    commit-checker:
+      run: commit-checker diff
+```
+
+#### merge 우회 방지 (pre-merge-commit)
+
+merge 커밋은 pre-commit 훅을 타지 않으므로, feature 브랜치의 위반이 merge 로 유입될 수 있습니다. 이를 막으려면 pre-merge-commit 에도 검사를 등록합니다:
+
+```yaml
+pre-merge-commit:
+  commands:
+    commit-checker:
+      run: commit-checker diff
+```
+
+#### 커밋 메시지 정책 힌트 (prepare-commit-msg)
+
+커밋 메시지 에디터 하단에 활성 정책 힌트를 `#` 주석으로 표시합니다 (-m/merge/squash/amend 시 무동작, `#` 줄은 커밋 시 git 이 제거). 반드시 `{0}` 을 사용하세요 — `{1}` `{2}` `{3}` 은 인자가 없을 때 리터럴로 남아 깨집니다 (lefthook 2.1.9 실측):
+
+```yaml
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
+```
+
+#### push 전 커밋 메시지 검사 (pre-push)
+
+```yaml
+pre-push:
+  commands:
+    check-commits:
+      run: commit-checker push
+```
 
 ### 5. 기존 파일 전체 검사 (초기 도입 시)
 
@@ -183,23 +214,25 @@ commit-checker msg "$1"
 Git 2.54부터는 lefthook 같은 훅 매니저 없이 git 설정만으로 commit-checker를 연동할 수 있습니다.
 
 ```bash
-# 스테이지된 변경 검사 (pre-commit)
+# 기본: 스테이지된 변경 검사 (pre-commit)
 git config set hook.commit-checker-diff.command "commit-checker diff"
 git config set --append hook.commit-checker-diff.event pre-commit
 
-# 커밋 메시지 검사 (commit-msg) — 메시지 파일 경로는 git이 자동 전달
+# 기본: 커밋 메시지 검사 (commit-msg) — 메시지 파일 경로는 git이 자동 전달
 git config set hook.commit-checker-msg.command "commit-checker msg"
 git config set --append hook.commit-checker-msg.event commit-msg
 
-# (선택) push 전 커밋 메시지 검사 (pre-push)
+# ── 이하 선택: 필요한 것만 등록 ──
+
+# 선택: push 전 커밋 메시지 검사 (pre-push)
 git config set hook.commit-checker-push.command "commit-checker push"
 git config set --append hook.commit-checker-push.event pre-push
 
-# merge 커밋 검사 (pre-merge-commit) — merge 커밋은 pre-commit 훅을 타지 않음
+# 선택: merge 커밋 검사 (pre-merge-commit) — merge 커밋은 pre-commit 훅을 타지 않음
 git config set hook.commit-checker-merge.command "commit-checker diff"
 git config set --append hook.commit-checker-merge.event pre-merge-commit
 
-# 커밋 메시지 에디터에 정책 힌트 표시 (prepare-commit-msg) — 인자는 git이 자동 전달
+# 선택: 커밋 메시지 에디터에 정책 힌트 표시 (prepare-commit-msg) — 인자는 git이 자동 전달
 git config set hook.commit-checker-prepare.command "commit-checker prepare-msg"
 git config set --append hook.commit-checker-prepare.event prepare-commit-msg
 ```

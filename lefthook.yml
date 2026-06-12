@@ -22,6 +22,13 @@ pre-merge-commit:
     comment-language:
       run: commit-checker diff
 
+# 커밋 메시지 에디터에 활성 정책 힌트를 # 주석으로 표시 (-m/merge/squash/amend 시 무동작)
+# {0} 사용 필수 — {1} {2} {3} 은 인자가 없을 때 리터럴로 남아 깨짐 (lefthook 2.1.9 실측)
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: commit-checker prepare-msg {0}
+
 commit-msg:
   commands:
     message-policy:
