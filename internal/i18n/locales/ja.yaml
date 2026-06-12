@@ -369,6 +369,8 @@ init.fail_write:
   other: "設定ファイルの作成に失敗しました: {{.Error}}"
 
 # 改善ガイド (違反時のカテゴリ別修正方法案内)
+summary.violations:
+  other: "✗ {{.Count}}件の違反: {{.Checks}}"
 guide.header:
   other: "改善ガイド (AIエージェント: 以下の指示に従って上記の違反を修正してください):"
 guide.binary:

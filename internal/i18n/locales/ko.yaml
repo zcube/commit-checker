@@ -369,6 +369,8 @@ init.fail_write:
   other: "설정 파일 생성 실패: {{.Error}}"
 
 # 개선 가이드 (위반 시 카테고리별 수정 방법 안내)
+summary.violations:
+  other: "✗ {{.Count}}건 위반: {{.Checks}}"
 guide.header:
   other: "개선 가이드 (AI 에이전트: 아래 지시에 따라 위 위반 사항을 수정하세요):"
 guide.binary:

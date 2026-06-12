@@ -173,38 +173,38 @@ func TestRunWithProgress_빈단계목록(t *testing.T) {
 	}
 }
 
-// --- SummaryLine ---
+// --- Summary ---
 
-func TestSummaryLine_위반없음(t *testing.T) {
+func TestSummary_위반없음(t *testing.T) {
 	steps := []StepResult{
 		{Name: "단계1", Category: "step1"},
 		{Name: "단계2", Category: "step2"},
 	}
-	if got := SummaryLine(steps); got != "" {
-		t.Errorf("SummaryLine() = %q, want 빈 문자열", got)
+	total, checks := Summary(steps)
+	if total != 0 || checks != "" {
+		t.Errorf("Summary() = (%d, %q), want (0, 빈 문자열)", total, checks)
 	}
 }
 
-func TestSummaryLine_위반다건(t *testing.T) {
+func TestSummary_위반다건(t *testing.T) {
 	steps := []StepResult{
 		{Name: "인코딩 검사", Category: "encoding", Errors: []string{"위반1", "위반2"}},
 		{Name: "이모지 검사", Category: "emoji", Errors: []string{"위반3"}},
 		{Name: "통과 단계", Category: "pass"},
 	}
-	got := SummaryLine(steps)
-	want := "✗ 3건 위반: encoding(2), emoji(1)"
-	if got != want {
-		t.Errorf("SummaryLine() = %q, want %q", got, want)
+	total, checks := Summary(steps)
+	if total != 3 || checks != "encoding(2), emoji(1)" {
+		t.Errorf("Summary() = (%d, %q), want (3, %q)", total, checks, "encoding(2), emoji(1)")
 	}
 }
 
-func TestSummaryLine_카테고리없으면이름사용(t *testing.T) {
+func TestSummary_카테고리없으면이름사용(t *testing.T) {
 	steps := []StepResult{
 		{Name: "이름만 있는 단계", Errors: []string{"위반1"}},
 	}
-	got := SummaryLine(steps)
-	if !strings.Contains(got, "이름만 있는 단계(1)") {
-		t.Errorf("SummaryLine() = %q, want 단계 이름 포함", got)
+	_, checks := Summary(steps)
+	if !strings.Contains(checks, "이름만 있는 단계(1)") {
+		t.Errorf("Summary() checks = %q, want 단계 이름 포함", checks)
 	}
 }
 

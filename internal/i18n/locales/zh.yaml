@@ -367,6 +367,8 @@ init.fail_write:
   other: "创建配置文件失败: {{.Error}}"
 
 # 改进指南 (违规时按类别提供修复方法)
+summary.violations:
+  other: "✗ 发现{{.Count}}处违规: {{.Checks}}"
 guide.header:
   other: "改进指南（AI 代理：请按照以下说明修复上述违规项）："
 guide.binary:

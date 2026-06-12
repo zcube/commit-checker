@@ -109,8 +109,11 @@ func runStepsAndReport(ctx context.Context, steps []progress.Step, format string
 		fmt.Fprintln(os.Stderr, e)
 	}
 	if len(result.AllErrors) > 0 {
-		if summary := progress.SummaryLine(result.Steps); summary != "" {
-			fmt.Fprintln(os.Stderr, summary)
+		if total, checks := progress.Summary(result.Steps); total > 0 {
+			fmt.Fprintln(os.Stderr, i18n.T("summary.violations", map[string]any{
+				"Count":  total,
+				"Checks": checks,
+			}))
 		}
 		if withGuide {
 			printGuides(failedGuides(result.Steps))

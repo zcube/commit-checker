@@ -91,8 +91,9 @@ func runPlain(ctx context.Context, steps []Step, w io.Writer) (RunResult, error)
 	return result, nil
 }
 
-// SummaryLine: 위반 건수 요약 줄 반환.
-func SummaryLine(steps []StepResult) string {
+// Summary: 위반 총 건수와 "카테고리(건수)" 목록 문자열 반환.
+// 요약 줄의 최종 문구는 i18n 을 사용하는 호출부(cmd)에서 조립한다.
+func Summary(steps []StepResult) (int, string) {
 	total := 0
 	var parts []string
 	for _, s := range steps {
@@ -106,10 +107,7 @@ func SummaryLine(steps []StepResult) string {
 			parts = append(parts, fmt.Sprintf("%s(%d)", cat, n))
 		}
 	}
-	if total == 0 {
-		return ""
-	}
-	return fmt.Sprintf("✗ %d건 위반: %s", total, strings.Join(parts, ", "))
+	return total, strings.Join(parts, ", ")
 }
 
 // jsonViolation: JSON 출력 위반 항목.

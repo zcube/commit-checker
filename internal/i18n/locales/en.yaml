@@ -369,6 +369,8 @@ init.fail_write:
   other: "failed to create config file: {{.Error}}"
 
 # remediation guide (per-category fix instructions on violations)
+summary.violations:
+  other: "✗ {{.Count}} violation(s): {{.Checks}}"
 guide.header:
   other: "Remediation guide (AI agents: follow the instructions below to fix the violations above):"
 guide.binary:
