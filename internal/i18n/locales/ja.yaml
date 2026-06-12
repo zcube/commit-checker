@@ -299,6 +299,8 @@ flag.push_range:
   other: "stdinの代わりにこの範囲のコミットを検査します (例: origin/main..HEAD)"
 flag.migrate_dry_run:
   other: "ファイルを変更せずに変更内容をプレビュー"
+flag.no_guide:
+  other: "違反時の改善ガイド出力を無効化"
 
 # ステップ名
 step.binary_detection:
@@ -365,3 +367,27 @@ init.created:
   other: "{{.Path}} を作成しました。"
 init.fail_write:
   other: "設定ファイルの作成に失敗しました: {{.Error}}"
+
+# 改善ガイド (違反時のカテゴリ別修正方法案内)
+guide.header:
+  other: "改善ガイド (AIエージェント: 以下の指示に従って上記の違反を修正してください):"
+guide.binary:
+  other: "コミット対象でない場合は 'git rm --cached <ファイル>' でステージングから除外し、.gitignore に追加してください。意図したバイナリの場合は 'git lfs track <パターン>' で LFS 追跡するか、設定の binary_file ポリシーを調整してください。"
+guide.encoding:
+  other: "ファイルを UTF-8 に変換してから再ステージングしてください。例: iconv -f <現在のエンコーディング> -t UTF-8 <ファイル> > tmp && mv tmp <ファイル>"
+guide.unicode:
+  other: "報告された位置の不可視文字と ASCII に似た紛らわしい文字を、意図した標準 ASCII 文字に置き換えてください。"
+guide.lint:
+  other: "報告されたファイル:行の構文エラーを修正してください。コメントが必要な JSON ファイルには、.jsonc 拡張子の使用または lint.json.comment_filter: true の設定を検討してください。"
+guide.editorconfig:
+  other: ".editorconfig のルール（インデント、行末空白、末尾の改行）に合わせて報告されたファイルを修正してください。"
+guide.comment_language:
+  other: "列挙されたファイル:行のコメント・文字列を要求された言語に翻訳してください。コード識別子、技術用語、URL は原文のままにしてください。翻訳してはいけない固有名詞は設定の allowed_words に追加してください。"
+guide.cache_dir:
+  other: "'commit-checker clean' でキャッシュ・ビルド成果物を整理し、該当ディレクトリを .gitignore に追加してください。"
+guide.custom_rules:
+  other: "各ルールのメッセージが要求するとおりに、該当パターンを修正または削除してください。"
+guide.append_only:
+  other: "append-only パスの既存内容への変更を元に戻してください。新しい内容はファイル末尾に追加するか、既存ファイルより後にソートされる名前の新規ファイルとして追加してください。"
+guide.commit_message:
+  other: "コミットメッセージをポリシーに合わせて書き直し、git commit --amend で修正してください。AI co-author トレーラーと不可視文字は 'commit-checker msg --fix <メッセージファイル>' で自動削除できます。"

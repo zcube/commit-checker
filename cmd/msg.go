@@ -43,6 +43,9 @@ var msgCmd = &cobra.Command{
 			for _, e := range errs {
 				fmt.Fprintln(os.Stderr, e)
 			}
+			if guideEnabled(cfg) {
+				printCommitMessageGuide()
+			}
 			return errSilentExit
 		}
 

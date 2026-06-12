@@ -36,7 +36,7 @@ var diffCmd = &cobra.Command{
 			return err
 		}
 
-		return runStepsAndReport(cmd.Context(), diffSteps(cfg, diffs), diffFormat)
+		return runStepsAndReport(cmd.Context(), diffSteps(cfg, diffs), diffFormat, guideEnabled(cfg))
 	},
 }
 

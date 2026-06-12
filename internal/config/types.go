@@ -453,6 +453,13 @@ type CacheDirConfig struct {
 	IgnoreDirs []string `yaml:"ignore_dirs"`
 }
 
+// GuideConfig: 검사 위반 시 출력하는 카테고리별 개선 가이드 설정.
+// 위반 목록·요약 뒤에 수정 방법(구체적 명령어·행동)을 카테고리당 1회 출력합니다.
+type GuideConfig struct {
+	// Enabled: 개선 가이드 출력 활성화 여부 (기본값: true).
+	Enabled *bool `yaml:"enabled"`
+}
+
 // CustomRulesConfig: 정규식 기반 커스텀 규칙 설정.
 type CustomRulesConfig struct {
 	// CommitMessage: 커밋 메시지에 적용할 커스텀 규칙 목록.

@@ -656,6 +656,19 @@
           "examples": [["vendor"], ["node_modules", "dist"]]
         }
       }
+    },
+
+    "guide": {
+      "description": "검사 위반 시 출력하는 카테고리별 개선 가이드 설정.\n위반 목록·요약 뒤에 수정 방법(구체적 명령어·행동)을 카테고리당 1회 출력.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "개선 가이드 출력 활성화 여부 (기본값: true)",
+          "type": "boolean",
+          "default": true
+        }
+      }
     }
   },
 

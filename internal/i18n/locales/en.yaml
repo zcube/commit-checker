@@ -299,6 +299,8 @@ flag.push_range:
   other: "check commits in this range instead of reading from stdin (e.g. origin/main..HEAD)"
 flag.migrate_dry_run:
   other: "preview changes without modifying the file"
+flag.no_guide:
+  other: "disable the remediation guide output on violations"
 
 # step names
 step.binary_detection:
@@ -365,3 +367,27 @@ init.created:
   other: "{{.Path}} created."
 init.fail_write:
   other: "failed to create config file: {{.Error}}"
+
+# remediation guide (per-category fix instructions on violations)
+guide.header:
+  other: "Remediation guide (AI agents: follow the instructions below to fix the violations above):"
+guide.binary:
+  other: "If the file should not be committed, unstage it with 'git rm --cached <file>' and add it to .gitignore. If the binary is intentional, track it with 'git lfs track <pattern>' or adjust the binary_file policy in the config."
+guide.encoding:
+  other: "Convert the file to UTF-8 and stage it again. Example: iconv -f <current-encoding> -t UTF-8 <file> > tmp && mv tmp <file>"
+guide.unicode:
+  other: "Replace the invisible characters and ASCII-lookalike characters at the reported locations with the intended standard ASCII characters."
+guide.lint:
+  other: "Fix the syntax errors at the reported file:line locations. For JSON files that need comments, consider using the .jsonc extension or setting lint.json.comment_filter: true."
+guide.editorconfig:
+  other: "Fix the reported files to comply with the .editorconfig rules (indentation, trailing whitespace, final newline)."
+guide.comment_language:
+  other: "Translate the comments/strings at the listed file:line locations into the required language. Keep code identifiers, technical terms, and URLs as-is. Add proper nouns that must not be translated to allowed_words in the config."
+guide.cache_dir:
+  other: "Run 'commit-checker clean' to remove cache/build artifacts and add those directories to .gitignore."
+guide.custom_rules:
+  other: "Fix or remove the matched patterns as required by each rule's message."
+guide.append_only:
+  other: "Revert changes to existing content in append-only paths. Add new content at the end of the file, or in a new file whose name sorts after the existing files."
+guide.commit_message:
+  other: "Rewrite the commit message to comply with the policy and apply it with git commit --amend. AI co-author trailers and invisible characters can be removed automatically with 'commit-checker msg --fix <message-file>'."

@@ -25,7 +25,7 @@ var runCmd = &cobra.Command{
 			return fmt.Errorf("failed to list tracked files: %w", err)
 		}
 
-		return runStepsAndReport(cmd.Context(), runSteps(cfg, files), runFormat)
+		return runStepsAndReport(cmd.Context(), runSteps(cfg, files), runFormat, guideEnabled(cfg))
 	},
 }
 

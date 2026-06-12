@@ -63,6 +63,10 @@ var pushCmd = &cobra.Command{
 			for _, e := range allErrs {
 				fmt.Fprintln(os.Stderr, e)
 			}
+			// 여러 커밋이 실패해도 가이드는 1회만 출력
+			if guideEnabled(cfg) {
+				printCommitMessageGuide()
+			}
 			return errSilentExit
 		}
 

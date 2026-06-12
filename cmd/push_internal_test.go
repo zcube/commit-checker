@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/zcube/commit-checker/internal/i18n"
 )
 
 func TestIsPushZeroSHA(t *testing.T) {
@@ -130,5 +132,53 @@ func TestPushCmd_NoViolations_ReturnsNil(t *testing.T) {
 
 	if err := pushCmd.RunE(pushCmd, nil); err != nil {
 		t.Errorf("위반이 없으면 nil 을 반환해야 합니다: %v", err)
+	}
+}
+
+func TestPushCmd_Violations_PrintsGuideOnce(t *testing.T) {
+	isolateHome(t)
+	dir := newTestGitRepo(t)
+	setConfigFile(t, filepath.Join(dir, ".commit-checker.yml"))
+	setGlobalNoGuide(t, false)
+
+	// 위반 커밋 2개: 여러 커밋이 실패해도 가이드는 1회만
+	gitRun(t, dir, "commit", "--allow-empty",
+		"-m", "feat: 기능 1",
+		"-m", "Co-authored-by: Claude <noreply@anthropic.com>")
+	gitRun(t, dir, "commit", "--allow-empty",
+		"-m", "feat: 기능 2",
+		"-m", "Co-authored-by: Claude <noreply@anthropic.com>")
+	setPushRange(t, "HEAD~2..HEAD")
+
+	stderr := captureStderr(t, func() {
+		_ = pushCmd.RunE(pushCmd, nil)
+	})
+
+	header := i18n.T("guide.header", nil)
+	if n := strings.Count(stderr, header); n != 1 {
+		t.Errorf("여러 커밋이 실패해도 가이드 헤더는 1회만 출력되어야 합니다 (출력 %d회):\n%s", n, stderr)
+	}
+	if n := strings.Count(stderr, "[commit_message] "); n != 1 {
+		t.Errorf("commit_message 가이드는 1회만 출력되어야 합니다 (출력 %d회):\n%s", n, stderr)
+	}
+}
+
+func TestPushCmd_Violations_NoGuideFlag_SuppressesGuide(t *testing.T) {
+	isolateHome(t)
+	dir := newTestGitRepo(t)
+	setConfigFile(t, filepath.Join(dir, ".commit-checker.yml"))
+	setGlobalNoGuide(t, true)
+
+	gitRun(t, dir, "commit", "--allow-empty",
+		"-m", "feat: 기능 추가",
+		"-m", "Co-authored-by: Claude <noreply@anthropic.com>")
+	setPushRange(t, "HEAD~1..HEAD")
+
+	stderr := captureStderr(t, func() {
+		_ = pushCmd.RunE(pushCmd, nil)
+	})
+
+	if strings.Contains(stderr, i18n.T("guide.header", nil)) {
+		t.Errorf("--no-guide 가 켜지면 가이드가 출력되면 안 됩니다:\n%s", stderr)
 	}
 }

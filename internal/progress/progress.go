@@ -128,17 +128,23 @@ type jsonSummary struct {
 
 // jsonOutput: JSON 출력 최상위 구조체.
 type jsonOutput struct {
-	Status     string          `json:"status"`
-	Violations []jsonViolation `json:"violations"`
-	Summary    jsonSummary     `json:"summary"`
+	Status     string            `json:"status"`
+	Violations []jsonViolation   `json:"violations"`
+	Summary    jsonSummary       `json:"summary"`
+	Guides     map[string]string `json:"guides,omitempty"`
 }
 
 // FormatJSON: 결과를 JSON으로 직렬화.
-func FormatJSON(result RunResult) ([]byte, error) {
+// guides 는 위반이 발생한 카테고리별 개선 가이드 텍스트 (nil 이거나 비어있으면 필드 생략 —
+// 가이드 텍스트는 i18n 의존을 피하기 위해 호출 측(cmd)에서 만들어 전달).
+func FormatJSON(result RunResult, guides map[string]string) ([]byte, error) {
 	out := jsonOutput{
 		Status:     "pass",
 		Violations: []jsonViolation{},
 		Summary:    jsonSummary{ByCheck: map[string]int{}},
+	}
+	if len(guides) > 0 {
+		out.Guides = guides
 	}
 	for _, s := range result.Steps {
 		for _, msg := range s.Errors {

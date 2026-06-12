@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/zcube/commit-checker/internal/i18n"
 )
 
 // setMsgFix: msgFix 플래그를 설정하고 테스트 종료 시 복원.
@@ -125,5 +127,71 @@ func TestMsgCmd_Violations_ReturnsSentinel(t *testing.T) {
 	}
 	if !strings.Contains(stderr, "Co-authored-by") {
 		t.Errorf("위반 메시지가 stderr 에 출력되어야 합니다:\n%s", stderr)
+	}
+}
+
+// setGlobalNoGuide: globalNoGuide 플래그를 설정하고 테스트 종료 시 복원.
+func setGlobalNoGuide(t *testing.T, v bool) {
+	t.Helper()
+	orig := globalNoGuide
+	globalNoGuide = v
+	t.Cleanup(func() { globalNoGuide = orig })
+}
+
+func TestMsgCmd_Violations_PrintsGuideOnce(t *testing.T) {
+	isolateHome(t)
+	dir := chdirTemp(t)
+	setConfigFile(t, filepath.Join(dir, ".commit-checker.yml"))
+	setMsgFix(t, false)
+	setGlobalNoGuide(t, false)
+	// AI co-author + 비가시 문자: 위반이 여러 건이어도 가이드는 1회만
+	path := writeMsgTestFile(t, "feat: 공백 수정\n\nCo-authored-by: Claude <noreply@anthropic.com>\n")
+
+	stderr := captureStderr(t, func() {
+		_ = msgCmd.RunE(msgCmd, []string{path})
+	})
+
+	header := i18n.T("guide.header", nil)
+	if n := strings.Count(stderr, header); n != 1 {
+		t.Errorf("가이드 헤더는 1회만 출력되어야 합니다 (출력 %d회):\n%s", n, stderr)
+	}
+	if n := strings.Count(stderr, "[commit_message] "); n != 1 {
+		t.Errorf("commit_message 가이드는 1회만 출력되어야 합니다 (출력 %d회):\n%s", n, stderr)
+	}
+}
+
+func TestMsgCmd_Violations_NoGuideFlag_SuppressesGuide(t *testing.T) {
+	isolateHome(t)
+	dir := chdirTemp(t)
+	setConfigFile(t, filepath.Join(dir, ".commit-checker.yml"))
+	setMsgFix(t, false)
+	setGlobalNoGuide(t, true)
+	path := writeMsgTestFile(t, "feat: 기능 추가\n\nCo-authored-by: Claude <noreply@anthropic.com>\n")
+
+	stderr := captureStderr(t, func() {
+		_ = msgCmd.RunE(msgCmd, []string{path})
+	})
+
+	if strings.Contains(stderr, i18n.T("guide.header", nil)) {
+		t.Errorf("--no-guide 가 켜지면 가이드가 출력되면 안 됩니다:\n%s", stderr)
+	}
+}
+
+func TestMsgCmd_Violations_ConfigDisabled_SuppressesGuide(t *testing.T) {
+	isolateHome(t)
+	dir := chdirTemp(t)
+	cfgPath := filepath.Join(dir, ".commit-checker.yml")
+	writeTestFile(t, cfgPath, "guide:\n  enabled: false\n")
+	setConfigFile(t, cfgPath)
+	setMsgFix(t, false)
+	setGlobalNoGuide(t, false)
+	path := writeMsgTestFile(t, "feat: 기능 추가\n\nCo-authored-by: Claude <noreply@anthropic.com>\n")
+
+	stderr := captureStderr(t, func() {
+		_ = msgCmd.RunE(msgCmd, []string{path})
+	})
+
+	if strings.Contains(stderr, i18n.T("guide.header", nil)) {
+		t.Errorf("guide.enabled: false 설정이면 가이드가 출력되면 안 됩니다:\n%s", stderr)
 	}
 }

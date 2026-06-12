@@ -443,3 +443,11 @@ func (c *CacheDirConfig) IsEnabled() bool {
 	}
 	return *c.Enabled
 }
+
+// IsEnabled: 개선 가이드 출력 활성화 여부 반환 (기본값: true).
+func (c *GuideConfig) IsEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}

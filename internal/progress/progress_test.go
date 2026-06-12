@@ -214,7 +214,7 @@ func TestFormatJSON_위반없음(t *testing.T) {
 	result := RunResult{
 		Steps: []StepResult{{Name: "단계1", Category: "step1"}},
 	}
-	data, err := FormatJSON(result)
+	data, err := FormatJSON(result, nil)
 	if err != nil {
 		t.Fatalf("FormatJSON() error = %v", err)
 	}
@@ -248,7 +248,7 @@ func TestFormatJSON_위반있음(t *testing.T) {
 			{Name: "이모지 검사", Category: "emoji", Errors: []string{"위반3"}},
 		},
 	}
-	data, err := FormatJSON(result)
+	data, err := FormatJSON(result, nil)
 	if err != nil {
 		t.Fatalf("FormatJSON() error = %v", err)
 	}
@@ -422,5 +422,43 @@ func TestModel_View(t *testing.T) {
 	}
 	if !strings.Contains(view, "(1 issues)") {
 		t.Errorf("View() 에 위반 건수 표시가 없음: %q", view)
+	}
+}
+
+func TestFormatJSON_가이드포함(t *testing.T) {
+	result := RunResult{
+		Steps: []StepResult{
+			{Name: "바이너리 검사", Category: "binary", Errors: []string{"위반1"}},
+		},
+	}
+	guides := map[string]string{"binary": "git rm --cached 로 제거하세요"}
+	data, err := FormatJSON(result, guides)
+	if err != nil {
+		t.Fatalf("FormatJSON() error = %v", err)
+	}
+
+	var out struct {
+		Guides map[string]string `json:"guides"`
+	}
+	if err := json.Unmarshal(data, &out); err != nil {
+		t.Fatalf("JSON 파싱 실패: %v", err)
+	}
+	if out.Guides["binary"] != guides["binary"] {
+		t.Errorf("guides[binary] = %q, want %q", out.Guides["binary"], guides["binary"])
+	}
+}
+
+func TestFormatJSON_가이드없으면필드생략(t *testing.T) {
+	result := RunResult{
+		Steps: []StepResult{
+			{Name: "바이너리 검사", Category: "binary", Errors: []string{"위반1"}},
+		},
+	}
+	data, err := FormatJSON(result, nil)
+	if err != nil {
+		t.Fatalf("FormatJSON() error = %v", err)
+	}
+	if strings.Contains(string(data), `"guides"`) {
+		t.Errorf("guides 가 nil 이면 필드를 생략해야 합니다 (기존 소비자 호환):\n%s", data)
 	}
 }

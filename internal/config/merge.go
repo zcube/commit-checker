@@ -65,6 +65,9 @@ func mergeConfigs(global, project *Config) Config {
 	result.CustomRules.CommitMessage = append(global.CustomRules.CommitMessage, result.CustomRules.CommitMessage...)
 	result.CustomRules.Diff = append(global.CustomRules.Diff, result.CustomRules.Diff...)
 
+	// 개선 가이드 설정 병합
+	mergeBoolPtr(&result.Guide.Enabled, global.Guide.Enabled)
+
 	return result
 }
 

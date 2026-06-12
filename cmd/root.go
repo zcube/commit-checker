@@ -16,6 +16,7 @@ import (
 var configFile string
 var globalQuiet bool
 var globalNoColor bool
+var globalNoGuide bool
 
 var rootCmd = &cobra.Command{
 	Use:          "commit-checker",
@@ -48,6 +49,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", ".commit-checker.yml", i18n.T("flag.config", nil))
 	rootCmd.PersistentFlags().BoolVarP(&globalQuiet, "quiet", "q", false, i18n.T("flag.quiet", nil))
 	rootCmd.PersistentFlags().BoolVar(&globalNoColor, "no-color", false, i18n.T("flag.no_color", nil))
+	rootCmd.PersistentFlags().BoolVar(&globalNoGuide, "no-guide", false, i18n.T("flag.no_guide", nil))
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		logger.SetQuiet(globalQuiet)
 		if globalNoColor {
