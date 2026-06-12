@@ -324,9 +324,10 @@ comment_language:
 
 ### リポジトリ別制御（override・opt-out・opt-in）
 
-**override** — リポジトリの `.commit-checker.yml` がグローバル値を上書きします。
-優先順位はプロジェクト `.commit-checker.yml` > preset（URL） > グローバル設定で、
-スカラー値はプロジェクトが上書きし、リストはマージされます。
+**override** — リポジトリに `.commit-checker.yml` があるとグローバル設定は完全に無視され、
+リポジトリ設定のみが適用されます（メンバー個人のグローバル設定に関係なく同一の検査を保証）。
+グローバル設定はリポジトリ設定がない場合にのみ使用されます。
+部分的な override が必要な場合は、共有ベースファイルを指す [gitdir include](#ディレクトリ別ポリシーgitdir-include) をリポジトリ設定に直接宣言してください。
 
 **opt-out** — 特定のリポジトリですべての検査を無効にするには、プロジェクトの `.commit-checker.yml` に1行だけ追加します:
 

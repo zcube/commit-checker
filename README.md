@@ -324,9 +324,10 @@ comment_language:
 
 ### 리포별 제어 (override·opt-out·opt-in)
 
-**override** — 리포지터리의 `.commit-checker.yml` 이 전역 값을 덮어씁니다.
-우선순위는 프로젝트 `.commit-checker.yml` > preset(URL) > 전역 설정이며,
-스칼라 값은 프로젝트가 덮어쓰고 목록은 병합됩니다.
+**override** — 리포에 `.commit-checker.yml` 이 있으면 전역 설정은 완전히 무시되고
+리포 설정만 적용됩니다 (팀원의 전역 설정과 무관하게 동일한 검사 보장).
+전역 설정은 리포 설정이 없을 때만 사용됩니다.
+부분 override 가 필요하면 공유 베이스 파일을 가리키는 [gitdir include](#디렉터리별-정책-gitdir-include) 를 리포 설정에 직접 선언하세요.
 
 **opt-out** — 특정 리포지터리에서 모든 검사를 끄려면 프로젝트 `.commit-checker.yml` 에 한 줄만 추가합니다:
 

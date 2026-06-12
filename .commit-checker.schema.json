@@ -7,13 +7,13 @@
   "additionalProperties": false,
   "properties": {
     "enabled": {
-      "description": "commit-checker 전체 활성화 여부 (기본값: true).\n전역 훅(git config --global)으로 모든 리포에서 실행되는 환경에서, 특정 리포만 enabled: false 한 줄로 모든 검사를 비활성화(opt-out)할 때 사용.\n병합 시 프로젝트 설정 값이 전역/프리셋보다 우선함.",
+      "description": "commit-checker 전체 활성화 여부 (기본값: true).\n전역 훅(git config --global)으로 모든 리포에서 실행되는 환경에서, 특정 리포만 enabled: false 한 줄로 모든 검사를 비활성화(opt-out)할 때 사용.\n프로젝트 설정이 있으면 전역 설정은 무시되며, preset 병합 시 본문 값이 preset 보다 우선함.",
       "type": "boolean",
       "default": true
     },
 
     "preset": {
-      "description": "원격 URL에서 불러올 기본 설정 프리셋. 해당 URL에서 .commit-checker.yml 형식의 YAML을 가져와 기본 설정으로 사용하며, 로컬 설정이 프리셋 설정을 override함.\n우선순위: 프로젝트 설정 > 프리셋 > 전역 설정(~/.commit-checker.yml).\n프리셋 안에 preset.url을 다시 지정할 수 없음 (중첩 프리셋 미지원).",
+      "description": "원격 URL에서 불러올 기본 설정 프리셋. 해당 URL에서 .commit-checker.yml 형식의 YAML을 가져와 기본 설정으로 사용하며, 로컬 설정이 프리셋 설정을 override함.\n프로젝트 설정이 있으면 전역 설정은 완전히 무시되고 프로젝트 설정 > 프로젝트의 프리셋 순으로 적용됨. 전역 설정은 프로젝트 설정이 없을 때만 사용되며, 그때는 전역 설정 > 전역의 프리셋 순으로 적용됨.\n프리셋 안에 preset.url을 다시 지정할 수 없음 (중첩 프리셋 미지원).",
       "type": "object",
       "additionalProperties": false,
       "properties": {

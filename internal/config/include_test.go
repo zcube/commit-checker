@@ -4,7 +4,8 @@ package config_test
 //
 // 병합 의미론:
 //   - include 는 베이스 제공: 본문 값 > 나중 include > 앞 include
-//   - 전체 우선순위: 프로젝트(include 처리됨) > preset > 전역(include 처리됨)
+//   - 프로젝트 설정이 존재하면 프로젝트(include 처리됨) > preset 만 적용되고 전역은 완전 무시
+//   - 프로젝트 설정이 없으면 전역(include 처리됨) > 전역의 preset 이 적용
 //
 // gitdir 매칭 (git includeIf 시맨틱):
 //   - '~' 는 홈 디렉터리로 확장
@@ -266,7 +267,7 @@ func TestInclude_구버전스키마자동마이그레이션(t *testing.T) {
 	}
 }
 
-func TestInclude_전역설정include_프로젝트가우선(t *testing.T) {
+func TestInclude_전역include_프로젝트존재시무시(t *testing.T) {
 	isolateGlobalPaths(t)
 	incDir := t.TempDir()
 
@@ -274,21 +275,21 @@ func TestInclude_전역설정include_프로젝트가우선(t *testing.T) {
 	writeFileAt(t, filepath.Join(incDir, "global-base.yml"), "comment_language:\n  min_length: 7\n  locale: en\n")
 	writeXDGGlobal(t, fmt.Sprintf("include:\n  - path: %s\n", filepath.Join(incDir, "global-base.yml")))
 
-	// 프로젝트 설정이 min_length 를 override — locale 은 전역 include 값 유지
+	// 프로젝트 설정이 존재하면 전역(과 전역의 include)은 완전히 무시됨
 	path := writeConfig(t, "comment_language:\n  min_length: 3\n")
 	cfg, err := config.Load(path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 	if cfg.CommentLanguage.MinLength != 3 {
-		t.Errorf("프로젝트 > 전역(include 처리됨) 우선순위: got %d, want 3", cfg.CommentLanguage.MinLength)
+		t.Errorf("프로젝트 본문 값이 적용되어야 함: got %d, want 3", cfg.CommentLanguage.MinLength)
 	}
-	if cfg.CommentLanguage.GetLocale() != "english" {
-		t.Errorf("전역 include 의 locale 이 베이스로 적용되어야 함: got %q", cfg.CommentLanguage.GetLocale())
+	if cfg.CommentLanguage.GetLocale() != "korean" {
+		t.Errorf("전역 include 의 locale 은 무시되어야 함 (기본 korean): got %q", cfg.CommentLanguage.GetLocale())
 	}
 }
 
-func TestInclude_전역과프로젝트_동시동작(t *testing.T) {
+func TestInclude_프로젝트존재시_프로젝트include만동작(t *testing.T) {
 	isolateGlobalPaths(t)
 	incDir := t.TempDir()
 
@@ -312,11 +313,16 @@ comment_language:
 	for _, w := range cfg.CommentLanguage.AllowedWords {
 		found[w] = true
 	}
-	for _, want := range []string{"GlobalIncWord", "ProjectIncWord", "ProjectWord"} {
+	// 프로젝트가 선언한 include 와 본문 목록은 병합됨
+	for _, want := range []string{"ProjectIncWord", "ProjectWord"} {
 		if !found[want] {
-			t.Errorf("전역 include + 프로젝트 include + 본문 목록이 모두 병합되어야 함: %q 누락 (got %v)",
+			t.Errorf("프로젝트 include + 본문 목록이 병합되어야 함: %q 누락 (got %v)",
 				want, cfg.CommentLanguage.AllowedWords)
 		}
+	}
+	// 전역 include 의 목록은 섞이면 안 됨 (전역 완전 무시)
+	if found["GlobalIncWord"] {
+		t.Errorf("프로젝트 설정 존재 시 전역 include 의 목록이 섞이면 안 됨: %v", cfg.CommentLanguage.AllowedWords)
 	}
 }
 

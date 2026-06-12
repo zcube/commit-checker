@@ -2,6 +2,10 @@ package config_test
 
 // 전역 설정 경로(GlobalConfigPath) 우선순위와 최상위 enabled 필드 동작 검증.
 //
+// 적용 정책: 프로젝트 설정(.commit-checker.yml)이 존재하면 전역 설정은 완전히 무시되고
+// 프로젝트 설정(+프로젝트가 선언한 preset/include)만 사용된다.
+// 전역 설정은 프로젝트 설정이 없을 때만 사용된다.
+//
 // 경로 우선순위:
 //  1. $COMMIT_CHECKER_GLOBAL_CONFIG
 //  2. $XDG_CONFIG_HOME/commit-checker/config.yml
@@ -9,6 +13,9 @@ package config_test
 //  4. ~/.commit-checker.yml (legacy)
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -136,7 +143,7 @@ func TestGlobalConfigPath_Legacy폴백(t *testing.T) {
 	}
 }
 
-func TestLoad_XDG전역설정_프로젝트와병합(t *testing.T) {
+func TestLoad_프로젝트설정존재시_전역무시(t *testing.T) {
 	isolateGlobalPaths(t)
 	writeXDGGlobal(t, "comment_language:\n  allowed_words:\n    - GlobalWord\n")
 
@@ -158,8 +165,30 @@ comment_language:
 			hasProject = true
 		}
 	}
-	if !hasGlobal || !hasProject {
-		t.Errorf("전역(XDG)+프로젝트 allowed_words 병합 실패: %v", cfg.CommentLanguage.AllowedWords)
+	if hasGlobal {
+		t.Errorf("프로젝트 설정이 있으면 전역(XDG) 값은 무시되어야 함: %v", cfg.CommentLanguage.AllowedWords)
+	}
+	if !hasProject {
+		t.Errorf("프로젝트 allowed_words 는 적용되어야 함: %v", cfg.CommentLanguage.AllowedWords)
+	}
+}
+
+func TestLoad_프로젝트설정존재시_전역locale미반영(t *testing.T) {
+	isolateGlobalPaths(t)
+	// 전역(en) + 프로젝트(ko): 전역 값이 전혀 섞이지 않고 프로젝트만 적용되어야 함
+	writeXDGGlobal(t, "comment_language:\n  locale: en\ncommit_message:\n  locale: en\n")
+
+	path := writeConfig(t, "comment_language:\n  locale: ko\n")
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.CommentLanguage.GetLocale() != "korean" {
+		t.Errorf("프로젝트 locale(ko)만 적용되어야 함: got %q", cfg.CommentLanguage.GetLocale())
+	}
+	// 프로젝트가 설정하지 않은 필드에도 전역 값이 채워지면 안 됨 (기본값 ko 유지)
+	if cfg.CommitMessage.Locale != "ko" {
+		t.Errorf("전역의 commit_message.locale(en)이 반영되면 안 됨: got %q", cfg.CommitMessage.Locale)
 	}
 }
 
@@ -211,27 +240,60 @@ func TestLoad_Enabled_프로젝트opt_out(t *testing.T) {
 	}
 }
 
-func TestLoad_Enabled_병합_프로젝트우선(t *testing.T) {
+func TestLoad_Enabled_프로젝트존재시_전역무시(t *testing.T) {
 	tmpHome := isolateGlobalPaths(t)
 	writeLegacyGlobal(t, tmpHome, "enabled: false\n")
 
-	// 전역 enabled: false + 프로젝트 enabled: true → 프로젝트 우선
+	// 전역 enabled: false + 프로젝트 enabled: true → 프로젝트만 사용 (전역 무시)
 	path := writeConfig(t, "enabled: true\n")
 	cfg, err := config.Load(path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 	if !cfg.IsEnabled() {
-		t.Error("프로젝트의 enabled: true 가 전역보다 우선해야 함")
+		t.Error("프로젝트 설정이 있으면 전역의 enabled: false 는 무시되어야 함")
 	}
 
-	// 전역 enabled: false + 프로젝트 미설정 → 전역 값 사용
+	// 전역 enabled: false + 프로젝트 미설정 → 전역이 무시되므로 기본값(true) 유지
 	path2 := writeConfig(t, "comment_language:\n  min_length: 3\n")
 	cfg2, err := config.Load(path2)
 	if err != nil {
 		t.Fatalf("Load2: %v", err)
 	}
-	if cfg2.IsEnabled() {
-		t.Error("프로젝트가 enabled 를 설정하지 않으면 전역의 false 가 적용되어야 함")
+	if !cfg2.IsEnabled() {
+		t.Error("프로젝트 설정이 존재하면 전역의 enabled: false 도 무시되어야 함 (기본값 true)")
+	}
+
+	// 프로젝트 설정 부재 → 전역의 enabled: false 적용 (전역 모드)
+	cfg3, err := config.Load(filepath.Join(t.TempDir(), ".commit-checker.yml")) // 파일 없음
+	if err != nil {
+		t.Fatalf("Load3: %v", err)
+	}
+	if cfg3.IsEnabled() {
+		t.Error("프로젝트 설정이 없으면 전역의 enabled: false 가 적용되어야 함")
+	}
+}
+
+func TestLoad_전역모드_전역preset동작(t *testing.T) {
+	isolateGlobalPaths(t)
+	// 전역 설정이 선언한 preset.url 은 전역 모드에서도 기본값으로 병합되어야 함
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("comment_language:\n  min_length: 9\n  locale: en\n"))
+	}))
+	defer srv.Close()
+
+	writeXDGGlobal(t, fmt.Sprintf("preset:\n  url: %s\ncomment_language:\n  min_length: 2\n", srv.URL))
+
+	cfg, err := config.Load(filepath.Join(t.TempDir(), ".commit-checker.yml")) // 프로젝트 설정 없음
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// 전역 본문 값이 preset 보다 우선
+	if cfg.CommentLanguage.MinLength != 2 {
+		t.Errorf("전역 본문이 preset 보다 우선해야 함: got %d, want 2", cfg.CommentLanguage.MinLength)
+	}
+	// 전역 본문에 없는 값은 preset 에서 채워짐
+	if cfg.CommentLanguage.GetLocale() != "english" {
+		t.Errorf("전역 preset 의 locale 이 기본값으로 적용되어야 함: got %q", cfg.CommentLanguage.GetLocale())
 	}
 }

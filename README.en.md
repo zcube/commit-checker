@@ -325,9 +325,10 @@ comment_language:
 
 ### Per-repository control (override·opt-out·opt-in)
 
-**override** — a repository's `.commit-checker.yml` overrides the global values.
-The precedence is project `.commit-checker.yml` > preset (URL) > global config;
-scalar values are overridden by the project and lists are merged.
+**override** — if a repository has `.commit-checker.yml`, the global config is ignored entirely
+and only the repository config applies (the same checks are guaranteed regardless of each member's global config).
+The global config is used only when the repository has no config file.
+If you need a partial override, declare a [gitdir include](#per-directory-policies-gitdir-include) pointing to a shared base file directly in the repository config.
 
 **opt-out** — to disable every check in a specific repository, add a single line to the project `.commit-checker.yml`:
 

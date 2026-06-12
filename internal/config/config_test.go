@@ -573,8 +573,8 @@ custom_rules:
 	}
 }
 
-func TestMergeConfigs_GlobalAllowedWords(t *testing.T) {
-	// Project config: some words
+func TestLoad_GlobalAllowedWords_프로젝트존재시무시(t *testing.T) {
+	// 프로젝트 설정이 있으면 전역의 allowed_words 는 전혀 병합되지 않아야 함
 	path := writeConfig(t, `
 comment_language:
   allowed_words:
@@ -606,16 +606,16 @@ comment_language:
 			hasProject = true
 		}
 	}
-	if !hasGlobal {
-		t.Errorf("expected GlobalWord from global config in AllowedWords, got %v", words)
+	if hasGlobal {
+		t.Errorf("프로젝트 설정 존재 시 전역 GlobalWord 가 섞이면 안 됨: %v", words)
 	}
 	if !hasProject {
 		t.Errorf("expected ProjectWord from project config in AllowedWords, got %v", words)
 	}
 }
 
-func TestMergeConfigs_GlobalCustomRules(t *testing.T) {
-	// Project config: project rule
+func TestLoad_GlobalCustomRules_프로젝트존재시무시(t *testing.T) {
+	// 프로젝트 설정이 있으면 전역의 custom_rules 도 합쳐지지 않아야 함
 	path := writeConfig(t, `
 custom_rules:
   commit_message:
@@ -636,15 +636,12 @@ custom_rules:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(cfg.CustomRules.CommitMessage) != 2 {
-		t.Fatalf("expected 2 rules (global + project), got %d: %v", len(cfg.CustomRules.CommitMessage), cfg.CustomRules.CommitMessage)
+	if len(cfg.CustomRules.CommitMessage) != 1 {
+		t.Fatalf("expected 1 rule (project only, global ignored), got %d: %v",
+			len(cfg.CustomRules.CommitMessage), cfg.CustomRules.CommitMessage)
 	}
-	// Global rule should come first
-	if cfg.CustomRules.CommitMessage[0].Name != "global-rule" {
-		t.Errorf("first rule should be global-rule, got %s", cfg.CustomRules.CommitMessage[0].Name)
-	}
-	if cfg.CustomRules.CommitMessage[1].Name != "project-rule" {
-		t.Errorf("second rule should be project-rule, got %s", cfg.CustomRules.CommitMessage[1].Name)
+	if cfg.CustomRules.CommitMessage[0].Name != "project-rule" {
+		t.Errorf("only project-rule should remain, got %s", cfg.CustomRules.CommitMessage[0].Name)
 	}
 }
 
@@ -806,9 +803,9 @@ preset:
 	}
 }
 
-func TestLoad_Preset_OverridesGlobal(t *testing.T) {
+func TestLoad_Preset_프로젝트존재시_전역무시(t *testing.T) {
 	// 전역: required_language=japanese, 프리셋: required_language=english
-	// 프리셋이 전역보다 우선해야 함
+	// 프로젝트 설정이 존재하므로 전역은 로드 자체가 생략되고 프리셋 값이 적용되어야 함
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("comment_language:\n  required_language: english\n"))
 	}))
@@ -829,15 +826,15 @@ preset:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	// preset(english)이 global(japanese)보다 우선해야 함
+	// 전역(japanese)은 무시되고 preset(english)이 적용되어야 함
 	if cfg.CommentLanguage.RequiredLanguage != "english" {
-		t.Errorf("preset should override global: want english, got %q", cfg.CommentLanguage.RequiredLanguage)
+		t.Errorf("global must be ignored, preset applies: want english, got %q", cfg.CommentLanguage.RequiredLanguage)
 	}
 }
 
-func TestLoad_Preset_ThreeWayPriority(t *testing.T) {
+func TestLoad_Preset_프로젝트우선_전역무시(t *testing.T) {
 	// 전역: min_length=1, 프리셋: min_length=2, 프로젝트: min_length=3
-	// 우선순위: 프로젝트 > 프리셋 > 전역
+	// 우선순위: 프로젝트 > 프리셋 (전역은 프로젝트 설정 존재 시 완전 무시)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("comment_language:\n  min_length: 2\n"))
 	}))
@@ -864,7 +861,7 @@ comment_language:
 		t.Errorf("project should win: want min_length=3, got %d", cfg.CommentLanguage.MinLength)
 	}
 
-	// 프로젝트가 min_length를 설정하지 않은 경우 프리셋(2)이 사용되어야 함
+	// 프로젝트가 min_length를 설정하지 않은 경우 프리셋(2)이 사용되어야 함 (전역 1 은 무시)
 	path2 := writeConfig(t, `
 preset:
   url: `+srv.URL+`
@@ -874,7 +871,7 @@ preset:
 		t.Fatalf("Load2: %v", err)
 	}
 	if cfg2.CommentLanguage.MinLength != 2 {
-		t.Errorf("preset should override global: want min_length=2, got %d", cfg2.CommentLanguage.MinLength)
+		t.Errorf("preset applies, global ignored: want min_length=2, got %d", cfg2.CommentLanguage.MinLength)
 	}
 }
 

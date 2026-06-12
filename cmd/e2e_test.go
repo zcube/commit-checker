@@ -858,6 +858,25 @@ func main() {}
 	}
 }
 
+// TestE2E_Diff_ProjectConfig_GlobalIgnored: 프로젝트 설정이 존재하면 전역 설정은
+// 완전히 무시되고 리포 설정만 적용되는지 검증 (리포 정책의 자기완결성).
+// 전역(en)이 섞이면 영어 주석이 통과해버리므로, 위반(exit 1)이 배타 적용의 직접 증거.
+func TestE2E_Diff_ProjectConfig_GlobalIgnored(t *testing.T) {
+	r := newTestRepo(t)
+	// 전역: 영어 주석 요구 / 프로젝트: 한국어 주석 요구
+	r.writeGlobalConfig("comment_language:\n  locale: en\n")
+	r.writeConfig("comment_language:\n  locale: ko\n")
+	r.stage("main.go", `package main
+
+// This comment is written in English only
+func main() {}
+`)
+	out, code := r.run("diff")
+	if code != 1 {
+		t.Errorf("프로젝트(ko) 정책만 적용되어 영어 주석이 위반(exit 1)이어야 함, got %d\noutput: %s", code, out)
+	}
+}
+
 // TestE2E_Diff_EnabledFalse_Exit0: 프로젝트 설정의 enabled: false 한 줄로
 // 모든 검사가 비활성화(opt-out)되어 위반이 있어도 성공 종료하는지 검증.
 func TestE2E_Diff_EnabledFalse_Exit0(t *testing.T) {

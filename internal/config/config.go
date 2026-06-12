@@ -30,7 +30,7 @@ type Config struct {
 	// Enabled: commit-checker 전체 활성화 여부 (기본값: true).
 	// 전역 훅(git config --global)으로 모든 리포에서 실행되는 환경에서
 	// 특정 리포만 `enabled: false` 한 줄로 모든 검사를 비활성화(opt-out)할 때 사용합니다.
-	// 병합 시 프로젝트 설정 값이 전역/프리셋보다 우선합니다.
+	// 프로젝트 설정이 있으면 전역 설정은 무시되며, preset 병합 시 본문 값이 preset 보다 우선합니다.
 	Enabled *bool `yaml:"enabled"`
 
 	// Include: 조건부 설정 포함 규칙 목록 (git 의 [includeIf "gitdir:..."] 와 유사).
@@ -55,23 +55,22 @@ type Config struct {
 }
 
 // Load: 주어진 YAML 파일에서 설정을 읽음.
-// 전역 설정(~/.commit-checker.yml)이 있으면 먼저 로드하고 프로젝트 설정과 병합합니다.
-// preset.url이 설정된 경우 해당 URL에서 프리셋을 로드하여 기본값으로 사용합니다.
-// 우선순위: 프로젝트 설정 > 프리셋 > 전역 설정
-// 파일이 없으면 기본 설정을 반환.
+// 프로젝트 설정이 있으면 그것만 사용하고 전역 설정은 무시합니다 (리포 정책의 자기완결성 보장).
+// 없으면 전역 설정(GlobalConfigPath 경로)을 사용하며, 전역 설정도 없으면 기본 설정을 반환합니다.
+// preset 은 각 설정 파일이 스스로 선언한 경우 해당 설정의 기본값으로 병합됩니다
+// (프로젝트 모드에선 프로젝트의 preset, 전역 모드에선 전역의 preset).
 func Load(cfgPath string) (*Config, error) {
-	globalCfg := loadGlobalConfig()
-
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			if globalCfg != nil {
-				applyDefaults(globalCfg)
-				return globalCfg, nil
+			// 프로젝트 설정 없음 → 전역 설정 사용 (전역도 없으면 기본 설정).
+			globalCfg, globalPath := loadGlobalConfig()
+			if globalCfg == nil {
+				cfg := &Config{}
+				applyDefaults(cfg)
+				return cfg, nil
 			}
-			cfg := &Config{}
-			applyDefaults(cfg)
-			return cfg, nil
+			return finalizeConfig(globalCfg, globalPath)
 		}
 		return nil, err
 	}
@@ -94,37 +93,31 @@ func Load(cfgPath string) (*Config, error) {
 	}
 
 	// include 해석: include 파일들을 베이스로 깔고 본문을 그 위에 병합.
-	cfg = *resolveIncludes(&cfg, cfgPath)
+	// 프로젝트 설정이 존재하므로 전역 설정은 로드하지 않음 (완전 배타 적용).
+	return finalizeConfig(resolveIncludes(&cfg, cfgPath), cfgPath)
+}
 
-	// 프리셋 로드: preset.url이 설정된 경우 URL에서 기본 설정을 가져옴.
-	var presetCfg *Config
+// finalizeConfig: 설정 마무리 공통 단계 — preset 병합 → 기본값 적용 → allowed_words 해석 → 검증 경고.
+// 프로젝트/전역 모드 양쪽에서 사용되며, cfg 가 preset.url 을 선언한 경우
+// 프리셋을 베이스로 깔고 그 위에 cfg 를 병합합니다 (cfg 값이 preset 보다 우선).
+func finalizeConfig(cfg *Config, cfgPath string) (*Config, error) {
 	if cfg.Preset.URL != "" {
-		presetCfg, err = loadPresetConfig(&cfg.Preset)
+		presetCfg, err := loadPresetConfig(&cfg.Preset)
 		if err != nil {
 			return nil, fmt.Errorf("preset url 로드 실패: %w", err)
 		}
+		merged := mergeConfigs(presetCfg, cfg)
+		cfg = &merged
 	}
 
-	// 우선순위: 프로젝트 > 프리셋 > 전역
-	if presetCfg != nil {
-		if globalCfg != nil {
-			merged := mergeConfigs(globalCfg, presetCfg)
-			cfg = mergeConfigs(&merged, &cfg)
-		} else {
-			cfg = mergeConfigs(presetCfg, &cfg)
-		}
-	} else if globalCfg != nil {
-		cfg = mergeConfigs(globalCfg, &cfg)
-	}
-
-	applyDefaults(&cfg)
-	if err := resolveAllowedWords(&cfg); err != nil {
+	applyDefaults(cfg)
+	if err := resolveAllowedWords(cfg); err != nil {
 		return nil, err
 	}
-	for _, w := range Validate(&cfg, cfgPath) {
+	for _, w := range Validate(cfg, cfgPath) {
 		logger.Warn(w)
 	}
-	return &cfg, nil
+	return cfg, nil
 }
 
 // loadPresetConfig: preset.url에서 설정을 가져와 파싱합니다.
@@ -252,18 +245,19 @@ func globalFileExists(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
-// loadGlobalConfig: 전역 설정 파일을 로드합니다.
+// loadGlobalConfig: 전역 설정 파일을 로드하고 설정과 파일 경로를 반환합니다.
 // 경로는 GlobalConfigPath 의 우선순위를 따르며, 파일이 없거나 오류가 발생하면 nil을 반환합니다.
 // 프로젝트 설정(Load)과 동일하게 구버전 스키마 자동 마이그레이션을 적용합니다.
-func loadGlobalConfig() *Config {
+// 프로젝트 설정이 존재하는 리포에서는 호출되지 않습니다 (전역 설정 완전 무시 정책).
+func loadGlobalConfig() (*Config, string) {
 	globalPath, ok := GlobalConfigPath()
 	if !ok {
-		return nil // 전역 설정 없음 — 정상
+		return nil, "" // 전역 설정 없음 — 정상
 	}
 	data, err := os.ReadFile(globalPath)
 	if err != nil {
 		logger.Warn("global config read error, ignoring", "path", globalPath, "error", err)
-		return nil
+		return nil, ""
 	}
 
 	// 구 버전 스키마 감지: 현재 스키마로 파싱 실패 시 자동 마이그레이션 시도.
@@ -281,8 +275,8 @@ func loadGlobalConfig() *Config {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		logger.Warn("global config parse error, ignoring", "path", globalPath, "error", err)
-		return nil
+		return nil, ""
 	}
 	// include 해석: 프로젝트 설정(Load)과 동일하게 로드 직후 적용.
-	return resolveIncludes(&cfg, globalPath)
+	return resolveIncludes(&cfg, globalPath), globalPath
 }

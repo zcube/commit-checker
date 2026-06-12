@@ -324,9 +324,10 @@ comment_language:
 
 ### 按仓库的控制（override·opt-out·opt-in）
 
-**override** — 仓库的 `.commit-checker.yml` 会覆盖全局值。
-优先级为项目 `.commit-checker.yml` > preset（URL） > 全局配置，
-标量值由项目覆盖，列表则会合并。
+**override** — 仓库中存在 `.commit-checker.yml` 时，全局配置会被完全忽略，
+只应用仓库配置（无论团队成员的全局配置如何，都保证执行相同的检查）。
+全局配置仅在仓库没有配置文件时使用。
+如需部分 override，请在仓库配置中直接声明指向共享基础文件的 [gitdir include](#按目录的策略gitdir-include)。
 
 **opt-out** — 要在特定仓库中关闭所有检查，只需在项目 `.commit-checker.yml` 中添加一行：
 
