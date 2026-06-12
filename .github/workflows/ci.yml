@@ -70,6 +70,6 @@ jobs:
           go-version: "1.26"
           cache: true
       - name: Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.27.1
       - name: Run gosec
         run: gosec -exclude=G304,G204,G306 -exclude-dir=internal/comment/testdata ./...
