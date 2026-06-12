@@ -161,6 +161,29 @@ commit-checker diff
 commit-checker msg "$1"
 ```
 
+### Git 2.54+ config-based hooks (no hook manager)
+
+Starting with Git 2.54, you can integrate commit-checker with git configuration alone, without a hook manager like lefthook.
+
+```bash
+# Check staged changes (pre-commit)
+git config set hook.commit-checker-diff.command "commit-checker diff"
+git config set --append hook.commit-checker-diff.event pre-commit
+
+# Check commit messages (commit-msg) — git passes the message file path automatically
+git config set hook.commit-checker-msg.command "commit-checker msg"
+git config set --append hook.commit-checker-msg.event commit-msg
+
+# (Optional) check commit messages before push (pre-push)
+git config set hook.commit-checker-push.command "commit-checker push"
+git config set --append hook.commit-checker-push.event pre-push
+```
+
+- Add `--global` to apply the hooks to every repository at once (useful for a personal global policy).
+- Verify registration: `git hook list pre-commit`
+- Multiple hooks for the same event run in configuration order, and existing `.git/hooks/` scripts (e.g. lefthook) run last, so they can coexist.
+- Note: `.git/config` is not committed, so a manager like lefthook is still the better fit for team-wide enforcement. Config-based hooks suit personal setups and global policies.
+
 ## Configuration
 
 Create `.commit-checker.yml` in your project root.

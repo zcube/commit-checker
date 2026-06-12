@@ -160,6 +160,29 @@ commit-checker diff
 commit-checker msg "$1"
 ```
 
+### Git 2.54+ 基于配置的钩子（无需钩子管理器）
+
+从 Git 2.54 开始，无需 lefthook 等钩子管理器，仅通过 git 配置即可集成 commit-checker。
+
+```bash
+# 检查暂存的变更（pre-commit）
+git config set hook.commit-checker-diff.command "commit-checker diff"
+git config set --append hook.commit-checker-diff.event pre-commit
+
+# 检查提交信息（commit-msg）— 信息文件路径由 git 自动传递
+git config set hook.commit-checker-msg.command "commit-checker msg"
+git config set --append hook.commit-checker-msg.event commit-msg
+
+# （可选）push 前检查提交信息（pre-push）
+git config set hook.commit-checker-push.command "commit-checker push"
+git config set --append hook.commit-checker-push.event pre-push
+```
+
+- 加上 `--global` 可一次性应用到所有仓库（适合个人全局策略）。
+- 确认注册：`git hook list pre-commit`
+- 同一事件的多个钩子按配置顺序执行，现有的 `.git/hooks/` 脚本（如 lefthook）最后执行，因此可以共存。
+- 注意：`.git/config` 不会被提交，团队级强制仍更适合使用 lefthook 等管理器。基于配置的钩子适合个人配置和全局策略。
+
 ## 配置
 
 在项目根目录创建 `.commit-checker.yml`。

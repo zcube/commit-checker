@@ -160,6 +160,29 @@ commit-checker diff
 commit-checker msg "$1"
 ```
 
+### Git 2.54+ 설정 기반 훅 (훅 매니저 없이)
+
+Git 2.54부터는 lefthook 같은 훅 매니저 없이 git 설정만으로 commit-checker를 연동할 수 있습니다.
+
+```bash
+# 스테이지된 변경 검사 (pre-commit)
+git config set hook.commit-checker-diff.command "commit-checker diff"
+git config set --append hook.commit-checker-diff.event pre-commit
+
+# 커밋 메시지 검사 (commit-msg) — 메시지 파일 경로는 git이 자동 전달
+git config set hook.commit-checker-msg.command "commit-checker msg"
+git config set --append hook.commit-checker-msg.event commit-msg
+
+# (선택) push 전 커밋 메시지 검사 (pre-push)
+git config set hook.commit-checker-push.command "commit-checker push"
+git config set --append hook.commit-checker-push.event pre-push
+```
+
+- `--global` 을 붙이면 모든 리포지터리에 일괄 적용됩니다 (개인 전역 정책에 유용).
+- 등록 확인: `git hook list pre-commit`
+- 같은 이벤트의 훅 여러 개는 설정 순서대로 실행되고, 기존 `.git/hooks/` 스크립트(lefthook 등)는 마지막에 실행되므로 공존할 수 있습니다.
+- 주의: `.git/config` 는 커밋되지 않으므로 팀 전체 강제에는 lefthook 같은 매니저가 여전히 적합합니다. 설정 기반 훅은 개인 설정·전역 정책에 알맞습니다.
+
 ## 설정
 
 프로젝트 루트에 `.commit-checker.yml` 을 생성합니다.

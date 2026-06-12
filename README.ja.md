@@ -160,6 +160,29 @@ commit-checker diff
 commit-checker msg "$1"
 ```
 
+### Git 2.54+ 設定ベースのフック（フックマネージャー不要）
+
+Git 2.54からは、lefthookのようなフックマネージャーなしで、gitの設定だけでcommit-checkerを連携できます。
+
+```bash
+# ステージされた変更の検査（pre-commit）
+git config set hook.commit-checker-diff.command "commit-checker diff"
+git config set --append hook.commit-checker-diff.event pre-commit
+
+# コミットメッセージの検査（commit-msg）— メッセージファイルのパスはgitが自動的に渡します
+git config set hook.commit-checker-msg.command "commit-checker msg"
+git config set --append hook.commit-checker-msg.event commit-msg
+
+# （任意）push前のコミットメッセージ検査（pre-push）
+git config set hook.commit-checker-push.command "commit-checker push"
+git config set --append hook.commit-checker-push.event pre-push
+```
+
+- `--global` を付けるとすべてのリポジトリに一括適用されます（個人のグローバルポリシーに便利）。
+- 登録確認: `git hook list pre-commit`
+- 同じイベントの複数のフックは設定順に実行され、既存の `.git/hooks/` スクリプト（lefthookなど）は最後に実行されるため共存できます。
+- 注意: `.git/config` はコミットされないため、チーム全体への強制には引き続きlefthookのようなマネージャーが適しています。設定ベースのフックは個人設定・グローバルポリシーに適しています。
+
 ## 設定
 
 プロジェクトルートに `.commit-checker.yml` を作成します。
