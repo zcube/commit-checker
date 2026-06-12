@@ -35,16 +35,16 @@ type CommentLanguageConfigV101 struct {
 // CommitMessageConfigV101: v1.0.1 커밋 메시지 검사 설정.
 // no_coauthor 사용 (no_ai_coauthor 이전), enabled/no_emoji 추가.
 type CommitMessageConfigV101 struct {
-	Enabled              *bool                         `yaml:"enabled"`
-	NoCoauthor           *bool                         `yaml:"no_coauthor"`
-	CoauthorRemoveEmails []string                      `yaml:"coauthor_remove_emails"`
-	NoUnicodeSpaces      *bool                         `yaml:"no_unicode_spaces"`
-	NoAmbiguousChars     *bool                         `yaml:"no_ambiguous_chars"`
-	NoBadRunes           *bool                         `yaml:"no_bad_runes"`
-	NoEmoji              *bool                         `yaml:"no_emoji"`
-	Locale               string                        `yaml:"locale"`
-	LanguageCheck        CommitMessageLanguageConfig    `yaml:"language_check"`
-	ConventionalCommit   ConventionalCommitConfig       `yaml:"conventional_commit"`
+	Enabled              *bool                       `yaml:"enabled"`
+	NoCoauthor           *bool                       `yaml:"no_coauthor"`
+	CoauthorRemoveEmails []string                    `yaml:"coauthor_remove_emails"`
+	NoUnicodeSpaces      *bool                       `yaml:"no_unicode_spaces"`
+	NoAmbiguousChars     *bool                       `yaml:"no_ambiguous_chars"`
+	NoBadRunes           *bool                       `yaml:"no_bad_runes"`
+	NoEmoji              *bool                       `yaml:"no_emoji"`
+	Locale               string                      `yaml:"locale"`
+	LanguageCheck        CommitMessageLanguageConfig `yaml:"language_check"`
+	ConventionalCommit   ConventionalCommitConfig    `yaml:"conventional_commit"`
 }
 
 // EncodingConfigV101: v1.0.1 인코딩 설정.

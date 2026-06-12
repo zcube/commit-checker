@@ -14,8 +14,8 @@ import (
 
 // AmbiguousTable 는 특정 로케일에서 ASCII 문자와 혼동될 수 있는 룬을 매핑합니다.
 type AmbiguousTable struct {
-	Confusable []rune           // 혼동 가능한 룬 코드포인트의 정렬된 슬라이스
-	With       []rune           // 병렬 슬라이스: Confusable[i] 가 닮은 ASCII 문자
+	Confusable []rune // 혼동 가능한 룬 코드포인트의 정렬된 슬라이스
+	With       []rune // 병렬 슬라이스: Confusable[i] 가 닮은 ASCII 문자
 	Locale     string
 	RangeTable *unicode.RangeTable // 이진 탐색 전 빠른 사전 필터
 }

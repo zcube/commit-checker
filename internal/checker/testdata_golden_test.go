@@ -86,10 +86,10 @@ func TestCommentCheckerGolden(t *testing.T) {
 			if !ok {
 				detected := langdetect.Dominant(text)
 				preview := text
-			if len([]rune(preview)) > 40 {
-				preview = string([]rune(preview)[:40]) + "..."
-			}
-			langErrs = append(langErrs, fmt.Sprintf("  line %d: detected=%s text=%q", c.Line, detected, preview))
+				if len([]rune(preview)) > 40 {
+					preview = string([]rune(preview)[:40]) + "..."
+				}
+				langErrs = append(langErrs, fmt.Sprintf("  line %d: detected=%s text=%q", c.Line, detected, preview))
 			}
 		}
 

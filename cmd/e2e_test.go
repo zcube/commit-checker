@@ -7,6 +7,7 @@ package cmd_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -121,7 +122,8 @@ func (r *testRepo) run(args ...string) (string, int) {
 	err := cmd.Run()
 	code := 0
 	if err != nil {
-		if ex, ok := err.(*exec.ExitError); ok {
+		ex := &exec.ExitError{}
+		if errors.As(err, &ex) {
 			code = ex.ExitCode()
 		} else {
 			r.t.Fatalf("run error: %v", err)

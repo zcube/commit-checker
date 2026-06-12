@@ -10,7 +10,7 @@ import (
 	"github.com/zcube/commit-checker/internal/config"
 )
 
-func truePtr() *bool { b := true; return &b }
+func truePtr() *bool  { b := true; return &b }
 func falsePtr() *bool { b := false; return &b }
 
 // TestRunBinaryFiles_NoBinary: 바이너리 파일 없는 경우 오류 없음.

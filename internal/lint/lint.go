@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -33,7 +34,7 @@ func ValidateYAML(filename, content string) []ValidationError {
 	for {
 		var node yaml.Node
 		err := dec.Decode(&node)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -112,7 +113,7 @@ func ValidateXML(filename, content string) []ValidationError {
 	dec.Strict = true
 	for {
 		_, err := dec.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -235,7 +236,8 @@ func ValidateTOML(filename, content string) []ValidationError {
 		return nil
 	}
 	line := 1
-	if pe, ok := err.(toml.ParseError); ok {
+	var pe toml.ParseError
+	if errors.As(err, &pe) {
 		line = pe.Position.Line
 	}
 	return []ValidationError{{

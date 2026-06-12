@@ -4,12 +4,12 @@
 //
 // 지원 지시자
 //
-//	- commit-checker:disable            여기서부터 언어 검사 비활성화
-//	- commit-checker:disable:lang=<L>   비활성화 + 언어 L 로 교체
-//	- commit-checker:enable             언어 검사 재활성화
-//	- commit-checker:ignore             바로 다음 주석 건너뜀
-//	- commit-checker:lang=<L>           여기서부터 필수 언어를 L 로 변경
-//	- commit-checker:file-lang=<L>      파일 전체의 필수 언어 설정
+//   - commit-checker:disable            여기서부터 언어 검사 비활성화
+//   - commit-checker:disable:lang=<L>   비활성화 + 언어 L 로 교체
+//   - commit-checker:enable             언어 검사 재활성화
+//   - commit-checker:ignore             바로 다음 주석 건너뜀
+//   - commit-checker:lang=<L>           여기서부터 필수 언어를 L 로 변경
+//   - commit-checker:file-lang=<L>      파일 전체의 필수 언어 설정
 //
 // <L> 은 required_language 와 같은 값(korean, english, japanese, chinese, any) 및
 // 로케일 코드(ko, en, ja, zh, zh-hans, zh-hant)를 허용합니다.
@@ -38,11 +38,11 @@ type CommentState struct {
 func Analyze(comments []comment.Comment, defaultLang string) []CommentState {
 	states := make([]CommentState, len(comments))
 
-	disabled := false    // commit-checker:disable 활성 여부
-	disabledLang := ""   // 비활성 중 언어 재정의 (빈 문자열 = 완전히 건너뜀)
-	skipNext := false    // commit-checker:ignore 감지 시 다음 주석 건너뜀
-	langOverride := ""   // commit-checker:lang= 재정의 (빈 문자열 = defaultLang 사용)
-	fileLang := ""       // commit-checker:file-lang= 이 파일 전체에 적용
+	disabled := false  // commit-checker:disable 활성 여부
+	disabledLang := "" // 비활성 중 언어 재정의 (빈 문자열 = 완전히 건너뜀)
+	skipNext := false  // commit-checker:ignore 감지 시 다음 주석 건너뜀
+	langOverride := "" // commit-checker:lang= 재정의 (빈 문자열 = defaultLang 사용)
+	fileLang := ""     // commit-checker:file-lang= 이 파일 전체에 적용
 
 	for i, c := range comments {
 		text := strings.TrimSpace(c.Text)

@@ -74,12 +74,12 @@ func TestAnalyze_Ignore_OnlyOneComment(t *testing.T) {
 // commit-checker:disable / :enable region.
 func TestAnalyze_Disable_Enable(t *testing.T) {
 	cs := comments(
-		"한국어",                   // 0 checked
+		"한국어",                    // 0 checked
 		"commit-checker:disable", // 1 directive
 		"English comment",        // 2 skipped (disabled)
 		"another English",        // 3 skipped (disabled)
 		"commit-checker:enable",  // 4 directive
-		"한국어 재개",               // 5 checked again
+		"한국어 재개",                 // 5 checked again
 	)
 	states := directive.Analyze(cs, "korean")
 

@@ -12,7 +12,6 @@ import (
 	"github.com/zcube/commit-checker/internal/langdetect"
 )
 
-
 // CheckMsg: 설정된 모든 정책 위반 여부를 커밋 메시지에서 검사.
 // content는 커밋 메시지 파일(예: .git/COMMIT_EDITMSG)의 원시 텍스트.
 func CheckMsg(cfg *config.Config, content string) []string {

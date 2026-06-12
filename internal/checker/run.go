@@ -63,7 +63,7 @@ func RunBinaryFiles(cfg *config.Config) ([]string, error) {
 	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for _, path := range files {
-		path := path
+
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			continue
 		}
@@ -112,7 +112,7 @@ func RunEncoding(cfg *config.Config) ([]string, error) {
 	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for _, path := range files {
-		path := path
+
 		if pathutil.MatchesAny(path, ignorePatterns) {
 			continue
 		}
@@ -176,7 +176,7 @@ func RunLint(cfg *config.Config) ([]string, error) {
 	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for _, path := range files {
-		path := path
+
 		if pathutil.MatchesAny(path, globalIgnore) {
 			continue
 		}
@@ -318,7 +318,7 @@ func RunEditorConfig(cfg *config.Config) ([]string, error) {
 	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for _, path := range files {
-		path := path
+
 		if pathutil.MatchesAny(path, cfg.Exceptions.GlobalIgnore) {
 			continue
 		}
@@ -397,7 +397,7 @@ func RunCommentLanguage(cfg *config.Config) ([]string, error) {
 	sem := make(chan struct{}, runtime.NumCPU()*2)
 
 	for _, filePath := range files {
-		filePath := filePath
+
 		if !gitdiff.HasExtension(filePath, extensions) {
 			continue
 		}

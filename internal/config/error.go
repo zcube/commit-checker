@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -87,7 +88,8 @@ var reUnmarshalErr = regexp.MustCompile("line (\\d+): cannot unmarshal !!([^ ]+)
 
 // formatConfigError: yaml 언마샬 오류를 사람이 읽기 쉬운 메시지로 변환.
 func formatConfigError(cfgPath string, err error) error {
-	te, ok := err.(*yaml.TypeError)
+	te := &yaml.TypeError{}
+	ok := errors.As(err, &te)
 	if !ok {
 		// 구문 오류 등 기타 yaml 오류
 		return fmt.Errorf("%s", i18n.T("config.syntax_error", map[string]any{

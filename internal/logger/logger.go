@@ -15,7 +15,7 @@ import (
 var (
 	mu       sync.RWMutex
 	instance *charmlog.Logger
-	output   io.Writer = os.Stderr // 현재 출력 대상 추적
+	output   io.Writer      = os.Stderr // 현재 출력 대상 추적
 	level    charmlog.Level = charmlog.WarnLevel
 	initOnce sync.Once
 )

@@ -158,7 +158,7 @@ const Key = "value"
 `)
 	cfg := koreanOnlyConfig()
 	cfg.CommentLanguage.FileLanguages = []config.FileLanguageRule{
-		{Pattern: "i18n/**", Language: "any"},   // first match → any
+		{Pattern: "i18n/**", Language: "any"},        // first match → any
 		{Pattern: "i18n/en/**", Language: "english"}, // would also match but loses
 	}
 

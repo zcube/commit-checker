@@ -10,7 +10,7 @@ func TestNaturalLess(t *testing.T) {
 		// 숫자 앞에 오는 케이스
 		{"001.sql", "002.sql", true},
 		{"009.sql", "010.sql", true},
-		{"9.sql", "10.sql", true},   // numeric: 9 < 10 (lexicographic: "10" < "9")
+		{"9.sql", "10.sql", true}, // numeric: 9 < 10 (lexicographic: "10" < "9")
 		{"1.sql", "2.sql", true},
 		{"002.sql", "010.sql", true},
 
@@ -24,7 +24,7 @@ func TestNaturalLess(t *testing.T) {
 
 		// 접두사 포함 이름
 		{"v1_create_users.sql", "v2_add_email.sql", true},
-		{"v9_foo.sql", "v10_bar.sql", true},  // numeric: 9 < 10
+		{"v9_foo.sql", "v10_bar.sql", true}, // numeric: 9 < 10
 		{"v10_bar.sql", "v9_foo.sql", false},
 
 		// 확장자 포함

@@ -100,7 +100,7 @@ func (p *GoParser) ParseFile(content string) ([]Comment, error) {
 
 // unquoteGoString 은 Go 문자열 리터럴에서 실제 값을 추출.
 // 해석 문자열("..."): strconv.Unquote 사용.
-// 원시 문자열(``...``): 백틱 제거.
+// 원시 문자열(“...“): 백틱 제거.
 func unquoteGoString(raw string) string {
 	if strings.HasPrefix(raw, "`") {
 		return raw[1 : len(raw)-1]

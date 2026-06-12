@@ -134,7 +134,7 @@ func fixInvisibleChars(content string, changes []string) (string, []string) {
 func isSpaceVariant(r rune) bool {
 	switch r {
 	case 0x00A0, // 줄 바꿈 없는 공백
-		0x1680,                                          // 오감 공백
+		0x1680,                                         // 오감 공백
 		0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, // em/en/thin 공백 변형
 		0x2006, 0x2007, 0x2008, 0x2009, 0x200A,
 		0x202F, // 좁은 줄 바꿈 없는 공백

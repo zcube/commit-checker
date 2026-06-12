@@ -1,8 +1,8 @@
 package checker
 
 import (
-	ecmod "github.com/zcube/commit-checker/internal/editorconfig"
 	"github.com/zcube/commit-checker/internal/config"
+	ecmod "github.com/zcube/commit-checker/internal/editorconfig"
 	"github.com/zcube/commit-checker/internal/encoding"
 	"github.com/zcube/commit-checker/internal/gitdiff"
 	"github.com/zcube/commit-checker/internal/i18n"

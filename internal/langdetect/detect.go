@@ -219,7 +219,7 @@ func dominant(text string) Language {
 		}
 	}
 	max := korean
-	dom := Language(Korean)
+	dom := Korean
 	if japanese > max {
 		max = japanese
 		dom = Japanese

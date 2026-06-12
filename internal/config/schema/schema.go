@@ -22,7 +22,7 @@ const (
 
 // PresetConfig: 원격 URL에서 불러올 기본 설정 프리셋 (v1.1.0+).
 type PresetConfig struct {
-	URL   string                 `yaml:"url"`
+	URL   string                  `yaml:"url"`
 	Cache AllowedWordsCacheConfig `yaml:"cache"`
 }
 
@@ -31,6 +31,7 @@ type PresetConfig struct {
 //   - comment_language.required_language → comment_language.locale (필드 통합)
 //   - commit_message.language_check.required_language → commit_message.language_check.locale
 //   - file_languages[].language → file_languages[].locale
+//
 // 단, strict 파싱에서는 unknown 필드를 거부하므로 v1.2.0 스키마는 새 이름만 허용합니다.
 // 구 필드 사용 시에는 DetectVersion 이 v1.1.0 으로 판정하고 Migrate 가 자동 변환합니다.
 type ConfigCurrent struct {
@@ -73,14 +74,14 @@ type FileLanguageRuleV120 struct {
 
 // ConfigV110: v1.1.0~v1.1.x 설정 스키마 (locale 통합 이전).
 type ConfigV110 struct {
-	Preset          PresetConfig               `yaml:"preset"`
-	CommentLanguage CommentLanguageConfigV110  `yaml:"comment_language"`
-	CommitMessage   CommitMessageConfigV110    `yaml:"commit_message"`
-	BinaryFile      BinaryFileConfig           `yaml:"binary_file"`
-	Lint            LintConfig                 `yaml:"lint"`
-	Encoding        EncodingConfigCurrent      `yaml:"encoding"`
-	EditorConfig    EditorConfigConfig         `yaml:"editorconfig"`
-	Exceptions      ExceptionsConfig           `yaml:"exceptions"`
+	Preset          PresetConfig              `yaml:"preset"`
+	CommentLanguage CommentLanguageConfigV110 `yaml:"comment_language"`
+	CommitMessage   CommitMessageConfigV110   `yaml:"commit_message"`
+	BinaryFile      BinaryFileConfig          `yaml:"binary_file"`
+	Lint            LintConfig                `yaml:"lint"`
+	Encoding        EncodingConfigCurrent     `yaml:"encoding"`
+	EditorConfig    EditorConfigConfig        `yaml:"editorconfig"`
+	Exceptions      ExceptionsConfig          `yaml:"exceptions"`
 }
 
 // CommentLanguageConfigV110: v1.1.0 주석 언어 검사 설정.
@@ -108,16 +109,16 @@ type CommentLanguageConfigV110 struct {
 // CommitMessageConfigV110: v1.1.0 커밋 메시지 설정.
 // language_check 가 required_language 사용.
 type CommitMessageConfigV110 struct {
-	Enabled              *bool                          `yaml:"enabled"`
-	NoAICoauthor         *bool                          `yaml:"no_ai_coauthor"`
-	CoauthorRemoveEmails []string                       `yaml:"coauthor_remove_emails"`
-	NoUnicodeSpaces      *bool                          `yaml:"no_unicode_spaces"`
-	NoAmbiguousChars     *bool                          `yaml:"no_ambiguous_chars"`
-	NoBadRunes           *bool                          `yaml:"no_bad_runes"`
-	NoEmoji              *bool                          `yaml:"no_emoji"`
-	Locale               string                         `yaml:"locale"`
-	LanguageCheck        CommitMessageLanguageConfig    `yaml:"language_check"`
-	ConventionalCommit   ConventionalCommitConfig       `yaml:"conventional_commit"`
+	Enabled              *bool                       `yaml:"enabled"`
+	NoAICoauthor         *bool                       `yaml:"no_ai_coauthor"`
+	CoauthorRemoveEmails []string                    `yaml:"coauthor_remove_emails"`
+	NoUnicodeSpaces      *bool                       `yaml:"no_unicode_spaces"`
+	NoAmbiguousChars     *bool                       `yaml:"no_ambiguous_chars"`
+	NoBadRunes           *bool                       `yaml:"no_bad_runes"`
+	NoEmoji              *bool                       `yaml:"no_emoji"`
+	Locale               string                      `yaml:"locale"`
+	LanguageCheck        CommitMessageLanguageConfig `yaml:"language_check"`
+	ConventionalCommit   ConventionalCommitConfig    `yaml:"conventional_commit"`
 }
 
 // AllowedWordsCacheConfig: URL 캐싱 설정 (v1.1.0+).

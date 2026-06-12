@@ -1,0 +1,20 @@
+version: "2"
+
+linters:
+  # standard: errcheck, govet, ineffassign, staticcheck, unused
+  default: standard
+  enable:
+    - errorlint # %w 미사용 등 에러 래핑 문제 검출
+    - misspell
+    - unconvert
+    - copyloopvar
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
