@@ -48,6 +48,27 @@
       }
     },
 
+    "include": {
+      "description": "조건부 설정 포함 규칙 목록 (git 의 [includeIf \"gitdir:...\"] 와 유사).\n각 항목의 path 파일을 베이스로 순서대로 병합한 뒤 본문을 그 위에 병합함.\n우선순위: 본문 값 > 나중 include > 앞 include.\n원격 preset 설정 안의 include 는 보안상 무시되며, 포함된 파일 안의 include 도 무시됨 (중첩 금지). 누락 파일은 경고 후 건너뜀.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "description": "포함할 설정 파일 경로. '~' 는 홈 디렉터리로 확장되고, 상대 경로는 include 를 선언한 설정 파일 기준.",
+            "type": "string",
+            "examples": ["~/.config/commit-checker/base.yml"]
+          },
+          "gitdir": {
+            "description": "포함 조건이 되는 디렉터리 glob 패턴 (git includeIf gitdir 의미론). 비어있으면 항상 포함.\n'~' 는 홈 디렉터리로 확장되고, '/' 로 끝나면 '**' 가 덧붙어 해당 디렉터리와 하위 전체를 매칭.",
+            "type": "string",
+            "examples": ["~/work/"]
+          }
+        }
+      }
+    },
+
     "comment_language": {
       "description": "코드 주석의 언어를 검사하는 설정",
       "type": "object",

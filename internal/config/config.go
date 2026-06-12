@@ -33,6 +33,12 @@ type Config struct {
 	// 병합 시 프로젝트 설정 값이 전역/프리셋보다 우선합니다.
 	Enabled *bool `yaml:"enabled"`
 
+	// Include: 조건부 설정 포함 규칙 목록 (git 의 [includeIf "gitdir:..."] 와 유사).
+	// include 파일들은 순서대로 병합되어 베이스가 되고 그 위에 본문이 병합됩니다.
+	// 즉 본문 값 > 나중 include > 앞 include 순으로 우선합니다.
+	// 전역/프로젝트 설정 양쪽에서 동작하며, 원격 preset 안의 include 는 보안상 무시됩니다.
+	Include []IncludeRule `yaml:"include"`
+
 	Preset          PresetConfig          `yaml:"preset"`
 	CommentLanguage CommentLanguageConfig `yaml:"comment_language"`
 	CommitMessage   CommitMessageConfig   `yaml:"commit_message"`
@@ -86,6 +92,9 @@ func Load(cfgPath string) (*Config, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, formatConfigError(cfgPath, err)
 	}
+
+	// include 해석: include 파일들을 베이스로 깔고 본문을 그 위에 병합.
+	cfg = *resolveIncludes(&cfg, cfgPath)
 
 	// 프리셋 로드: preset.url이 설정된 경우 URL에서 기본 설정을 가져옴.
 	var presetCfg *Config
@@ -155,6 +164,12 @@ func loadPresetConfig(preset *PresetConfig) (*Config, error) {
 	// preset은 한 단계만 허용합니다.
 	if cfg.Preset.URL != "" {
 		return nil, fmt.Errorf("preset은 중첩될 수 없습니다 (preset 안에 preset.url 사용 불가): %s", cfg.Preset.URL)
+	}
+	// 보안: 원격 프리셋이 로컬 파일을 끌어오지 못하도록 preset 안의 include 는 무시.
+	if len(cfg.Include) > 0 {
+		logger.Warn("preset 설정의 include 는 무시됩니다 (원격 설정의 로컬 파일 포함 금지)",
+			"url", preset.URL)
+		cfg.Include = nil
 	}
 	return &cfg, nil
 }
@@ -268,5 +283,6 @@ func loadGlobalConfig() *Config {
 		logger.Warn("global config parse error, ignoring", "path", globalPath, "error", err)
 		return nil
 	}
-	return &cfg
+	// include 해석: 프로젝트 설정(Load)과 동일하게 로드 직후 적용.
+	return resolveIncludes(&cfg, globalPath)
 }

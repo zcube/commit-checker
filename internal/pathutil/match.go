@@ -23,6 +23,13 @@ func MatchesAny(path string, patterns []string) bool {
 	return false
 }
 
+// MatchPath 는 path 가 doublestar("**") 의미론의 glob 패턴과 일치하는지 확인합니다.
+// MatchesAny 와 달리 기본 이름(base name) 매칭 없이 전체 경로를 세그먼트 단위로만 비교하므로
+// 절대 경로 매칭(예: 설정 include 의 gitdir 조건)에 적합합니다.
+func MatchPath(path, pattern string) bool {
+	return matchDoubleStarGlob(path, pattern)
+}
+
 // matchDoubleStarGlob 는 "**" 를 포함한 패턴을 "/" 로 분리하여 경로 세그먼트를 순차적으로 매칭합니다.
 // "vendor/**" 나 "**/generated/*.go" 같은 패턴을 지원합니다.
 func matchDoubleStarGlob(path, pattern string) bool {

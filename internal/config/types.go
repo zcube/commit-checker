@@ -1,6 +1,20 @@
 // types.go: Config 의 하위 설정 구조체 정의와 내장 기본 데이터(타입/패턴/확장자) 목록.
 package config
 
+// IncludeRule: 조건부 설정 포함 규칙 (git 의 [includeIf "gitdir:..."] 와 유사).
+// Gitdir 가 비어있으면 항상 포함되고, 지정 시 현재 작업 디렉터리(리포 루트)가
+// 패턴과 매칭될 때만 포함됩니다.
+type IncludeRule struct {
+	// Path: 포함할 설정 파일 경로.
+	// '~' 는 홈 디렉터리로 확장되며, 상대 경로는 include 를 선언한 설정 파일 기준입니다.
+	Path string `yaml:"path"`
+
+	// Gitdir: 포함 조건이 되는 디렉터리 glob 패턴 (git includeIf gitdir 의미론).
+	// '~' 는 홈 디렉터리로 확장되고, '/' 로 끝나면 '**' 가 덧붙어
+	// 해당 디렉터리와 하위 전체를 매칭합니다 (git 과 동일).
+	Gitdir string `yaml:"gitdir"`
+}
+
 // CommentLanguageConfig: 스테이지된 diff의 주석 언어 검사 설정.
 //
 // 로케일/언어 필드 통일 정책:
