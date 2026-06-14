@@ -47,7 +47,7 @@ func init() {
 	rootCmd.Short = i18n.T("cmd.root.short", nil)
 	rootCmd.Long = i18n.T("cmd.root.long", nil)
 
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", ".commit-checker.yml", i18n.T("flag.config", nil))
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", ".commit-checker.yaml", i18n.T("flag.config", nil))
 	rootCmd.PersistentFlags().BoolVarP(&globalQuiet, "quiet", "q", false, i18n.T("flag.quiet", nil))
 	rootCmd.PersistentFlags().BoolVar(&globalNoColor, "no-color", false, i18n.T("flag.no_color", nil))
 	rootCmd.PersistentFlags().BoolVar(&globalNoGuide, "no-guide", false, i18n.T("flag.no_guide", nil))
@@ -73,9 +73,9 @@ func requireConfigSkip() bool {
 }
 
 // resolveConfigFilePath: 프로젝트 설정 파일 경로를 결정합니다.
-// 기본값(.commit-checker.yml / .commit-checker.yaml)인 경우 두 이름을 모두 허용합니다.
+// 기본값(.commit-checker.yaml / .commit-checker.yml)인 경우 두 이름을 모두 허용합니다.
 func resolveConfigFilePath(path string) string {
-	if path == ".commit-checker.yml" || path == ".commit-checker.yaml" {
+	if path == ".commit-checker.yaml" || path == ".commit-checker.yml" {
 		for _, candidate := range []string{".commit-checker.yaml", ".commit-checker.yml"} {
 			if _, err := os.Stat(candidate); err == nil {
 				return candidate

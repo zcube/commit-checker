@@ -292,7 +292,9 @@ cmd.init.short:
   other: "生成默认配置文件"
 cmd.init.long:
   other: |-
-    在当前目录生成默认的.commit-checker.yml配置文件。
+    在当前目录生成默认的.commit-checker.yaml配置文件。
+
+    也支持 .commit-checker.yml 作为兼容格式。
 
     使用--lang设置语言环境 (ko, en, ja, zh)。如果未指定，系统语言环境将自动检测。
     使用--force覆盖现有文件。

@@ -81,7 +81,7 @@ func TestLocalizedExample(t *testing.T) {
 func TestInitCmd_CreatesValidConfig(t *testing.T) {
 	isolateHome(t)
 	dir := chdirTemp(t)
-	cfgPath := filepath.Join(dir, ".commit-checker.yml")
+	cfgPath := filepath.Join(dir, ".commit-checker.yaml")
 	setConfigFile(t, cfgPath)
 	setInitFlags(t, false, "ko")
 
@@ -105,7 +105,7 @@ func TestInitCmd_CreatesValidConfig(t *testing.T) {
 func TestInitCmd_AlreadyExists_Error(t *testing.T) {
 	isolateHome(t)
 	dir := chdirTemp(t)
-	cfgPath := filepath.Join(dir, ".commit-checker.yml")
+	cfgPath := filepath.Join(dir, ".commit-checker.yaml")
 	original := "comment_language:\n  locale: ko\n"
 	writeTestFile(t, cfgPath, original)
 	setConfigFile(t, cfgPath)
@@ -126,7 +126,7 @@ func TestInitCmd_AlreadyExists_Error(t *testing.T) {
 func TestInitCmd_ForceOverwrites(t *testing.T) {
 	isolateHome(t)
 	dir := chdirTemp(t)
-	cfgPath := filepath.Join(dir, ".commit-checker.yml")
+	cfgPath := filepath.Join(dir, ".commit-checker.yaml")
 	writeTestFile(t, cfgPath, "# 기존 내용\n")
 	setConfigFile(t, cfgPath)
 	setInitFlags(t, true, "ja")

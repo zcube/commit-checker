@@ -343,12 +343,12 @@ comment_language:
 
 ### リポジトリ別制御（override・opt-out・opt-in）
 
-**override** — リポジトリに `.commit-checker.yml` があるとグローバル設定は完全に無視され、
+**override** — リポジトリに `.commit-checker.yaml` または `.commit-checker.yml` があるとグローバル設定は完全に無視され、
 リポジトリ設定のみが適用されます（メンバー個人のグローバル設定に関係なく同一の検査を保証）。
 グローバル設定はリポジトリ設定がない場合にのみ使用されます。
 部分的な override が必要な場合は、共有ベースファイルを指す [gitdir include](#ディレクトリ別ポリシーgitdir-include) をリポジトリ設定に直接宣言してください。
 
-**opt-out** — 特定のリポジトリですべての検査を無効にするには、プロジェクトの `.commit-checker.yml` に1行だけ追加します:
+**opt-out** — 特定のリポジトリですべての検査を無効にするには、プロジェクトの `.commit-checker.yaml` または `.commit-checker.yml` に1行だけ追加します:
 
 ```yaml
 enabled: false
@@ -365,7 +365,7 @@ git config set --global hook.commit-checker-msg.command "commit-checker msg --re
 
 ## 設定
 
-プロジェクトルートに `.commit-checker.yml` または `.commit-checker.yaml` を作成します。
+プロジェクトルートに `.commit-checker.yaml` または `.commit-checker.yml` を作成します。
 `commit-checker init` でデフォルト設定ファイルを自動生成できます。
 VS Code を使用すると `.commit-checker.schema.json` スキーマによる自動補完が利用できます。
 
@@ -704,7 +704,7 @@ guide:
 ## コマンド
 
 ```
-commit-checker init          デフォルト設定ファイル（.commit-checker.yml）の生成
+commit-checker init          デフォルト設定ファイル（.commit-checker.yaml）の生成
 commit-checker diff          staged diff のコメント/エンコーディング/lint/バイナリ/Unicode 検査
 commit-checker run           追跡中の全ファイルのポリシー準拠検査
 commit-checker msg <file>    コミットメッセージファイルの検査
@@ -755,7 +755,7 @@ CIの例（GitHub Actions、GitLab CI など）:
 ### init コマンド
 
 ```bash
-# デフォルト設定ファイルの生成（システムロケールを自動検出）
+# デフォルト設定ファイルの生成（.commit-checker.yaml、システムロケールを自動検出）
 commit-checker init
 
 # 特定のロケールで生成

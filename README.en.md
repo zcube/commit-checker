@@ -343,12 +343,12 @@ comment_language:
 
 ### Per-repository control (override·opt-out·opt-in)
 
-**override** — if a repository has `.commit-checker.yml`, the global config is ignored entirely
+**override** — if a repository has `.commit-checker.yaml` or `.commit-checker.yml`, the global config is ignored entirely
 and only the repository config applies (the same checks are guaranteed regardless of each member's global config).
 The global config is used only when the repository has no config file.
 If you need a partial override, declare a [gitdir include](#per-directory-policies-gitdir-include) pointing to a shared base file directly in the repository config.
 
-**opt-out** — to disable every check in a specific repository, add a single line to the project `.commit-checker.yml`:
+**opt-out** — to disable every check in a specific repository, add a single line to the project `.commit-checker.yaml` or `.commit-checker.yml`:
 
 ```yaml
 enabled: false
@@ -365,7 +365,7 @@ git config set --global hook.commit-checker-msg.command "commit-checker msg --re
 
 ## Configuration
 
-Create `.commit-checker.yml` or `.commit-checker.yaml` in your project root.
+Create `.commit-checker.yaml` or `.commit-checker.yml` in your project root.
 Run `commit-checker init` to generate a default config file automatically.
 Use `.commit-checker.schema.json` for IDE autocompletion in VS Code.
 
@@ -705,7 +705,7 @@ With `--format json`, the guides are included as a `"guides": {"<category>": "<t
 ## Commands
 
 ```
-commit-checker init          Generate default config file (.commit-checker.yml)
+commit-checker init          Generate default config file (.commit-checker.yaml)
 commit-checker diff          Check staged diff (comments/encoding/lint/binary/unicode)
 commit-checker run           Check all tracked files for policy compliance
 commit-checker msg <file>    Check commit message file
@@ -756,7 +756,7 @@ Typical CI usage (GitHub Actions, GitLab CI, etc.):
 ### init command
 
 ```bash
-# Generate the default config file (auto-detects system locale)
+# Generate the default config file (.commit-checker.yaml, auto-detects system locale)
 commit-checker init
 
 # Generate with a specific locale

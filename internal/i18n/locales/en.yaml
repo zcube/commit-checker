@@ -295,7 +295,9 @@ cmd.init.short:
   other: "Generate default configuration file"
 cmd.init.long:
   other: |-
-    Generate a default .commit-checker.yml configuration file in the current directory.
+    Generate a default .commit-checker.yaml configuration file in the current directory.
+
+    .commit-checker.yml is also supported for compatibility.
 
     Use --lang to set the locale (ko, en, ja, zh). If not specified, the system locale is detected automatically.
     Use --force to overwrite an existing file.

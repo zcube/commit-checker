@@ -342,12 +342,12 @@ comment_language:
 
 ### 리포별 제어 (override·opt-out·opt-in)
 
-**override** — 리포에 `.commit-checker.yml` 이 있으면 전역 설정은 완전히 무시되고
+**override** — 리포에 `.commit-checker.yaml` 또는 `.commit-checker.yml` 이 있으면 전역 설정은 완전히 무시되고
 리포 설정만 적용됩니다 (팀원의 전역 설정과 무관하게 동일한 검사 보장).
 전역 설정은 리포 설정이 없을 때만 사용됩니다.
 부분 override 가 필요하면 공유 베이스 파일을 가리키는 [gitdir include](#디렉터리별-정책-gitdir-include) 를 리포 설정에 직접 선언하세요.
 
-**opt-out** — 특정 리포지터리에서 모든 검사를 끄려면 프로젝트 `.commit-checker.yml` 에 한 줄만 추가합니다:
+**opt-out** — 특정 리포지터리에서 모든 검사를 끄려면 프로젝트 `.commit-checker.yaml` 또는 `.commit-checker.yml` 에 한 줄만 추가합니다:
 
 ```yaml
 enabled: false
@@ -364,7 +364,7 @@ git config set --global hook.commit-checker-msg.command "commit-checker msg --re
 
 ## 설정
 
-프로젝트 루트에 `.commit-checker.yml` 또는 `.commit-checker.yaml` 을 생성합니다.
+프로젝트 루트에 `.commit-checker.yaml` 또는 `.commit-checker.yml` 을 생성합니다.
 `commit-checker init` 으로 기본 설정 파일을 자동 생성할 수 있습니다.
 VS Code를 사용하면 `.commit-checker.schema.json` 스키마로 자동완성이 제공됩니다.
 
@@ -703,7 +703,7 @@ guide:
 ## 커맨드
 
 ```
-commit-checker init          기본 설정 파일(.commit-checker.yml) 생성
+commit-checker init          기본 설정 파일(.commit-checker.yaml) 생성
 commit-checker diff          staged diff의 주석/인코딩/린트/바이너리/유니코드 검사
 commit-checker run           추적된 전체 파일의 정책 준수 검사
 commit-checker msg <file>    커밋 메시지 파일 검사
@@ -754,7 +754,7 @@ CI 예시 (GitHub Actions, GitLab CI 등):
 ### init 커맨드
 
 ```bash
-# 기본 설정 파일 생성 (시스템 로케일 자동 감지)
+# 기본 설정 파일 생성 (.commit-checker.yaml, 시스템 로케일 자동 감지)
 commit-checker init
 
 # 특정 로케일로 생성

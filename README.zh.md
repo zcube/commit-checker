@@ -343,12 +343,12 @@ comment_language:
 
 ### 按仓库的控制（override·opt-out·opt-in）
 
-**override** — 仓库中存在 `.commit-checker.yml` 时，全局配置会被完全忽略，
+**override** — 仓库中存在 `.commit-checker.yaml` 或 `.commit-checker.yml` 时，全局配置会被完全忽略，
 只应用仓库配置（无论团队成员的全局配置如何，都保证执行相同的检查）。
 全局配置仅在仓库没有配置文件时使用。
 如需部分 override，请在仓库配置中直接声明指向共享基础文件的 [gitdir include](#按目录的策略gitdir-include)。
 
-**opt-out** — 要在特定仓库中关闭所有检查，只需在项目 `.commit-checker.yml` 中添加一行：
+**opt-out** — 要在特定仓库中关闭所有检查，只需在项目 `.commit-checker.yaml` 或 `.commit-checker.yml` 中添加一行：
 
 ```yaml
 enabled: false
@@ -365,7 +365,7 @@ git config set --global hook.commit-checker-msg.command "commit-checker msg --re
 
 ## 配置
 
-在项目根目录创建 `.commit-checker.yml` 或 `.commit-checker.yaml`。
+在项目根目录创建 `.commit-checker.yaml` 或 `.commit-checker.yml`。
 运行 `commit-checker init` 可自动生成默认配置文件。
 使用 VS Code 时可通过 `.commit-checker.schema.json` 架构获得自动补全。
 
@@ -704,7 +704,7 @@ guide:
 ## 命令
 
 ```
-commit-checker init          生成默认配置文件（.commit-checker.yml）
+commit-checker init          生成默认配置文件（.commit-checker.yaml）
 commit-checker diff          检查 staged diff 的注释/编码/lint/二进制/Unicode
 commit-checker run           检查所有已跟踪文件的策略合规性
 commit-checker msg <file>    检查提交消息文件
@@ -755,7 +755,7 @@ CI 示例（GitHub Actions、GitLab CI 等）：
 ### init 命令
 
 ```bash
-# 生成默认配置文件（自动检测系统区域设置）
+# 生成默认配置文件（.commit-checker.yaml，自动检测系统区域设置）
 commit-checker init
 
 # 以指定区域设置生成

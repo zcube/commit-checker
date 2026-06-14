@@ -295,7 +295,9 @@ cmd.init.short:
   other: "デフォルト設定ファイルを生成します"
 cmd.init.long:
   other: |-
-    現在のディレクトリにデフォルトの.commit-checker.yml設定ファイルを生成します。
+    現在のディレクトリにデフォルトの.commit-checker.yaml設定ファイルを生成します。
+
+    .commit-checker.yml も互換用に対応しています。
 
     --langでロケールを設定できます (ko, en, ja, zh)。指定しない場合、システムロケールが自動的に検出されます。
     --forceで既存のファイルを上書きできます。

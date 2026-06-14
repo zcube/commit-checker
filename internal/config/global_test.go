@@ -264,6 +264,30 @@ func TestLoad_XDG전역설정_프로젝트설정없을때적용(t *testing.T) {
 	}
 }
 
+func TestLoad_HomeConfigYaml_프로젝트설정없을때적용(t *testing.T) {
+	tmpHome := isolateGlobalPaths(t)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	homeYaml := writeHomeConfigGlobal(t, tmpHome, `commit_message:
+  no_ai_coauthor: true
+  no_emoji: true
+  locale: ko
+  conventional_commit:
+    enabled: true
+    locale: en
+`)
+
+	cfg, err := config.Load(filepath.Join(t.TempDir(), ".commit-checker.yaml")) // 파일 없음
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.CommitMessage.ConventionalCommit.IsEnabled() {
+		t.Fatalf("home config yaml should be loaded: %s", homeYaml)
+	}
+	if got := cfg.CommitMessage.ConventionalCommit.Locale; got != "en" {
+		t.Fatalf("home config yaml should set conventional locale en, got %q", got)
+	}
+}
+
 func TestLoad_전역설정_구버전스키마자동마이그레이션(t *testing.T) {
 	tmpHome := isolateGlobalPaths(t)
 	// v1.0.x 의 no_coauthor 필드: 마이그레이션 없이는 무시되어 기본값(true)이 됨.
