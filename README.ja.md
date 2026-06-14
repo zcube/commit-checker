@@ -295,13 +295,29 @@ git config set --global --append hook.commit-checker-msg.event commit-msg
 | 4 | `~/.commit-checker.yml`（legacy、後方互換） |
 
 ```yaml
-# ~/.config/commit-checker/config.yml — シンプルなグローバル設定の例
-comment_language:
-  locale: ja
+# グローバル設定の例
+# macOS: ~/Library/Application Support/commit-checker/config.yml
+# Linux: ~/.config/commit-checker/config.yml
 commit_message:
   no_ai_coauthor: true
-  locale: ja
+  no_unicode_spaces: true
+  no_ambiguous_chars: true
+  no_bad_runes: true
+  no_emoji: true
+  locale: ko
+
+  conventional_commit:
+    enabled: true
+    locale: en
+
+  language_check:
+    enabled: true
+    locale: ko
 ```
+
+- `COMMIT_CHECKER_GLOBAL_CONFIG` を使うと、グローバル設定ファイルの場所を明示的に固定できます。
+- macOS では `os.UserConfigDir()` が `~/Library/Application Support/commit-checker/config.yml` を返すため、これが既定のグローバル設定場所になります。
+- この例では、AI co-author の削除、Unicode 空白、紛らわしい文字、壊れた UTF-8、絵文字禁止を有効にし、Conventional Commits は英語タイプのみ、本文は韓国語で検査します。
 
 ### ディレクトリ別ポリシー（gitdir include）
 

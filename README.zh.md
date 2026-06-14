@@ -295,13 +295,29 @@ git config set --global --append hook.commit-checker-msg.event commit-msg
 | 4 | `~/.commit-checker.yml`（legacy，向后兼容） |
 
 ```yaml
-# ~/.config/commit-checker/config.yml — 简单的全局配置示例
-comment_language:
-  locale: zh
+# 全局配置示例
+# macOS: ~/Library/Application Support/commit-checker/config.yml
+# Linux: ~/.config/commit-checker/config.yml
 commit_message:
   no_ai_coauthor: true
-  locale: zh
+  no_unicode_spaces: true
+  no_ambiguous_chars: true
+  no_bad_runes: true
+  no_emoji: true
+  locale: ko
+
+  conventional_commit:
+    enabled: true
+    locale: en
+
+  language_check:
+    enabled: true
+    locale: ko
 ```
+
+- 如需显式固定全局配置文件位置，可使用 `COMMIT_CHECKER_GLOBAL_CONFIG`。
+- 在 macOS 上，`os.UserConfigDir()` 会解析到 `~/Library/Application Support/commit-checker/config.yml`，这是默认的全局配置位置。
+- 这个示例同时开启了 AI co-author 删除、Unicode 空白、易混淆字符、坏 UTF-8、emoji 禁止；Conventional Commits 仅允许英文 type，正文语言检查使用韩语。
 
 ### 按目录的策略（gitdir include）
 

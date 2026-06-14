@@ -296,13 +296,28 @@ The global config file is resolved in the following order; the **first existing 
 | 4 | `~/.commit-checker.yml` (legacy, backward compatibility) |
 
 ```yaml
-# ~/.config/commit-checker/config.yml — minimal global config example
-comment_language:
-  locale: en
+# Global config example
+# macOS: ~/Library/Application Support/commit-checker/config.yml
+# Linux: ~/.config/commit-checker/config.yml
 commit_message:
   no_ai_coauthor: true
-  locale: en
+  no_unicode_spaces: true
+  no_ambiguous_chars: true
+  no_bad_runes: true
+  no_emoji: true
+  locale: ko
+
+  conventional_commit:
+    enabled: true
+    locale: en
+
+  language_check:
+    enabled: true
+    locale: ko
 ```
+
+- Set `COMMIT_CHECKER_GLOBAL_CONFIG` if you want to pin the global config path explicitly.
+- On macOS, `os.UserConfigDir()` resolves to `~/Library/Application Support/commit-checker/config.yml`, so that is the default global location.
 
 ### Per-directory policies (gitdir include)
 

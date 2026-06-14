@@ -295,13 +295,28 @@ git config set --global --append hook.commit-checker-msg.event commit-msg
 | 4 | `~/.commit-checker.yml` (legacy, 하위 호환) |
 
 ```yaml
-# ~/.config/commit-checker/config.yml — 간단한 전역 설정 예시
-comment_language:
-  locale: ko
+# 전역 설정 예시
+# macOS: ~/Library/Application Support/commit-checker/config.yml
+# Linux: ~/.config/commit-checker/config.yml
 commit_message:
   no_ai_coauthor: true
+  no_unicode_spaces: true
+  no_ambiguous_chars: true
+  no_bad_runes: true
+  no_emoji: true
   locale: ko
+
+  conventional_commit:
+    enabled: true
+    locale: en
+
+  language_check:
+    enabled: true
+    locale: ko
 ```
+
+- `COMMIT_CHECKER_GLOBAL_CONFIG` 를 쓰면 전역 설정 파일 위치를 명시적으로 고정할 수 있습니다.
+- macOS에서는 `os.UserConfigDir()` 경로가 우선되어 `~/Library/Application Support/commit-checker/config.yml` 이 기본 전역 설정 위치가 됩니다.
 
 ### 디렉터리별 정책 (gitdir include)
 
