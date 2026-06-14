@@ -68,6 +68,20 @@ func requireConfigSkip() bool {
 	if !globalRequireConfig {
 		return false
 	}
-	_, err := os.Stat(configFile)
+	_, err := os.Stat(resolveConfigFilePath(configFile))
 	return err != nil
+}
+
+// resolveConfigFilePath: 프로젝트 설정 파일 경로를 결정합니다.
+// 기본값(.commit-checker.yml / .commit-checker.yaml)인 경우 두 이름을 모두 허용합니다.
+func resolveConfigFilePath(path string) string {
+	if path == ".commit-checker.yml" || path == ".commit-checker.yaml" {
+		for _, candidate := range []string{".commit-checker.yaml", ".commit-checker.yml"} {
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate
+			}
+		}
+		return path
+	}
+	return path
 }

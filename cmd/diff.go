@@ -36,7 +36,7 @@ var diffCmd = &cobra.Command{
 		}
 		gitdiff.SetSpec(spec)
 
-		cfg, err := config.Load(configFile)
+		cfg, err := config.Load(resolveConfigFilePath(configFile))
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}

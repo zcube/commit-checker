@@ -290,14 +290,15 @@ git config set --global --append hook.commit-checker-msg.event commit-msg
 | 順序 | 場所 |
 |---|---|
 | 1 | `$COMMIT_CHECKER_GLOBAL_CONFIG` 環境変数（明示指定、ファイルがなければ警告して無視） |
-| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yml` |
-| 3 | OS標準の設定ディレクトリ — Linux `~/.config/commit-checker/config.yml`、macOS `~/Library/Application Support/commit-checker/config.yml`、Windows `%AppData%\commit-checker\config.yml` |
-| 4 | `~/.commit-checker.yml`（legacy、後方互換） |
+| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yaml` (`config.yml` も対応) |
+| 3 | OS標準の設定ディレクトリ — Linux `~/.config/commit-checker/config.yaml`、macOS `~/Library/Application Support/commit-checker/config.yaml`、Windows `%AppData%\commit-checker\config.yaml` (`config.yml` も対応) |
+| 4 | `$HOME/.config/commit-checker/config.yaml` (`config.yml` も対応) |
+| 5 | `~/.commit-checker.yml`（legacy、後方互換） |
 
 ```yaml
 # グローバル設定の例
-# macOS: ~/Library/Application Support/commit-checker/config.yml
-# Linux: ~/.config/commit-checker/config.yml
+# macOS: ~/Library/Application Support/commit-checker/config.yaml (config.yml も対応)
+# Linux: ~/.config/commit-checker/config.yaml (config.yml も対応)
 commit_message:
   no_ai_coauthor: true
   no_unicode_spaces: true
@@ -318,6 +319,8 @@ commit_message:
 - `COMMIT_CHECKER_GLOBAL_CONFIG` を使うと、グローバル設定ファイルの場所を明示的に固定できます。
 - macOS では `os.UserConfigDir()` が `~/Library/Application Support/commit-checker/config.yml` を返すため、これが既定のグローバル設定場所になります。
 - この例では、AI co-author の削除、Unicode 空白、紛らわしい文字、壊れた UTF-8、絵文字禁止を有効にし、Conventional Commits は英語タイプのみ、本文は韓国語で検査します。
+- `config.yaml` を標準ファイル名とし、同じ場所の `config.yml` も読みます。
+- `XDG_CONFIG_HOME` が空の場合は、`os.UserConfigDir()` の次に `$HOME/.config/commit-checker/config.yaml` と `config.yml` を確認し、その後で legacy パスを見ます。
 
 ### ディレクトリ別ポリシー（gitdir include）
 
@@ -325,7 +328,7 @@ git の `[includeIf "gitdir:..."]` に対応する条件付き include をサポ
 会社のリポジトリ（`~/work/`）と個人のリポジトリで異なるポリシーを、グローバル設定の一箇所で管理できます:
 
 ```yaml
-# ~/.config/commit-checker/config.yml
+# ~/.config/commit-checker/config.yaml (config.yml も対応)
 include:
   - path: ~/.config/commit-checker/base.yml   # 条件なし → 常に含める（汎用の共有ベース）
   - path: ~/.config/commit-checker/work.yml
@@ -362,7 +365,7 @@ git config set --global hook.commit-checker-msg.command "commit-checker msg --re
 
 ## 設定
 
-プロジェクトルートに `.commit-checker.yml` を作成します。
+プロジェクトルートに `.commit-checker.yml` または `.commit-checker.yaml` を作成します。
 `commit-checker init` でデフォルト設定ファイルを自動生成できます。
 VS Code を使用すると `.commit-checker.schema.json` スキーマによる自動補完が利用できます。
 

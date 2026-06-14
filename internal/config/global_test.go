@@ -8,9 +8,10 @@ package config_test
 //
 // 경로 우선순위:
 //  1. $COMMIT_CHECKER_GLOBAL_CONFIG
-//  2. $XDG_CONFIG_HOME/commit-checker/config.yml
-//  3. os.UserConfigDir()/commit-checker/config.yml
-//  4. ~/.commit-checker.yml (legacy)
+//  2. $XDG_CONFIG_HOME/commit-checker/config.yaml, config.yml
+//  3. os.UserConfigDir()/commit-checker/config.yaml, config.yml
+//  4. $HOME/.config/commit-checker/config.yaml, config.yml
+//  5. ~/.commit-checker.yml (legacy)
 
 import (
 	"fmt"
@@ -54,12 +55,20 @@ func writeLegacyGlobal(t *testing.T, tmpHome, content string) string {
 	return path
 }
 
-// writeXDGGlobal: XDG 경로($XDG_CONFIG_HOME/commit-checker/config.yml)에 전역 설정을 기록.
+// writeXDGGlobal: XDG 경로($XDG_CONFIG_HOME/commit-checker/config.yaml)에 전역 설정을 기록.
 func writeXDGGlobal(t *testing.T, content string) string {
 	t.Helper()
 	xdg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", xdg)
-	path := filepath.Join(xdg, "commit-checker", "config.yml")
+	path := filepath.Join(xdg, "commit-checker", "config.yaml")
+	writeFileAt(t, path, content)
+	return path
+}
+
+// writeHomeConfigGlobal: HOME 기반 기본 경로($HOME/.config/commit-checker/config.yaml)에 전역 설정을 기록.
+func writeHomeConfigGlobal(t *testing.T, tmpHome, content string) string {
+	t.Helper()
+	path := filepath.Join(tmpHome, ".config", "commit-checker", "config.yaml")
 	writeFileAt(t, path, content)
 	return path
 }
@@ -124,12 +133,33 @@ func TestGlobalConfigPath_UserConfigDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UserConfigDir: %v", err)
 	}
-	ucdPath := filepath.Join(dir, "commit-checker", "config.yml")
+	ucdPath := filepath.Join(dir, "commit-checker", "config.yaml")
 	writeFileAt(t, ucdPath, "comment_language:\n  min_length: 2\n")
 
 	path, exists := config.GlobalConfigPath()
 	if !exists || path != ucdPath {
 		t.Errorf("UserConfigDir 경로를 기대: got (%q, %v), want (%q, true)", path, exists, ucdPath)
+	}
+}
+
+func TestGlobalConfigPath_UserConfigDirYmlFallback(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("windows 의 UserConfigDir(%AppData%)는 HOME 으로 격리할 수 없어 건너뜀")
+	}
+	tmpHome := isolateGlobalPaths(t)
+	t.Setenv("XDG_CONFIG_HOME", "")
+
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatalf("UserConfigDir: %v", err)
+	}
+	ucdPath := filepath.Join(dir, "commit-checker", "config.yml")
+	writeFileAt(t, ucdPath, "comment_language:\n  min_length: 2\n")
+	writeLegacyGlobal(t, tmpHome, "comment_language:\n  min_length: 3\n")
+
+	path, exists := config.GlobalConfigPath()
+	if !exists || path != ucdPath {
+		t.Errorf("UserConfigDir config.yml 경로를 기대: got (%q, %v), want (%q, true)", path, exists, ucdPath)
 	}
 }
 
@@ -140,6 +170,35 @@ func TestGlobalConfigPath_Legacy폴백(t *testing.T) {
 	path, exists := config.GlobalConfigPath()
 	if !exists || path != legacyPath {
 		t.Errorf("legacy 경로 폴백을 기대: got (%q, %v), want (%q, true)", path, exists, legacyPath)
+	}
+}
+
+func TestGlobalConfigPath_HomeConfigPriorToLegacy(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("windows 의 HOME/.config 경로는 환경 격리가 일관되지 않아 건너뜀")
+	}
+	tmpHome := isolateGlobalPaths(t)
+	homePath := writeHomeConfigGlobal(t, tmpHome, "comment_language:\n  min_length: 4\n")
+	writeLegacyGlobal(t, tmpHome, "comment_language:\n  min_length: 3\n")
+
+	path, exists := config.GlobalConfigPath()
+	if !exists || path != homePath {
+		t.Errorf("$HOME/.config 경로가 legacy 보다 우선이어야 함: got (%q, %v), want (%q, true)", path, exists, homePath)
+	}
+}
+
+func TestGlobalConfigPath_HomeConfigYmlFallback(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("windows 의 HOME/.config 경로는 환경 격리가 일관되지 않아 건너뜀")
+	}
+	tmpHome := isolateGlobalPaths(t)
+	homeYaml := filepath.Join(tmpHome, ".config", "commit-checker", "config.yml")
+	writeFileAt(t, homeYaml, "comment_language:\n  min_length: 5\n")
+	writeLegacyGlobal(t, tmpHome, "comment_language:\n  min_length: 3\n")
+
+	path, exists := config.GlobalConfigPath()
+	if !exists || path != homeYaml {
+		t.Errorf("$HOME/.config/config.yml 경로가 legacy 보다 우선이어야 함: got (%q, %v), want (%q, true)", path, exists, homeYaml)
 	}
 }
 

@@ -149,6 +149,7 @@ func runAnalyze() error {
 	fmt.Println(i18n.T("analyze.project_config", nil))
 	checkAndReport(".editorconfig")
 	checkAndReport(".commit-checker.yml")
+	checkAndReport(".commit-checker.yaml")
 	checkAndReport(".gitattributes")
 	checkAndReport(".gitignore")
 	fmt.Println()

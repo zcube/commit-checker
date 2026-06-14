@@ -291,9 +291,10 @@ The global config file is resolved in the following order; the **first existing 
 | Order | Location |
 |---|---|
 | 1 | `$COMMIT_CHECKER_GLOBAL_CONFIG` environment variable (explicit; warns and is ignored when the file is missing) |
-| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yml` |
-| 3 | OS standard config directory — Linux `~/.config/commit-checker/config.yml`, macOS `~/Library/Application Support/commit-checker/config.yml`, Windows `%AppData%\commit-checker\config.yml` |
-| 4 | `~/.commit-checker.yml` (legacy, backward compatibility) |
+| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yaml` (`config.yml` also supported) |
+| 3 | OS standard config directory — Linux `~/.config/commit-checker/config.yaml`, macOS `~/Library/Application Support/commit-checker/config.yaml`, Windows `%AppData%\commit-checker\config.yaml` (`config.yml` also supported) |
+| 4 | `$HOME/.config/commit-checker/config.yaml` (`config.yml` also supported) |
+| 5 | `~/.commit-checker.yml` (legacy, backward compatibility) |
 
 ```yaml
 # Global config example
@@ -318,6 +319,8 @@ commit_message:
 
 - Set `COMMIT_CHECKER_GLOBAL_CONFIG` if you want to pin the global config path explicitly.
 - On macOS, `os.UserConfigDir()` resolves to `~/Library/Application Support/commit-checker/config.yml`, so that is the default global location.
+- `config.yaml` is the standard file name, and `config.yml` in the same location is also supported.
+- If `XDG_CONFIG_HOME` is empty, `os.UserConfigDir()` is checked first, then `$HOME/.config/commit-checker/config.yaml` and `config.yml`, then the legacy path.
 
 ### Per-directory policies (gitdir include)
 
@@ -325,7 +328,7 @@ Conditional includes corresponding to git's `[includeIf "gitdir:..."]` are suppo
 Different policies for work repositories (`~/work/`) and personal ones can be managed in one global place:
 
 ```yaml
-# ~/.config/commit-checker/config.yml
+# ~/.config/commit-checker/config.yaml (config.yml also supported)
 include:
   - path: ~/.config/commit-checker/base.yml   # no condition → always included (shared base)
   - path: ~/.config/commit-checker/work.yml
@@ -362,7 +365,7 @@ git config set --global hook.commit-checker-msg.command "commit-checker msg --re
 
 ## Configuration
 
-Create `.commit-checker.yml` in your project root.
+Create `.commit-checker.yml` or `.commit-checker.yaml` in your project root.
 Run `commit-checker init` to generate a default config file automatically.
 Use `.commit-checker.schema.json` for IDE autocompletion in VS Code.
 

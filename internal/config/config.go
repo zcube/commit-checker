@@ -199,10 +199,11 @@ const globalConfigEnvVar = "COMMIT_CHECKER_GLOBAL_CONFIG"
 // 다음 우선순위로 첫 번째로 존재하는 파일의 경로와 true 를 반환합니다:
 //  1. $COMMIT_CHECKER_GLOBAL_CONFIG 환경 변수
 //     (설정 시 이 경로만 사용. 파일이 없으면 Warn 로그 후 전역 설정 없음으로 처리)
-//  2. $XDG_CONFIG_HOME/commit-checker/config.yml (XDG_CONFIG_HOME 설정 시, 모든 플랫폼)
-//  3. os.UserConfigDir()/commit-checker/config.yml
+//  2. $XDG_CONFIG_HOME/commit-checker/config.yaml, config.yml (XDG_CONFIG_HOME 설정 시, 모든 플랫폼)
+//  3. os.UserConfigDir()/commit-checker/config.yaml, config.yml
 //     (Linux: ~/.config, macOS: ~/Library/Application Support, Windows: %AppData%)
-//  4. ~/.commit-checker.yml (legacy — 하위 호환 유지)
+//  4. $HOME/.config/commit-checker/config.yaml, config.yml
+//  5. ~/.commit-checker.yml (legacy — 하위 호환 유지)
 //
 // 존재하는 파일이 없으면 ("", false) 를 반환합니다.
 func GlobalConfigPath() (path string, exists bool) {
@@ -219,14 +220,28 @@ func GlobalConfigPath() (path string, exists bool) {
 	var candidates []string
 	// 2. XDG_CONFIG_HOME: 설정 시 모든 플랫폼에서 우선 확인.
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		candidates = append(candidates, filepath.Join(xdg, "commit-checker", "config.yml"))
+		candidates = append(candidates,
+			filepath.Join(xdg, "commit-checker", "config.yaml"),
+			filepath.Join(xdg, "commit-checker", "config.yml"),
+		)
 	}
 	// 3. 플랫폼 표준 설정 디렉터리.
 	if dir, err := os.UserConfigDir(); err == nil {
-		candidates = append(candidates, filepath.Join(dir, "commit-checker", "config.yml"))
+		candidates = append(candidates,
+			filepath.Join(dir, "commit-checker", "config.yaml"),
+			filepath.Join(dir, "commit-checker", "config.yml"),
+		)
 	}
-	// 4. legacy 홈 디렉터리 경로 (하위 호환).
-	if home, err := os.UserHomeDir(); err == nil {
+	home, err := os.UserHomeDir()
+	// 4. HOME 기반 XDG 기본 경로 (하위 호환).
+	if err == nil {
+		candidates = append(candidates,
+			filepath.Join(home, ".config", "commit-checker", "config.yaml"),
+			filepath.Join(home, ".config", "commit-checker", "config.yml"),
+		)
+	}
+	// 5. legacy 홈 디렉터리 경로 (하위 호환).
+	if err == nil {
 		candidates = append(candidates, filepath.Join(home, ".commit-checker.yml"))
 	}
 	for _, p := range candidates {

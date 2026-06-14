@@ -30,7 +30,7 @@ var prepareMsgCmd = &cobra.Command{
 			return nil
 		}
 
-		cfg, err := config.Load(configFile)
+		cfg, err := config.Load(resolveConfigFilePath(configFile))
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}

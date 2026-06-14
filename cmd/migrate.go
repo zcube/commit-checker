@@ -14,11 +14,12 @@ var migrateDryRun bool
 var migrateCmd = &cobra.Command{
 	Use: "migrate",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := os.ReadFile(configFile)
+		cfgPath := resolveConfigFilePath(configFile)
+		data, err := os.ReadFile(cfgPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return fmt.Errorf("%s", i18n.T("migrate.file_not_found", map[string]any{
-					"Path": configFile,
+					"Path": cfgPath,
 				}))
 			}
 			return err
@@ -33,7 +34,7 @@ var migrateCmd = &cobra.Command{
 
 		if result.DetectedVersion == schema.VersionCurrent {
 			fmt.Println(i18n.T("migrate.already_current", map[string]any{
-				"Path": configFile,
+				"Path": cfgPath,
 			}))
 			return nil
 		}
@@ -53,11 +54,11 @@ var migrateCmd = &cobra.Command{
 			return nil
 		}
 
-		if err := os.WriteFile(configFile, result.Data, 0644); err != nil { //nolint:gosec
+		if err := os.WriteFile(cfgPath, result.Data, 0644); err != nil { //nolint:gosec
 			return fmt.Errorf("%s", i18n.T("migrate.save_failed", map[string]any{"Error": err.Error()}))
 		}
 		fmt.Println(i18n.T("migrate.saved", map[string]any{
-			"Path": configFile,
+			"Path": cfgPath,
 		}))
 		return nil
 	},

@@ -12,11 +12,11 @@ import (
 var validateCmd = &cobra.Command{
 	Use: "validate",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load(configFile)
+		cfg, err := config.Load(resolveConfigFilePath(configFile))
 		if err != nil {
 			return err
 		}
-		warnings := config.Validate(cfg, configFile)
+		warnings := config.Validate(cfg, resolveConfigFilePath(configFile))
 		if len(warnings) == 0 {
 			fmt.Println(i18n.T("validate.config_valid", nil))
 			return nil

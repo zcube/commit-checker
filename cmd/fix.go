@@ -28,7 +28,7 @@ func init() {
 }
 
 func runFix(cmd *cobra.Command, args []string) error {
-	cfg, err := config.Load(configFile)
+	cfg, err := config.Load(resolveConfigFilePath(configFile))
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}

@@ -290,14 +290,15 @@ git config set --global --append hook.commit-checker-msg.event commit-msg
 | 顺序 | 位置 |
 |---|---|
 | 1 | `$COMMIT_CHECKER_GLOBAL_CONFIG` 环境变量（显式指定，文件不存在时警告并忽略） |
-| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yml` |
-| 3 | OS 标准配置目录 — Linux `~/.config/commit-checker/config.yml`、macOS `~/Library/Application Support/commit-checker/config.yml`、Windows `%AppData%\commit-checker\config.yml` |
-| 4 | `~/.commit-checker.yml`（legacy，向后兼容） |
+| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yaml`（也支持 `config.yml`） |
+| 3 | OS 标准配置目录 — Linux `~/.config/commit-checker/config.yaml`、macOS `~/Library/Application Support/commit-checker/config.yaml`、Windows `%AppData%\commit-checker\config.yaml`（也支持 `config.yml`） |
+| 4 | `$HOME/.config/commit-checker/config.yaml`（也支持 `config.yml`） |
+| 5 | `~/.commit-checker.yml`（legacy，向后兼容） |
 
 ```yaml
 # 全局配置示例
-# macOS: ~/Library/Application Support/commit-checker/config.yml
-# Linux: ~/.config/commit-checker/config.yml
+# macOS: ~/Library/Application Support/commit-checker/config.yaml（也支持 config.yml）
+# Linux: ~/.config/commit-checker/config.yaml（也支持 config.yml）
 commit_message:
   no_ai_coauthor: true
   no_unicode_spaces: true
@@ -318,6 +319,8 @@ commit_message:
 - 如需显式固定全局配置文件位置，可使用 `COMMIT_CHECKER_GLOBAL_CONFIG`。
 - 在 macOS 上，`os.UserConfigDir()` 会解析到 `~/Library/Application Support/commit-checker/config.yml`，这是默认的全局配置位置。
 - 这个示例同时开启了 AI co-author 删除、Unicode 空白、易混淆字符、坏 UTF-8、emoji 禁止；Conventional Commits 仅允许英文 type，正文语言检查使用韩语。
+- `config.yaml` 是标准文件名，同一位置的 `config.yml` 也会被读取。
+- 如果 `XDG_CONFIG_HOME` 为空，会先检查 `os.UserConfigDir()`，再检查 `$HOME/.config/commit-checker/config.yaml` 和 `config.yml`，最后才看 legacy 路径。
 
 ### 按目录的策略（gitdir include）
 
@@ -325,7 +328,7 @@ commit_message:
 可以在全局配置的同一处，为公司仓库（`~/work/`）和个人仓库管理不同的策略：
 
 ```yaml
-# ~/.config/commit-checker/config.yml
+# ~/.config/commit-checker/config.yaml（也支持 config.yml）
 include:
   - path: ~/.config/commit-checker/base.yml   # 无条件 → 始终包含（通用共享基础）
   - path: ~/.config/commit-checker/work.yml
@@ -362,7 +365,7 @@ git config set --global hook.commit-checker-msg.command "commit-checker msg --re
 
 ## 配置
 
-在项目根目录创建 `.commit-checker.yml`。
+在项目根目录创建 `.commit-checker.yml` 或 `.commit-checker.yaml`。
 运行 `commit-checker init` 可自动生成默认配置文件。
 使用 VS Code 时可通过 `.commit-checker.schema.json` 架构获得自动补全。
 

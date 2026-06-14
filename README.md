@@ -290,14 +290,15 @@ git config set --global --append hook.commit-checker-msg.event commit-msg
 | 순서 | 위치 |
 |---|---|
 | 1 | `$COMMIT_CHECKER_GLOBAL_CONFIG` 환경 변수 (명시 지정, 파일이 없으면 경고 후 무시) |
-| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yml` |
-| 3 | OS 표준 설정 디렉터리 — Linux `~/.config/commit-checker/config.yml`, macOS `~/Library/Application Support/commit-checker/config.yml`, Windows `%AppData%\commit-checker\config.yml` |
-| 4 | `~/.commit-checker.yml` (legacy, 하위 호환) |
+| 2 | `$XDG_CONFIG_HOME/commit-checker/config.yaml` (`config.yml`도 지원) |
+| 3 | OS 표준 설정 디렉터리 — Linux `~/.config/commit-checker/config.yaml`, macOS `~/Library/Application Support/commit-checker/config.yaml`, Windows `%AppData%\commit-checker\config.yaml` (`config.yml`도 지원) |
+| 4 | `$HOME/.config/commit-checker/config.yaml` (`config.yml`도 지원) |
+| 5 | `~/.commit-checker.yml` (legacy, 하위 호환) |
 
 ```yaml
 # 전역 설정 예시
-# macOS: ~/Library/Application Support/commit-checker/config.yml
-# Linux: ~/.config/commit-checker/config.yml
+# macOS: ~/Library/Application Support/commit-checker/config.yaml
+# Linux: ~/.config/commit-checker/config.yaml
 commit_message:
   no_ai_coauthor: true
   no_unicode_spaces: true
@@ -316,7 +317,9 @@ commit_message:
 ```
 
 - `COMMIT_CHECKER_GLOBAL_CONFIG` 를 쓰면 전역 설정 파일 위치를 명시적으로 고정할 수 있습니다.
-- macOS에서는 `os.UserConfigDir()` 경로가 우선되어 `~/Library/Application Support/commit-checker/config.yml` 이 기본 전역 설정 위치가 됩니다.
+- macOS에서는 `os.UserConfigDir()` 경로가 우선되어 `~/Library/Application Support/commit-checker/config.yaml` 이 기본 전역 설정 위치가 됩니다.
+- `config.yaml`이 표준 파일명이고, 같은 위치의 `config.yml`도 함께 읽습니다.
+- `XDG_CONFIG_HOME` 이 비어 있으면 `os.UserConfigDir()` 다음에 `$HOME/.config/commit-checker/config.yaml` 과 `config.yml` 을 확인한 뒤 legacy 경로를 봅니다.
 
 ### 디렉터리별 정책 (gitdir include)
 
@@ -324,7 +327,7 @@ git 의 `[includeIf "gitdir:..."]` 에 대응하는 조건부 include 를 지원
 회사 리포지터리(`~/work/`)와 개인 리포지터리에 서로 다른 정책을 전역 설정 한 곳에서 관리할 수 있습니다:
 
 ```yaml
-# ~/.config/commit-checker/config.yml
+# ~/.config/commit-checker/config.yaml (config.yml도 지원)
 include:
   - path: ~/.config/commit-checker/base.yml   # 조건 없음 → 항상 포함 (범용 공유)
   - path: ~/.config/commit-checker/work.yml
@@ -361,7 +364,7 @@ git config set --global hook.commit-checker-msg.command "commit-checker msg --re
 
 ## 설정
 
-프로젝트 루트에 `.commit-checker.yml` 을 생성합니다.
+프로젝트 루트에 `.commit-checker.yml` 또는 `.commit-checker.yaml` 을 생성합니다.
 `commit-checker init` 으로 기본 설정 파일을 자동 생성할 수 있습니다.
 VS Code를 사용하면 `.commit-checker.schema.json` 스키마로 자동완성이 제공됩니다.
 
