@@ -4,11 +4,11 @@ go 1.26
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/charmbracelet/bubbles v1.0.0
-	github.com/charmbracelet/bubbletea v1.3.10
-	github.com/charmbracelet/fang v1.0.0
-	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/charmbracelet/log v1.0.0
+	github.com/charmbracelet/bubbles/v2 v2.1.0
+	github.com/charmbracelet/bubbletea/v2 v2.0.7
+	github.com/charmbracelet/fang/v2 v2.0.1
+	github.com/charmbracelet/lipgloss/v2 v2.0.4
+	github.com/charmbracelet/log/v2 v2.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.4
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/hashicorp/hcl/v2 v2.24.0
