@@ -447,3 +447,14 @@ guide.append_only:
   other: "append-only パスの既存内容への変更を元に戻してください。新しい内容はファイル末尾に追加するか、既存ファイルより後にソートされる名前の新規ファイルとして追加してください。"
 guide.commit_message:
   other: "コミットメッセージをポリシーに合わせて書き直し、git commit --amend で修正してください。AI co-author トレーラーと不可視文字は 'commit-checker msg --fix <メッセージファイル>' で自動削除できます。"
+
+cmd.semver.short:
+  other: "Gitの履歴からセマンティックバージョンを計算します"
+cmd.semver.long:
+  other: "Gitの履歴とGitVersion設定を基にセマンティックバージョンを計算します。"
+cmd.semver.error_discover:
+  other: "Gitリポジトリが見つかりません: {{.Err}}"
+cmd.semver.error_calc:
+  other: "バージョン計算に失敗しました: {{.Err}}"
+cmd.semver.error_variable:
+  other: "変数の出力に失敗しました: {{.Err}}"
