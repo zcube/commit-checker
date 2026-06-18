@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // Step: 실행할 검사 단계 정보.
@@ -257,7 +257,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
+func (m model) View() tea.View {
 	var b strings.Builder
 
 	checkMark := lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render("✓")
@@ -286,7 +286,7 @@ func (m model) View() string {
 		fmt.Fprintf(&b, "  %s %s\n", m.spinner.View(), m.steps[m.current].Name)
 	}
 
-	return b.String()
+	return tea.NewView(b.String())
 }
 
 func runTUI(ctx context.Context, steps []Step, opts Options) (RunResult, error) {

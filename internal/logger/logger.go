@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	charmlog "github.com/charmbracelet/log"
+	charmlog "charm.land/log/v2"
 )
 
 // charmlog.NewWithOptions 가 stderr 가 TTY 일 때 색 감지용 OSC 쿼리를 전송하며,

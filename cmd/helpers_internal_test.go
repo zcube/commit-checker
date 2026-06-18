@@ -60,8 +60,9 @@ func gitRun(t *testing.T, dir string, args ...string) {
 	t.Helper()
 	c := exec.Command("git", args...)
 	c.Dir = dir
-	// 전역 설정의 GPG 서명 요구를 무력화
-	c.Env = append(os.Environ(), "GIT_CONFIG_COUNT=1",
+	// GIT_CONFIG_GLOBAL을 빈 fixture로 교체해 전역 hook.* 설정을 차단한다.
+	c.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=testdata/empty.gitconfig",
+		"GIT_CONFIG_COUNT=1",
 		"GIT_CONFIG_KEY_0=commit.gpgsign",
 		"GIT_CONFIG_VALUE_0=false")
 	if out, err := c.CombinedOutput(); err != nil {

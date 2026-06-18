@@ -94,8 +94,9 @@ func (r *testRepo) git(args ...string) string {
 	r.t.Helper()
 	cmd := exec.Command("git", args...)
 	cmd.Dir = r.dir
-	// Disable GPG signing for test repos (global config may require signing).
-	cmd.Env = append(os.Environ(), "GIT_CONFIG_COUNT=1",
+	// GIT_CONFIG_GLOBAL을 빈 fixture로 교체해 전역 hook.* 설정을 차단한다.
+	cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=testdata/empty.gitconfig",
+		"GIT_CONFIG_COUNT=1",
 		"GIT_CONFIG_KEY_0=commit.gpgsign",
 		"GIT_CONFIG_VALUE_0=false")
 	out, err := cmd.CombinedOutput()

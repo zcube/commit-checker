@@ -31,6 +31,7 @@ func writeConfig(t *testing.T, content string) string {
 }
 
 func TestLoad_Defaults_WhenFileAbsent(t *testing.T) {
+	setGlobalHome(t, t.TempDir()) // 전역 설정 파일로부터 격리
 	cfg, err := config.Load("/nonexistent/path/.commit-checker.yml")
 	if err != nil {
 		t.Fatalf("Load returned error for missing file: %v", err)

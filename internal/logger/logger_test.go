@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	charmlog "github.com/charmbracelet/log"
+	charmlog "charm.land/log/v2"
 )
 
 // setBufferOutput 은 로거 출력을 버퍼로 교체하고 테스트 종료 시 원복합니다.

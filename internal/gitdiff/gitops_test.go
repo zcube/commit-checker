@@ -17,6 +17,8 @@ func newGitRepo(t *testing.T) string {
 		t.Helper()
 		cmd := exec.Command(args[0], args[1:]...)
 		cmd.Dir = dir
+		// GIT_CONFIG_GLOBAL을 빈 fixture로 교체해 전역 hook.* 설정을 차단한다.
+		cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=testdata/empty.gitconfig")
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("%v: %v\n%s", args, err, out)

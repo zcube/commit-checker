@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/charmbracelet/fang"
+	"charm.land/fang/v2"
 )
 
 // errSilentExit: 위반/실패 내용을 이미 stderr 에 출력한 뒤 종료 코드 1 만 필요할 때

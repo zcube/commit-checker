@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // makeStep: 지정한 위반 목록/에러를 반환하는 단계를 생성하고 실행 여부를 ran 에 기록.
@@ -363,7 +363,7 @@ func TestModel_CtrlC시컨텍스트취소(t *testing.T) {
 	steps := []Step{makeStep("단계1", "step1", nil, nil, nil)}
 	m, _ := newTestModel(t, steps, Options{NoColor: true})
 
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	next, _ := m.Update(tea.KeyPressMsg{Mod: tea.ModCtrl, Code: 'c'})
 	m = next.(model)
 	if m.fatalErr == nil {
 		t.Error("fatalErr = nil, want interrupted 오류")
@@ -401,7 +401,7 @@ func TestModel_View(t *testing.T) {
 	m, _ := newTestModel(t, steps, Options{NoColor: true})
 
 	// 실행 전: 현재 단계가 스피너와 함께 표시
-	view := m.View()
+	view := m.View().Content
 	if !strings.Contains(view, "통과 단계") {
 		t.Errorf("View() = %q, want 현재 단계 이름 포함", view)
 	}
@@ -414,7 +414,7 @@ func TestModel_View(t *testing.T) {
 	next, _ = m.Update(stepDoneMsg{idx: 2, err: fmt.Errorf("오류")})
 	m = next.(model)
 
-	view = m.View()
+	view = m.View().Content
 	for _, name := range []string{"통과 단계", "위반 단계", "실패 단계"} {
 		if !strings.Contains(view, name) {
 			t.Errorf("View() 에 %q 이(가) 없음: %q", name, view)
