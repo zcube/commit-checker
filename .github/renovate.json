@@ -5,25 +5,36 @@
   ],
   "schedule": ["before 9am on monday"],
   "prConcurrentLimit": 5,
-  "golang": {
-    "postUpdateOptions": ["gomodTidy"]
-  },
   "packageRules": [
     {
+      "matchCategories": [
+        "golang"
+      ],
+      "postUpdateOptions": [
+        "gomodTidy"
+      ]
+    },
+    {
       "matchManagers": ["gomod"],
-      "matchDepTypes": ["indirect"],
+      "matchDepTypes": [
+        "indirect"
+      ],
       "groupName": "Go indirect dependencies",
       "automerge": true
     },
     {
       "matchManagers": ["gomod"],
-      "matchPackagePatterns": ["^github.com/charmbracelet/"],
-      "groupName": "charmbracelet"
+      "groupName": "charmbracelet",
+      "matchPackageNames": [
+        "/^github.com/charmbracelet//"
+      ]
     },
     {
       "matchManagers": ["gomod"],
-      "matchPackagePatterns": ["^golang.org/x/"],
-      "groupName": "golang.org/x"
+      "groupName": "golang.org/x",
+      "matchPackageNames": [
+        "/^golang.org/x//"
+      ]
     },
     {
       "matchManagers": ["github-actions"],
