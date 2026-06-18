@@ -29,6 +29,7 @@
 | **自动修复（fix）** | 在git历史中批量修复unicode/编码违规 |
 | **配置迁移** | 自动检测旧版配置文件并迁移到最新架构 |
 | **进度指示器** | bubbletea TUI旋转器（TTY感知，非TTY时纯文本回退） |
+| **语义化版本计算** | 基于Git历史计算SemVer（GitVersion集成，支持内联配置嵌入） |
 
 ## 安装
 
@@ -461,6 +462,12 @@ cache_dir:
 
 # guide:
 #   enabled: false             # 禁用违规时的改进指南输出（默认启用）
+
+# semver 命令设置（可选）
+# semver:
+#   gitversion:                # 直接内联嵌入GitVersion配置（优先于GitVersion.yml自动探索）
+#     workflow: GitHubFlow/v1
+#     next-version: 1.0.0
 ```
 
 没有配置文件时将应用默认值。
@@ -713,6 +720,7 @@ commit-checker fix           自动修复git历史（支持 dry-run）
 commit-checker migrate       将配置文件迁移到最新架构
 commit-checker analyze       仓库分析（语言检测、lint配置确认）
 commit-checker clean         清理缓存/构建目录的未追踪文件
+commit-checker semver        从Git历史计算语义化版本
 commit-checker version       输出版本信息
 ```
 
@@ -823,6 +831,40 @@ commit-checker analyze
 
 检测开发语言，并在缺少对应语言的lint配置文件（`.golangci.yml`, `.eslintrc.*`, `pyproject.toml` 等）时
 发出警告。同时确认 `.editorconfig`, `.gitattributes`, `.gitignore` 是否存在。
+
+### semver 命令
+
+使用 [GitVersion](https://gitversion.net/) 配置从 Git 历史计算语义化版本。
+
+```bash
+# 输出当前目录的SemVer（默认）
+commit-checker semver
+
+# 完整SemVer（含预发布标签和构建元数据）
+commit-checker semver -o full-semver
+
+# JSON格式输出所有变量
+commit-checker semver -o json
+
+# 输出单个变量
+commit-checker semver -v MajorMinorPatch
+
+# 指定其他仓库路径
+commit-checker semver /path/to/repo
+```
+
+**内联嵌入GitVersion配置（`semver.gitversion`）**
+
+可以在 `.commit-checker.yml` 中直接嵌入 GitVersion 配置。
+存在内联配置时，优先于仓库根目录的 `GitVersion.yml` 自动探索。
+
+```yaml
+semver:
+  gitversion:
+    workflow: GitHubFlow/v1
+    next-version: 1.0.0
+    tag-prefix: "v"
+```
 
 ## 支持的语言
 

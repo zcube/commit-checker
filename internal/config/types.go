@@ -510,3 +510,12 @@ type CustomRule struct {
 	// false(기본값)이면 패턴이 일치하면 안 됨 (일치 시 오류, forbidden 규칙).
 	Required bool `yaml:"required"`
 }
+
+// SemverConfig: commit-checker semver 명령 설정.
+type SemverConfig struct {
+	// Gitversion: GitVersion 설정을 commit-checker 설정에 직접 내장합니다.
+	// 이 값이 있으면 GitVersion.yml 파일 자동 탐색보다 우선합니다.
+	// GitVersion.yml 과 동일한 형식을 사용합니다.
+	// 예: workflow: GitHubFlow/v1 / next-version: 1.0.0
+	Gitversion map[string]interface{} `yaml:"gitversion,omitempty"`
+}

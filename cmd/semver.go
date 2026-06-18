@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/zcube/commit-checker/internal/config"
 	"github.com/zcube/commit-checker/internal/i18n"
 	"github.com/zcube/gitversion-go/gitversion"
+	"gopkg.in/yaml.v3"
 )
 
 var semverShowVariable string
@@ -27,7 +29,19 @@ var semverCmd = &cobra.Command{
 			target = abs
 		}
 
-		vars, err := gitversion.Compute(target)
+		opts := gitversion.Options{Path: target}
+
+		// commit-checker 설정에서 semver.gitversion 내장 설정 확인.
+		// 내장 설정이 있으면 GitVersion.yml 자동 탐색보다 우선합니다.
+		if cfg, err := config.Load(resolveConfigFilePath(configFile)); err == nil {
+			if len(cfg.Semver.Gitversion) > 0 {
+				if yamlBytes, err := yaml.Marshal(cfg.Semver.Gitversion); err == nil {
+					opts.ConfigYAML = yamlBytes
+				}
+			}
+		}
+
+		vars, err := gitversion.Calculate(opts)
 		if err != nil {
 			return fmt.Errorf("%s", i18n.T("cmd.semver.error_calc", map[string]any{"Err": err}))
 		}

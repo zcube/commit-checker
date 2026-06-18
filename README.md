@@ -29,6 +29,7 @@ Git 커밋 메시지와 소스 코드의 정책을 자동으로 검사하는 CLI
 | **자동 수정 (fix)** | 유니코드/인코딩 위반 사항을 git history에서 일괄 수정 |
 | **설정 마이그레이션** | 구 버전 설정 파일을 자동 감지하여 최신 스키마로 변환 |
 | **진행 표시기** | bubbletea 기반 TUI 스피너 (TTY 감지, 비TTY 시 텍스트 폴백) |
+| **시맨틱 버전 계산** | Git 히스토리 기반 SemVer 계산 (GitVersion 연동, 설정 직접 내장 지원) |
 
 ## 설치
 
@@ -460,6 +461,12 @@ cache_dir:
 
 # guide:
 #   enabled: false             # 위반 시 개선 가이드 출력 비활성화 (기본 활성)
+
+# semver 명령 설정 (선택)
+# semver:
+#   gitversion:                # GitVersion 설정 직접 내장 (GitVersion.yml 자동 탐색보다 우선)
+#     workflow: GitHubFlow/v1
+#     next-version: 1.0.0
 ```
 
 설정 파일이 없으면 기본값이 적용됩니다.
@@ -712,6 +719,7 @@ commit-checker fix           git history 자동 수정 (dry-run 지원)
 commit-checker migrate       설정 파일을 최신 스키마로 마이그레이션
 commit-checker analyze       리포지터리 분석 (언어 감지, 린트 설정 확인)
 commit-checker clean         캐시/빌드 디렉터리 미추적 파일 정리
+commit-checker semver        Git 히스토리로부터 시맨틱 버전 계산
 commit-checker version       버전 정보 출력
 ```
 
@@ -822,6 +830,64 @@ commit-checker analyze
 
 개발 언어를 감지하고, 해당 언어에 대한 린트 설정 파일(`.golangci.yml`, `.eslintrc.*`, `pyproject.toml` 등)이
 없으면 경고합니다. `.editorconfig`, `.gitattributes`, `.gitignore` 존재 여부도 확인합니다.
+
+### semver 커맨드
+
+Git 히스토리와 [GitVersion](https://gitversion.net/) 설정을 기반으로 시맨틱 버전을 계산합니다.
+
+```bash
+# 현재 디렉터리 기준 SemVer 출력 (기본)
+commit-checker semver
+
+# 전체 SemVer (프리릴리즈 + 빌드 메타데이터 포함)
+commit-checker semver -o full-semver
+
+# JSON 형식으로 모든 변수 출력
+commit-checker semver -o json
+
+# dot-env 형식 출력
+commit-checker semver -o dot-env
+
+# 단일 변수 출력
+commit-checker semver -v MajorMinorPatch
+commit-checker semver -v FullSemVer
+commit-checker semver -v BranchName
+
+# 다른 경로의 저장소 지정
+commit-checker semver /path/to/repo
+```
+
+**출력 형식 (`-o`)**
+
+| 값 | 설명 |
+|---|---|
+| `semver` (기본) | SemVer 문자열 (예: `1.2.3-alpha.4`) |
+| `full-semver` | FullSemVer 문자열 (예: `1.2.3-alpha.4+10`) |
+| `json` | GitVersion 호환 JSON (모든 변수 포함) |
+| `dot-env` | `.env` 형식 (CI/CD 환경 변수 주입용) |
+
+**GitVersion 설정 내장 (`semver.gitversion`)**
+
+`.commit-checker.yml`에 GitVersion 설정을 직접 내장할 수 있습니다.
+내장 설정이 있으면 프로젝트 루트의 `GitVersion.yml` 자동 탐색보다 우선합니다.
+
+```yaml
+semver:
+  gitversion:
+    workflow: GitHubFlow/v1
+    next-version: 1.0.0
+    tag-prefix: "v"
+    branches:
+      main:
+        regex: ^main$
+        label: ""
+      develop:
+        regex: ^develop$
+        label: alpha
+```
+
+`gitversion` 키의 형식은 [GitVersion 공식 설정](https://gitversion.net/docs/reference/configuration)과 동일합니다.
+`GitVersion.yml`을 별도로 관리하지 않고 `commit-checker` 설정 파일 하나로 버전 전략을 통합 관리할 때 유용합니다.
 
 ## 지원 언어
 

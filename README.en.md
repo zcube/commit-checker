@@ -29,6 +29,7 @@ Works with [lefthook](https://github.com/evilmartians/lefthook), husky, or any G
 | **Auto-fix** | Batch-fix unicode/encoding violations across git history |
 | **Config migration** | Auto-detect old config versions and migrate to the latest schema |
 | **Progress indicator** | Bubbletea TUI spinner (TTY-aware, plain text fallback) |
+| **Semantic version** | Calculate SemVer from Git history (GitVersion integration, inline config embedding) |
 
 ## Installation
 
@@ -461,6 +462,12 @@ cache_dir:
 
 # guide:
 #   enabled: false             # disable the remediation guide output on violations (enabled by default)
+
+# semver command settings (optional)
+# semver:
+#   gitversion:                # embed GitVersion config inline (takes priority over GitVersion.yml)
+#     workflow: GitHubFlow/v1
+#     next-version: 1.0.0
 ```
 
 Defaults apply when the config file is absent.
@@ -714,6 +721,7 @@ commit-checker fix           Auto-fix git history (supports --dry-run)
 commit-checker migrate       Migrate config file to the latest schema
 commit-checker analyze       Analyze repository (language detection, lint config check)
 commit-checker clean         Remove untracked files inside cache/build directories
+commit-checker semver        Calculate semantic version from Git history
 commit-checker version       Print version info
 ```
 
@@ -824,6 +832,64 @@ commit-checker analyze
 
 Detects development languages and warns when lint config files (`.golangci.yml`, `.eslintrc.*`, `pyproject.toml`, etc.)
 are missing. Also checks for `.editorconfig`, `.gitattributes`, `.gitignore`.
+
+### semver command
+
+Calculate a semantic version from Git history using [GitVersion](https://gitversion.net/) configuration.
+
+```bash
+# Print SemVer for the current directory (default)
+commit-checker semver
+
+# Full SemVer (pre-release + build metadata)
+commit-checker semver -o full-semver
+
+# All variables as JSON
+commit-checker semver -o json
+
+# dot-env format for CI/CD environment variable injection
+commit-checker semver -o dot-env
+
+# Print a single variable
+commit-checker semver -v MajorMinorPatch
+commit-checker semver -v FullSemVer
+commit-checker semver -v BranchName
+
+# Specify a different repository path
+commit-checker semver /path/to/repo
+```
+
+**Output formats (`-o`)**
+
+| Value | Description |
+|---|---|
+| `semver` (default) | SemVer string (e.g. `1.2.3-alpha.4`) |
+| `full-semver` | FullSemVer string (e.g. `1.2.3-alpha.4+10`) |
+| `json` | GitVersion-compatible JSON (all variables) |
+| `dot-env` | `.env` format for CI/CD environment variable injection |
+
+**Inline GitVersion config (`semver.gitversion`)**
+
+GitVersion configuration can be embedded directly in `.commit-checker.yml`.
+When present, the inline config takes priority over an auto-discovered `GitVersion.yml` in the repository root.
+
+```yaml
+semver:
+  gitversion:
+    workflow: GitHubFlow/v1
+    next-version: 1.0.0
+    tag-prefix: "v"
+    branches:
+      main:
+        regex: ^main$
+        label: ""
+      develop:
+        regex: ^develop$
+        label: alpha
+```
+
+The `gitversion` key uses the same format as the [GitVersion configuration reference](https://gitversion.net/docs/reference/configuration).
+This lets you manage your versioning strategy in a single `commit-checker` config file without a separate `GitVersion.yml`.
 
 ## Supported Languages
 

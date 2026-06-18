@@ -52,6 +52,7 @@ type Config struct {
 	AppendOnly      AppendOnlyConfig      `yaml:"append_only"`
 	CacheDir        CacheDirConfig        `yaml:"cache_dir"`
 	Guide           GuideConfig           `yaml:"guide"`
+	Semver          SemverConfig          `yaml:"semver"`
 }
 
 // Load: 주어진 YAML 파일에서 설정을 읽음.

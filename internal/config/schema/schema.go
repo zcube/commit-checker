@@ -50,6 +50,11 @@ type PresetConfig struct {
 //
 // 단, strict 파싱에서는 unknown 필드를 거부하므로 v1.2.0 스키마는 새 이름만 허용합니다.
 // 구 필드 사용 시에는 DetectVersion 이 v1.1.0 으로 판정하고 Migrate 가 자동 변환합니다.
+// SemverConfig: semver 명령 설정 (strict 파싱용).
+type SemverConfig struct {
+	Gitversion map[string]interface{} `yaml:"gitversion,omitempty"`
+}
+
 type ConfigCurrent struct {
 	Preset          PresetConfig                 `yaml:"preset"`
 	CommentLanguage CommentLanguageConfigCurrent `yaml:"comment_language"`
@@ -59,6 +64,7 @@ type ConfigCurrent struct {
 	Encoding        EncodingConfigCurrent        `yaml:"encoding"`
 	EditorConfig    EditorConfigConfig           `yaml:"editorconfig"`
 	Exceptions      ExceptionsConfig             `yaml:"exceptions"`
+	Semver          SemverConfig                 `yaml:"semver"`
 }
 
 // CommentLanguageConfigCurrent: v1.2.0+ 주석 언어 검사 설정.

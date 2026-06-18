@@ -715,6 +715,17 @@
           "default": true
         }
       }
+    },
+    "semver": {
+      "description": "semver 명령 설정. Git 히스토리로부터 시맨틱 버전을 계산합니다.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gitversion": {
+          "description": "GitVersion 설정을 commit-checker 설정에 직접 내장합니다.\n이 값이 있으면 GitVersion.yml 파일 자동 탐색보다 우선합니다.\nGitVersion.yml 과 동일한 형식을 사용합니다.\n예: workflow: GitHubFlow/v1 / next-version: 1.0.0",
+          "type": "object"
+        }
+      }
     }
   },
 
