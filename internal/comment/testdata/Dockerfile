@@ -13,7 +13,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server
 
 # 실행 스테이지: 최소 이미지로 운영 환경을 구성합니다
-FROM alpine:3.23
+FROM alpine:3.24
 
 # 타임존과 인증서를 설치합니다
 RUN apk add --no-cache tzdata ca-certificates
