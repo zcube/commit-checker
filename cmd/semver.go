@@ -12,8 +12,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var semverShowVariable string
-var semverOutput string
+var (
+	semverShowVariable      string
+	semverOutput            string
+	semverNextVersion       string
+	semverBranch            string
+	semverNoCache           bool
+	semverUpdateBuildNumber bool
+)
 
 var semverCmd = &cobra.Command{
 	Use:           "semver [path]",
@@ -29,7 +35,11 @@ var semverCmd = &cobra.Command{
 			target = abs
 		}
 
-		opts := gitversion.Options{Path: target}
+		opts := gitversion.Options{
+			Path:    target,
+			Branch:  semverBranch,
+			NoCache: semverNoCache,
+		}
 
 		// commit-checker 설정에서 semver.gitversion 내장 설정 확인.
 		// 내장 설정이 있으면 GitVersion.yml 자동 탐색보다 우선합니다.
@@ -39,6 +49,11 @@ var semverCmd = &cobra.Command{
 					opts.ConfigYAML = yamlBytes
 				}
 			}
+		}
+
+		// --next-version 은 모든 설정보다 우선 적용합니다.
+		if semverNextVersion != "" {
+			opts.Overrides = append(opts.Overrides, "next-version="+semverNextVersion)
 		}
 
 		vars, err := gitversion.Calculate(opts)
@@ -66,6 +81,16 @@ var semverCmd = &cobra.Command{
 			fmt.Print(vars.ToDotEnv())
 		case "full-semver", "fullsemver":
 			fmt.Println(vars.FullSemVer)
+		case "build-server", "buildserver":
+			lines, detected := gitversion.BuildServerOutput(vars, semverUpdateBuildNumber)
+			if !detected {
+				// CI 환경이 아니면 dot-env 로 폴백합니다.
+				fmt.Print(vars.ToDotEnv())
+			} else {
+				for _, l := range lines {
+					fmt.Println(l)
+				}
+			}
 		default:
 			fmt.Println(vars.SemVer)
 		}
@@ -76,7 +101,12 @@ var semverCmd = &cobra.Command{
 func init() {
 	semverCmd.Short = i18n.T("cmd.semver.short", nil)
 	semverCmd.Long = i18n.T("cmd.semver.long", nil)
-	semverCmd.Flags().StringVarP(&semverShowVariable, "show-variable", "v", "", "단일 변수만 출력 (예: -v FullSemVer)")
-	semverCmd.Flags().StringVarP(&semverOutput, "output", "o", "semver", "출력 형식: semver (기본), full-semver, json, dot-env")
+	f := semverCmd.Flags()
+	f.StringVarP(&semverShowVariable, "show-variable", "v", "", "단일 변수만 출력 (예: -v FullSemVer)")
+	f.StringVarP(&semverOutput, "output", "o", "semver", "출력 형식: semver (기본), full-semver, json, dot-env, build-server")
+	f.StringVarP(&semverNextVersion, "next-version", "n", "", "next-version 오버라이드 (예: -n 2.0.0)")
+	f.StringVarP(&semverBranch, "branch", "b", "", "버전을 계산할 브랜치 오버라이드")
+	f.BoolVar(&semverNoCache, "no-cache", false, "디스크 캐시 비활성화")
+	f.BoolVar(&semverUpdateBuildNumber, "update-build-number", true, "build-server 출력에 빌드번호 갱신 명령 포함")
 	rootCmd.AddCommand(semverCmd)
 }
