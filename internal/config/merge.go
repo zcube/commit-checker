@@ -43,6 +43,28 @@ func mergeConfigs(base, overlay *Config) Config {
 	mergeBoolPtr(&result.CommitMessage.NoEmoji, base.CommitMessage.NoEmoji)
 	mergeString(&result.CommitMessage.Locale, base.CommitMessage.Locale)
 	result.CommitMessage.CoauthorRemoveEmails = append(base.CommitMessage.CoauthorRemoveEmails, result.CommitMessage.CoauthorRemoveEmails...)
+	mergeBoolPtr(&result.CommitMessage.LanguageCheck.Enabled, base.CommitMessage.LanguageCheck.Enabled)
+	mergeString(&result.CommitMessage.LanguageCheck.Locale, base.CommitMessage.LanguageCheck.Locale)
+	mergeString(&result.CommitMessage.LanguageCheck.RequiredLanguage, base.CommitMessage.LanguageCheck.RequiredLanguage)
+	mergeInt(&result.CommitMessage.LanguageCheck.MinLength, base.CommitMessage.LanguageCheck.MinLength)
+	if len(result.CommitMessage.LanguageCheck.SkipPrefixes) == 0 {
+		result.CommitMessage.LanguageCheck.SkipPrefixes = base.CommitMessage.LanguageCheck.SkipPrefixes
+	}
+	mergeBoolPtr(&result.CommitMessage.ConventionalCommit.Enabled, base.CommitMessage.ConventionalCommit.Enabled)
+	mergeBoolPtr(&result.CommitMessage.ConventionalCommit.RequireScope, base.CommitMessage.ConventionalCommit.RequireScope)
+	mergeBoolPtr(&result.CommitMessage.ConventionalCommit.AllowMergeCommits, base.CommitMessage.ConventionalCommit.AllowMergeCommits)
+	mergeBoolPtr(&result.CommitMessage.ConventionalCommit.AllowRevertCommits, base.CommitMessage.ConventionalCommit.AllowRevertCommits)
+	mergeString(&result.CommitMessage.ConventionalCommit.Locale, base.CommitMessage.ConventionalCommit.Locale)
+	if len(result.CommitMessage.ConventionalCommit.Types) == 0 {
+		result.CommitMessage.ConventionalCommit.Types = base.CommitMessage.ConventionalCommit.Types
+	}
+	if len(result.CommitMessage.ConventionalCommit.TypeAliases) == 0 {
+		result.CommitMessage.ConventionalCommit.TypeAliases = base.CommitMessage.ConventionalCommit.TypeAliases
+	}
+	mergeBoolPtr(&result.CommitMessage.SubjectLimit.Enabled, base.CommitMessage.SubjectLimit.Enabled)
+	mergeInt(&result.CommitMessage.SubjectLimit.MaxLength, base.CommitMessage.SubjectLimit.MaxLength)
+	mergeBoolPtr(&result.CommitMessage.BodyLineLimit.Enabled, base.CommitMessage.BodyLineLimit.Enabled)
+	mergeInt(&result.CommitMessage.BodyLineLimit.MaxLength, base.CommitMessage.BodyLineLimit.MaxLength)
 
 	// 바이너리 파일 설정 병합
 	mergeBoolPtr(&result.BinaryFile.Enabled, base.BinaryFile.Enabled)

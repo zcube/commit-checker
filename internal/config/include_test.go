@@ -368,6 +368,14 @@ comment_language:
   locale: en
   allowed_words:
     - WorkWord
+commit_message:
+  locale: ko
+  conventional_commit:
+    enabled: true
+    locale: en
+  language_check:
+    enabled: true
+    locale: ko
 `)
 	// 전역 설정: 무조건 include + gitdir 조건 include
 	writeFileAt(t, filepath.Join(cfgDir, "config.yml"), `
@@ -403,6 +411,18 @@ include:
 	}
 	if !words["BaseWord"] || !words["WorkWord"] {
 		t.Errorf("work 리포는 base+work allowed_words 가 모두 병합되어야 함: %v", cfg.CommentLanguage.AllowedWords)
+	}
+	if !cfg.CommitMessage.ConventionalCommit.IsEnabled() {
+		t.Error("work 리포는 work.yml 의 conventional_commit.enabled 가 적용되어야 함")
+	}
+	if cfg.CommitMessage.ConventionalCommit.Locale != "en" {
+		t.Errorf("work 리포는 work.yml 의 conventional_commit.locale 이 적용되어야 함: got %q", cfg.CommitMessage.ConventionalCommit.Locale)
+	}
+	if !cfg.CommitMessage.LanguageCheck.IsEnabled() {
+		t.Error("work 리포는 work.yml 의 language_check.enabled 가 적용되어야 함")
+	}
+	if cfg.CommitMessage.LanguageCheck.GetLocale() != "korean" {
+		t.Errorf("work 리포는 work.yml 의 language_check.locale 이 적용되어야 함: got %q", cfg.CommitMessage.LanguageCheck.GetLocale())
 	}
 
 	// 일반 리포: base 정책만 적용 (work.yml 비매칭)
