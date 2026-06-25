@@ -446,4 +446,4 @@ guide.protected_paths:
 guide.append_only:
   other: "append-only パスの既存内容への変更を元に戻してください。新しい内容はファイル末尾に追加するか、既存ファイルより後にソートされる名前の新規ファイルとして追加してください。"
 guide.commit_message:
-  other: "コミットメッセージをポリシーに合わせて書き直し、git commit --amend で修正してください。AI co-author トレーラーと不可視文字は 'commit-checker msg --fix <メッセージファイル>' で自動削除できます。"
+  other: "コミットメッセージをポリシーに合わせて書き直してください。AI co-author トレーラーと不可視文字は 'commit-checker msg --fix <メッセージファイル>' で自動削除できます。"

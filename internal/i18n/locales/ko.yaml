@@ -446,4 +446,4 @@ guide.protected_paths:
 guide.append_only:
   other: "append-only 경로의 기존 내용 변경을 되돌리세요. 새 내용은 파일 끝에 추가하거나, 기존 파일들보다 뒤에 정렬되는 이름의 새 파일로 추가하세요."
 guide.commit_message:
-  other: "커밋 메시지를 정책에 맞게 다시 작성한 뒤 git commit --amend 로 수정하세요. AI co-author trailer와 보이지 않는 문자는 'commit-checker msg --fix <메시지파일>' 로 자동 제거할 수 있습니다."
+  other: "커밋 메시지를 정책에 맞게 다시 작성하세요. AI co-author trailer와 보이지 않는 문자는 'commit-checker msg --fix <메시지파일>' 로 자동 제거할 수 있습니다."

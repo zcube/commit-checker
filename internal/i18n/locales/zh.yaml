@@ -443,4 +443,4 @@ guide.protected_paths:
 guide.append_only:
   other: "撤销对 append-only 路径中现有内容的更改。新内容请追加到文件末尾，或放入名称排序在现有文件之后的新文件中。"
 guide.commit_message:
-  other: "请按照策略重写提交信息，然后使用 git commit --amend 修改。AI co-author trailer 和不可见字符可通过 'commit-checker msg --fix <消息文件>' 自动移除。"
+  other: "请按照策略重写提交信息。AI co-author trailer 和不可见字符可通过 'commit-checker msg --fix <消息文件>' 自动移除。"

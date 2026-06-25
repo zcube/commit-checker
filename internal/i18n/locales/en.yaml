@@ -446,4 +446,4 @@ guide.protected_paths:
 guide.append_only:
   other: "Revert changes to existing content in append-only paths. Add new content at the end of the file, or in a new file whose name sorts after the existing files."
 guide.commit_message:
-  other: "Rewrite the commit message to comply with the policy and apply it with git commit --amend. AI co-author trailers and invisible characters can be removed automatically with 'commit-checker msg --fix <message-file>'."
+  other: "Rewrite the commit message to comply with the policy. AI co-author trailers and invisible characters can be removed automatically with 'commit-checker msg --fix <message-file>'."
