@@ -164,6 +164,15 @@ func IsRequiredLanguage(text, required Language, minLetters int, extraSkip []str
 		return true, true
 	}
 
+	// english 는 코드 식별자·conventional commit 접두사 등으로 라틴 문자가
+	// 거의 항상 포함되므로 포함 여부만으로는 판별할 수 없습니다.
+	// 대신 CJK 문자가 하나라도 있으면 english 요건 위반으로 처리합니다.
+	if required == English {
+		if hasScript(text, Korean) || hasScript(text, Japanese) || hasScript(text, Chinese) {
+			return false, true
+		}
+	}
+
 	// 혼합 언어 주석은 필수 언어가 포함되어 있으면 허용합니다.
 	// 예: "// 변수 name을 설정합니다" 는 required=korean 일 때 통과.
 	if hasScript(text, required) {

@@ -52,6 +52,15 @@ func TestIsRequiredLanguage_English(t *testing.T) {
 	if ok2 {
 		t.Error("Korean text should fail english requirement")
 	}
+	// 라틴 접두사가 섞여도 CJK 가 포함되면 english 요건 위반이어야 합니다.
+	ok3, _ := langdetect.IsRequiredLanguage("feat: 한글 메시지 테스트", langdetect.English, 5, nil)
+	if ok3 {
+		t.Error("mixed latin+Korean text should fail english requirement")
+	}
+	ok4, _ := langdetect.IsRequiredLanguage("feat: add user login flow", langdetect.English, 5, nil)
+	if !ok4 {
+		t.Error("pure english conventional commit should pass english requirement")
+	}
 }
 
 func TestIsRequiredLanguage_Japanese(t *testing.T) {
