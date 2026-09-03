@@ -73,3 +73,44 @@ jobs:
         run: go install github.com/securego/gosec/v2/cmd/gosec@v2.27.1
       - name: Run gosec
         run: gosec -exclude=G304,G204,G306 -exclude-dir=internal/comment/testdata ./...
+
+  docker:
+    name: Docker 이미지
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: QEMU 설치
+        uses: docker/setup-qemu-action@v4
+
+      - name: Docker Buildx 설치
+        uses: docker/setup-buildx-action@v4
+
+      - name: 현재 플랫폼 이미지 빌드
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: commit-checker:ci
+          cache-from: type=gha
+
+      - name: Docker 런타임 테스트
+        run: |
+          docker run --rm commit-checker:ci version
+          docker run --rm --entrypoint git commit-checker:ci lfs version
+          docker run --rm \
+            -v "$PWD:/repo" \
+            commit-checker:ci diff
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$PWD:/repo" \
+            commit-checker:ci diff
+
+      - name: 멀티플랫폼 빌드 확인
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

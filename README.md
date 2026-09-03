@@ -70,12 +70,78 @@ sudo mv commit-checker /usr/local/bin/
 docker pull ghcr.io/zcube/commit-checker:latest
 
 # staged diff 검사
-docker run --rm -v "$(pwd):/repo" -w /repo ghcr.io/zcube/commit-checker diff
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v "$(pwd):/repo" ghcr.io/zcube/commit-checker:latest diff
 
 # 커밋 메시지 검사
-docker run --rm -v "$(pwd):/repo" -w /repo \
-  ghcr.io/zcube/commit-checker msg /repo/.git/COMMIT_EDITMSG
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v "$(pwd):/repo" ghcr.io/zcube/commit-checker:latest \
+  msg /repo/.git/COMMIT_EDITMSG
 ```
+
+이미지는 Git LFS를 포함하며 `linux/amd64`, `linux/arm64` 멀티플랫폼으로 배포됩니다. `--user "$(id -u):$(id -g)"`는 `fix`, `init`, `prepare-msg` 등이 마운트된 파일을 수정할 때 호스트 소유권을 유지하며, Linux/macOS 쉘에서 사용할 수 있습니다. 이미지의 기본 작업 디렉터리는 `/repo`입니다.
+
+### Docker로 Git 훅 연동
+
+Docker만으로 실행하려면 매 훅에서 리포지터리를 `/repo`로 마운트합니다. 일반적인 `.git` 디렉터리 형태의 리포지터리를 기준으로 합니다.
+
+#### lefthook
+
+`lefthook.yml`:
+
+```yaml
+pre-commit:
+  commands:
+    commit-checker:
+      run: >-
+        docker run --rm --user "$(id -u):$(id -g)"
+        -v "$PWD:/repo" ghcr.io/zcube/commit-checker:latest diff
+
+commit-msg:
+  commands:
+    message-policy:
+      run: >-
+        docker run --rm --user "$(id -u):$(id -g)"
+        -v "$PWD:/repo" ghcr.io/zcube/commit-checker:latest msg {1}
+
+prepare-commit-msg:
+  commands:
+    policy-hint:
+      run: >-
+        docker run --rm --user "$(id -u):$(id -g)"
+        -v "$PWD:/repo" ghcr.io/zcube/commit-checker:latest prepare-msg {0}
+
+pre-push:
+  commands:
+    check-commits:
+      run: >-
+        docker run --rm -i --user "$(id -u):$(id -g)"
+        -v "$PWD:/repo" ghcr.io/zcube/commit-checker:latest push
+```
+
+`pre-push`는 Git이 전달하는 ref 정보를 컨테이너 표준 입력으로 넘기기 위해 `-i`가 필요합니다.
+
+#### Git 2.54+ 설정 기반 훅
+
+```bash
+DOCKER_CC='docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" ghcr.io/zcube/commit-checker:latest'
+
+git config set hook.commit-checker-docker-diff.command "$DOCKER_CC diff"
+git config set --append hook.commit-checker-docker-diff.event pre-commit
+
+git config set hook.commit-checker-docker-msg.command "$DOCKER_CC msg"
+git config set --append hook.commit-checker-docker-msg.event commit-msg
+
+git config set hook.commit-checker-docker-prepare.command "$DOCKER_CC prepare-msg"
+git config set --append hook.commit-checker-docker-prepare.event prepare-commit-msg
+
+# pre-push는 표준 입력 전달을 위해 --rm 뒤에 -i를 추가한 명령을 사용합니다.
+git config set hook.commit-checker-docker-push.command \
+  'docker run --rm -i --user "$(id -u):$(id -g)" -v "$PWD:/repo" ghcr.io/zcube/commit-checker:latest push'
+git config set --append hook.commit-checker-docker-push.event pre-push
+```
+
+Git이 `commit-msg`, `prepare-commit-msg` 훅에 넘기는 인자는 저장된 명령 뒤에 자동으로 전달됩니다. `git worktree`처럼 `.git`이 리포 밖을 가리키는 구성은 common Git directory를 추가로 마운트해야 합니다.
 
 ## Git 훅 연동 (lefthook)
 

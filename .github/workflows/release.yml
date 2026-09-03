@@ -251,17 +251,10 @@ jobs:
           git commit -m "Update commit-checker to ${{ github.ref_name }}"
           git push
 
-  # ---- 4. Docker 이미지 빌드 & GHCR push ----------------------------
+  # ---- 4. 멀티플랫폼 Docker 이미지 빌드 & GHCR push -----------------
   docker:
-    name: Docker (${{ matrix.platform }})
+    name: Docker (linux/amd64, linux/arm64)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - platform: linux/amd64
-            artifact-suffix: amd64
-          - platform: linux/arm64
-            artifact-suffix: arm64
 
     steps:
       - uses: actions/checkout@v6
@@ -284,67 +277,30 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
+          flavor: latest=false
           tags: |
-            type=semver,pattern={{version}},suffix=-${{ matrix.artifact-suffix }}
-            type=semver,pattern={{major}}.{{minor}},suffix=-${{ matrix.artifact-suffix }}
-            type=raw,value=latest,suffix=-${{ matrix.artifact-suffix }},enable={{is_default_branch}}
+            type=raw,value=${{ github.ref_name }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+
+      - name: 빌드 정보 생성
+        id: build-info
+        run: echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Docker 빌드 & Push
         uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ github.ref_name }}
             COMMIT=${{ github.sha }}
-            BUILD_TIME=${{ github.event.head_commit.timestamp }}
-          cache-from: type=gha,scope=${{ matrix.artifact-suffix }}
-          cache-to: type=gha,scope=${{ matrix.artifact-suffix }},mode=max
-
-  # ---- 5. 멀티아키 Docker manifest 생성 ----------------------------
-  docker-manifest:
-    name: Docker Manifest
-    needs: docker
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: GHCR 로그인
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker Buildx 설치
-        uses: docker/setup-buildx-action@v4
-
-      - name: 버전 태그 manifest 생성
-        run: |
-          VERSION="${{ github.ref_name }}"
-          # v1.2.3 → 1.2.3 (metadata-action 은 v 접두사 없이 태그 생성)
-          SEMVER="${VERSION#v}"
-          MAJOR_MINOR="${SEMVER%.*}"
-
-          docker buildx imagetools create \
-            -t ${{ env.IMAGE }}:${SEMVER} \
-            ${{ env.IMAGE }}:${SEMVER}-amd64 \
-            ${{ env.IMAGE }}:${SEMVER}-arm64
-
-          docker buildx imagetools create \
-            -t ${{ env.IMAGE }}:${MAJOR_MINOR} \
-            ${{ env.IMAGE }}:${SEMVER}-amd64 \
-            ${{ env.IMAGE }}:${SEMVER}-arm64
-
-      - name: latest manifest 생성 (정식 릴리즈만)
-        if: ${{ !contains(github.ref_name, '-') }}
-        run: |
-          SEMVER="${{ github.ref_name }}"
-          SEMVER="${SEMVER#v}"
-          docker buildx imagetools create \
-            -t ${{ env.IMAGE }}:latest \
-            ${{ env.IMAGE }}:${SEMVER}-amd64 \
-            ${{ env.IMAGE }}:${SEMVER}-arm64
+            BUILD_TIME=${{ steps.build-info.outputs.time }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
